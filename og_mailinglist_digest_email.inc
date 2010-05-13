@@ -7,7 +7,7 @@ define("DISCUSSION_HEADER", 'background-color: #D1DCFF; font-family: helvetica;
 define("MESSAGE_HEADER", 'background-color: #E6ECFF; font-family: helvetica;
        border-top: 1px solid #262c40; padding: 2px');
 define("DIGEST_TIME_PERIOD", 86400); // One day currently.
-// TODO -- make email from list address + add add list-ids so email client filters still work
+// TODO -- make email from list address + add add list-ids so email client filters still work + add subject prefix e.g. [isys]
 
 function _og_mailinglist_send_digest_emails() {
   // Get list of groups where at least one person has subscribed to a digest node
@@ -82,12 +82,11 @@ function _og_mailinglist_send_digest_emails() {
       $message_count += og_mailinglist_count_new_messages($nid);
     }
 
-    $purl_id = db_result(db_query("SELECT value
-                                        FROM {purl}
-                                        WHERE provider = 'spaces_og'
-                                        AND id = %d", $gid));
+    $group_email = db_result(db_query("SELECT group_email
+                                        FROM {og_mailinglist}
+                                        AND nid = %d", $gid));
 
-    $subject = "Digest for " . $purl_id . "@" . variable_get("og_mailinglist_server_string", "example.com")
+    $subject = "Digest for " . group_email . "@" . variable_get("og_mailinglist_server_string", "example.com")
           . " - " . $message_count . " Messages in " . count($nids) . " Discussions";
 
     // Assemble message
@@ -132,7 +131,7 @@ function _og_mailinglist_send_digest_emails() {
               variable_get("og_mailinglist_server_string", "example.com") . "<br />";
     $body .= "To unsubscribe to this group, visit " .
               url("og_mailinglist/subscriptions", array("absolute" => true)) . "<br />";
-    $body .= "To post a new message to this group, email " . $purl_id . "@" .
+    $body .= "To post a new message to this group, email " . $group_email . "@" .
       variable_get("og_mailinglist_server_string", "example.com") . "<br />";
 
     // For each person, send out an email.
@@ -157,7 +156,7 @@ function _og_mailinglist_send_digest_emails() {
     foreach ($uids as $email) {
       $mailer = og_mailinglist_create_mailer();
       $mailer->From = "no_reply@" . variable_get("og_mailinglist_server_string", "example.com");
-      $mailer->FromName = $purl_id . "@" .
+      $mailer->FromName = $group_email . "@" .
       variable_get("og_mailinglist_server_string", "example.com");
       $mailer->AddAddress($email);
       $mailer->Subject = $subject;
