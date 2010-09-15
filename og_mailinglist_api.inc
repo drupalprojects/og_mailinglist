@@ -89,8 +89,10 @@ function og_mailinglist_check_user_subscribed_to_thread($nid, $uid) {
  */
 function og_mailinglist_save_thread_subscriptions($nid, $uids) {
   foreach ($uids as $uid) {
+    if ($uid != 0) { // Ignore anonymous users.
     db_query("INSERT INTO {og_mailinglist_thread}
              VALUES (%d, %d)", $nid, $uid);
+    }
   }
 }
 
@@ -121,7 +123,7 @@ function og_mailinglist_update_group_subcription_type($gid, $uid, $subscription_
 function og_mailinglist_save_group_subscriptions($gid, $uids) {
   foreach ($uids as $uid) {
     db_query("INSERT INTO {og_mailinglist_subscription}
-             VALUES (%d, %d, 'email')", $gid, $uid);
+             VALUES (%d, %d, '%s')", $gid, $uid, variable_get('og_mailinglist_default_group_subscription_type', 'email'));
   }
 }
 
@@ -186,7 +188,7 @@ function og_mailinglist_log_email_sent($source, $nid, $cid = 0, $message_id = 0,
  */
 function og_mailinglist_create_mailer() {
   og_mailinglist_phpmailer_load_library();
-  $mailer = new PHPMailer();
+  $mailer = new PHPMailer(TRUE); // The TRUE param means it will throw exceptions on errors, which we need to catch.
   $mailer->CharSet = 'UTF-8';
 
   return $mailer;
@@ -196,12 +198,20 @@ function og_mailinglist_create_mailer() {
  * Save group information upon group creation and update.
  */
 function og_mailinglist_save_group($nid, $group_email) {
+  $update = db_result(db_query("SELECT nid
+                                FROM {og_mailinglist}
+                                WHERE nid = %d", $nid));
   $data = array(
       'nid' => $nid,
       'group_email' => $group_email,
   );
 
-  drupal_write_record('og_mailinglist', $data);
+  if ($update) {
+    drupal_write_record('og_mailinglist', $data, 'nid');
+  }
+  else {
+    drupal_write_record('og_mailinglist', $data);
+  }
 }
 
 /*
@@ -218,6 +228,9 @@ function og_mailinglist_delete_group($nid) {
 }
 
 function _og_mailinglist_get_thread_parent_messageid($in_reply_to_message_id) {
+  if (empty($in_reply_to_message_id)) {
+    return;
+  }
   $parent_message_id = db_result(db_query("SELECT parent_message_id
                               FROM {og_mailinglist_source}
                               WHERE message_id = '%s'", $in_reply_to_message_id));
@@ -228,7 +241,7 @@ function _og_mailinglist_get_thread_parent_messageid($in_reply_to_message_id) {
   else {
     return db_result(db_query("SELECT parent_message_id
                                 FROM {og_mailinglist_source}
-                                WHERE references LIKE '%%%s%'", $in_reply_to_message_id));
+                                WHERE references_header LIKE '%%%s%'", $in_reply_to_message_id));
   }
 }
 

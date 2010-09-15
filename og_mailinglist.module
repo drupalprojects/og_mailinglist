@@ -13,6 +13,15 @@
 ###   Maintained since by Kyle Mathews
 ###
 
+/**
+ * @name OG Mailinglist build modes.
+ * @{
+ */
+define('OG_MAILINGLIST_BUILD_FULL', 'og_mailinglist full');
+/**
+ * @} End of "Node as block build modes".
+*/
+
 require_once("og_mailinglist_phpmailer.inc");
 require_once('og_mailinglist_api.inc');
 og_mailinglist_phpmailer_load_library();
@@ -23,9 +32,9 @@ og_mailinglist_phpmailer_load_library();
  */
 function og_mailinglist_menu() {
   # Administration
-  $items['admin/settings/og_mailinglist'] = array(
+  $items['admin/og/og_mailinglist'] = array(
     'title' => 'OG Mailinglist',
-    'description' => t('Configure discussions/comments generated from email'),
+    'description' => t('Configure posts/comments generated from email'),
     'page callback' => 'drupal_get_form',
     'page arguments' => array('og_mailinglist_admin_settings'),
     'access arguments' => array('access administration pages'),
@@ -38,7 +47,7 @@ function og_mailinglist_menu() {
     'access arguments' => array('manage og_mailinglist subscriptions'),
   );
   $items['og_mailinglist/unsubscribe/%node'] = array(
-    'title' => t('Unsubscribe from discussion'),
+    'title' => t('Unsubscribe from post'),
     'description' => t('Users who hit this page will not get more emails for
                        comments on the node.'),
     'page callback' => 'og_mailinglist_unsubscribe_thread',
@@ -46,13 +55,20 @@ function og_mailinglist_menu() {
     'access arguments' => array('manage og_mailinglist subscriptions'),
   );
   $items['og_mailinglist/subscribe/%node'] = array(
-    'title' => t('Subscribe to discussion'),
+    'title' => t('Subscribe to post'),
     'description' => t('Users who hit this page will not get more emails for
                        comments on the node.'),
     'page callback' => 'og_mailinglist_subscribe_thread',
     'page arguments' => array(2),
     'access arguments' => array('manage og_mailinglist subscriptions'),
   );
+  $items['og_mailinglist'] = array(
+  'page callback' => 'og_mailinglist_post',
+  'access callback' => TRUE,
+  'type' => MENU_CALLBACK,
+  'file' => 'og_mailinglist_transport.inc',
+  );
+
   return $items;
 }
 
@@ -116,6 +132,26 @@ function og_mailinglist_admin_settings() {
     '#default_value' => variable_get('og_mailinglist_exclude_content_types', 'group'),
     '#options' => $n_types,
     '#description' => t('Do not send emails on creation of these content types.'),
+  );
+  $form['og_mailinglist_default_group_subscription_type'] = array(
+    '#title' => t('Default group email subscription type'),
+    '#type' => 'select',
+    '#default_value' => variable_get('og_mailinglist_default_group_subscription_type', 'email'),
+    '#options' => array('email' => 'email', 'no email' => 'no email', 'digest email' => 'digest email'),
+    '#description' => t('Choose the default email subscription for users joining a new group. "Email" means the user will receive an email for each new post. "No email" means the user will recieve no emails except for discussion threads they participate in. "Digest" is the same as "no email" except the user will also receive digest emails. (Users can change this later at http://yoursite.com/og_mailinglist/subscriptions)'),
+  );
+  
+  // Save an incoming key by default.
+  if ((variable_get('og_mailinglist_incoming_key', '')) == '') {
+    variable_set('og_mailinglist_incoming_key',  md5(rand()));
+  }
+
+  $form['og_mailinglist_incoming_key'] = array(
+  '#type'          => 'textfield',
+  '#title'         => t('Message validation string'),
+  '#default_value' => variable_get('og_mailinglist_incoming_key', md5(rand())),
+  '#required' => TRUE,
+  '#description' => t('This string will be used to validate incoming messages.  It can be anything, but must be used on both sides of the transfer. For more see the INSTALL.txt for your Mail Transfer Agent.'),
   );
   $form['og_mailinglist_test_email_address'] = array(
     '#title' => t('DEBUGGING: Send an email for all events to a user account'),
@@ -199,7 +235,7 @@ function og_mailinglist_unsubscribe_thread($node) {
   
   if ($success) {
     return "<div class='messages success'>You were successfully unsubscribed from
-    the discussion <em>" . l($node->title, "node/" . $node->nid) . " </em>&nbsp;&nbsp; 
+    the post <em>" . l($node->title, "node/" . $node->nid) . " </em>&nbsp;&nbsp; 
      " . l("Undo", "og_mailinglist/subscribe/" . $node->nid, array("attributes" => array("id" => "og_mailinglist_undo")))
            . "</div>";
   }
@@ -210,7 +246,7 @@ function og_mailinglist_subscribe_thread($node) {
   og_mailinglist_save_thread_subscriptions($node->nid, array($user->uid));
   
   return "<div class='messages success'>You were successfully subscribed to
-    the discussion <em>" . l($node->title, "node/" . $node->nid) . " </em>&nbsp;&nbsp; 
+    the post <em>" . l($node->title, "node/" . $node->nid) . " </em>&nbsp;&nbsp; 
      " . l("Undo", "og_mailinglist/unsubscribe/" . $node->nid, array("attributes" => array("id" => "og_mailinglist_undo")))
            . "</div>";
 }

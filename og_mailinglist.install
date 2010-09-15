@@ -31,6 +31,29 @@ function og_mailinglist_uninstall() {
 }
 
 /**
+ * Implmentation of hook_requirements().
+ */
+function og_mailinglist_requirements($phase) {
+  if ($phase == "runtime") {
+    og_mailinglist_phpmailer_load_library();
+    $requirements['og_mailinglist_phpmailer']['title'] = t('PHPMailer');
+    if (class_exists('PHPMailer')) {
+      $requirements['og_mailinglist_phpmailer']['value'] = 'PHPMailer Library is installed correctly';
+      $requirements['og_mailinglist_phpmailer']['severity'] = REQUIREMENT_OK;
+    }
+    else {
+      // Required library wasn't found.
+      $requirements['og_mailinglist_phpmailer']['value'] = t('Not found');
+      // Provide a download link to the PHPMailer library.
+      $requirements['og_mailinglist_phpmailer']['description'] = t('The <a href="@phpmailer">PHPMailer</a> library is missing. <a href="@download">Download</a> and extract it to your <em>og_mailinglist</em> module directory. See the INSTALL.txt file for more information at path/to/drupal@install.', array('@phpmailer' => 'http://phpmailer.worxware.com/index.php?pg=phpmailer', '@download' => 'http://sourceforge.net/projects/phpmailer/files/phpmailer%20for%20php5_6/', '@install' => url(drupal_get_path('module', 'og_mailinglist') . '/INSTALL.txt')));
+      $requirements['og_mailinglist_phpmailer']['severity'] = REQUIREMENT_ERROR;
+    }
+  }
+
+  return $requirements;
+}
+
+/**
  * Implementation of hook_schema().
  */
 function og_mailinglist_schema() {
@@ -88,11 +111,12 @@ function og_mailinglist_schema() {
        'non null' => TRUE,
        'default' => 0,
        'length' => 255),
-     'references' => array(
+     'references_header' => array(
        'type' => 'varchar',
        'description' => 'The reference header of this post.
         If it originated from the web, this stores the references + message-id
-        of its parent.',
+        of its parent. We use the ungainly title of references_header as references appears
+        to be a reserved word for MySQL',
        'non null' => TRUE,
        'default' => 0,
        'length' => 512),
@@ -252,6 +276,22 @@ function og_mailinglist_update_6003() {
                 'non null' => TRUE,
                 'default' => 0,
                 'length' => 255));
+
+  return $ret;
+}
+
+/**
+ * Change name of field to references_header from references.
+ */
+function og_mailinglist_update_6004() {
+  $ret = array();
+
+  db_change_field($ret, 'og_mailinglist_source', 'references', 'references_header', array(
+                     'type' => 'varchar',
+                     'non null' => TRUE,
+                     'default' => 0,
+                     'length' => 512)
+  );
 
   return $ret;
 }

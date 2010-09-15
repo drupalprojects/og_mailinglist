@@ -25,9 +25,7 @@ function og_mailinglist_send_comment_email($comment, $node) {
     $in_reply_to = db_result(db_query("SELECT message_id
                                         FROM {og_mailinglist_source}
                                         WHERE cid = %d", $comment_pid));
-                                        // TODO this doesn't actually work, need to change references column name apperently as that's a reserved word in mysql? Anyways, errors out right now.
-                                        // For now, we'll just use the parent_message_id.
-    $references = db_result(db_query("SELECT parent_message_id
+    $references = db_result(db_query("SELECT references_header
                                       FROM {og_mailinglist_source}
                                       WHERE cid = %d", $comment_pid)) . " " . $in_reply_to;
   }
@@ -139,10 +137,11 @@ function og_mailinglist_send_node_email($node) {
  *  Node ID
  *
  * @return
- *  Node with rendered teaser.
+ *  Node with rendered body.
  */
 function og_mailinglist_render_node_body($node) {
   $node = (object)$node;
+  $node->build_mode = OG_MAILINGLIST_BUILD_FULL;
   $node = node_build_content($node, FALSE, TRUE);
 
   // Set the proper node part, then unset unused $node part so that a bad
