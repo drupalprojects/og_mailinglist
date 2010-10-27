@@ -257,14 +257,14 @@ function og_mailinglist_phpmailer_load_library() {
     // First, try using libraries module.
     if (module_exists('libraries')) {
       // Let's see if PHPMailer is really available from libraries.
-      $phpmailer_library = './'. libraries_get_path('PHPMailer') .'/class.phpmailer.php';
+      $phpmailer_library = './'. libraries_get_path('phpmailer') .'/class.phpmailer.php';
       if (file_exists($phpmailer_library)) {
         include_once $phpmailer_library;
       }
     }
     // If PHPMailer is not already loaded, then try from module subdirectory.
     if (!class_exists('PHPMailer')) {
-      $phpmailer_library = './'. drupal_get_path('module', 'og_mailinglist') .'/PHPMailer/class.phpmailer.php';
+      $phpmailer_library = './'. drupal_get_path('module', 'og_mailinglist') .'/phpmailer/class.phpmailer.php';
       if (file_exists($phpmailer_library)) {
         include_once $phpmailer_library;
       }
@@ -300,7 +300,7 @@ function og_mailinglist_mimeDecode_load_library() {
         }
       }
     }
-    // If PHPMailer is not already loaded, then try from module subdirectory.
+    // If Mail_mimeDecode is still not loaded, then try from module subdirectory.
     if (!class_exists('Mail_mimeDecode')) {
       $Mail_mimeDecode_library = './'. drupal_get_path('module', 'og_mailinglist') .'/mimeDecode/mimeDecode.php';
       if (file_exists($Mail_mimeDecode_library)) {
@@ -309,6 +309,6 @@ function og_mailinglist_mimeDecode_load_library() {
     }
 
   }
-  // Tell the caller if PHPMailer class exists.
+  // Tell the caller if Mail_mimeDecode class exists.
   return class_exists('Mail_mimeDecode');
 }
