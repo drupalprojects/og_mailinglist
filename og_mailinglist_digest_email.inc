@@ -1,5 +1,7 @@
 <?php
 
+require_once('og_mailinglist_utilities.inc');
+
 define("EMAIL_HEADER", 'background-color: #D1DCFF; font-family: helvetica;
        font-size: 160%; border-top: 1px solid #262c40; padding: 2px');
 define("DISCUSSION_HEADER", 'background-color: #D1DCFF; font-family: helvetica;
@@ -7,26 +9,26 @@ define("DISCUSSION_HEADER", 'background-color: #D1DCFF; font-family: helvetica;
 define("MESSAGE_HEADER", 'background-color: #E6ECFF; font-family: helvetica;
        border-top: 1px solid #262c40; padding: 2px');
 define("DIGEST_TIME_PERIOD", 86400); // One day currently.
-// TODO -- make email from list address + add add list-ids so email client filters still work + add subject prefix e.g. [isys]
+// TODO -- make email from list address
 
 function _og_mailinglist_send_digest_emails() {
   // Get list of groups where at least one person has subscribed to a digest node
   // and which had a new post or comment in the last 24 hours.
 
-  $new_nodes_sql = 'SELECT DISTINCT s.sid
+  $new_nodes_sql = 'SELECT DISTINCT s.nid
             FROM {og_mailinglist_subscription} s
             JOIN {og_ancestry} o
             JOIN {node} n
-            WHERE s.sid = o.group_nid
+            WHERE s.nid = o.group_nid
             AND o.nid = n.nid
             AND n.created > (unix_timestamp() - %d)
             AND s.subscription_type = "digest email"';
 
-  $new_comments_sql = 'SELECT DISTINCT s.sid
+  $new_comments_sql = 'SELECT DISTINCT s.nid
             FROM {og_mailinglist_subscription} s
             JOIN {og_ancestry} o
             JOIN {comments} c
-            WHERE s.sid = o.group_nid
+            WHERE s.nid = o.group_nid
             AND o.nid = c.nid
             AND c.timestamp > (unix_timestamp() - %d)
             AND s.subscription_type = "digest email"';
@@ -36,10 +38,10 @@ function _og_mailinglist_send_digest_emails() {
 
   $digest_groups = array();
   while ($data = db_fetch_array($groups_with_new_comments)) {
-    $digest_groups[$data['sid']] = $data['sid'];
+    $digest_groups[$data['nid']] = $data['nid'];
   }
   while ($data = db_fetch_array($groups_with_new_nodes)) {
-    $digest_groups[$data['sid']] = $data['sid'];
+    $digest_groups[$data['nid']] = $data['nid'];
   }
 
   //print_r($digest_groups);
@@ -84,9 +86,9 @@ function _og_mailinglist_send_digest_emails() {
 
     $group_email = db_result(db_query("SELECT group_email
                                         FROM {og_mailinglist}
-                                        AND nid = %d", $gid));
+                                        WHERE nid = %d", $gid));
 
-    $subject = "Digest for " . group_email . "@" . variable_get("og_mailinglist_server_string", "example.com")
+    $subject = "[" . $group->ogm_email . "] Digest for " . $group_email . "@" . variable_get("og_mailinglist_server_string", $_SERVER['SERVER_NAME'])
           . " - " . $message_count . " Messages in " . count($nids) . " Discussions";
 
     // Assemble message
@@ -103,7 +105,7 @@ function _og_mailinglist_send_digest_emails() {
     $body .= "</ul>\n";
     $body .= "<hr />\n";
 
-    // Add individual discussions
+    // Add individual posts. 
     foreach ($nids as $nid) {
       $body .= '<a name="digest-' . $nid['node_obj']->nid . '"></a>';
       $body .= '<div style="' . DISCUSSION_HEADER . '">';
@@ -125,19 +127,19 @@ function _og_mailinglist_send_digest_emails() {
     }
 
     // Add footer.
-    $body .= "________________________________<br />";
+    $body .= "__<br />";
     $body .= "You received this message because you are a member of the \"" .
               $group->title . "\" group on " .
-              variable_get("og_mailinglist_server_string", "example.com") . "<br />";
+              variable_get("og_mailinglist_server_string", $_SERVER['SERVER_NAME']) . "<br />";
     $body .= "To unsubscribe to this group, visit " .
               url("og_mailinglist/subscriptions", array("absolute" => true)) . "<br />";
     $body .= "To post a new message to this group, email " . $group_email . "@" .
-      variable_get("og_mailinglist_server_string", "example.com") . "<br />";
+      variable_get("og_mailinglist_server_string", $_SERVER['SERVER_NAME']) . "<br />";
 
     // For each person, send out an email.
     $result = db_query("SELECT uid
                        FROM {og_mailinglist_subscription}
-                       WHERE sid = %d
+                       WHERE nid = %d
                        AND subscription_type = \"digest email\"", $gid);
     $uids = array();
     while ($data = db_fetch_array($result)) {
@@ -155,33 +157,47 @@ function _og_mailinglist_send_digest_emails() {
 
     foreach ($uids as $email) {
       $mailer = og_mailinglist_create_mailer();
-      $mailer->From = "no_reply@" . variable_get("og_mailinglist_server_string", "example.com");
+      $mailer->From = $group->ogm_email . "+no-reply@" . variable_get("og_mailinglist_server_string", $_SERVER['SERVER_NAME']);
       $mailer->FromName = $group_email . "@" .
-      variable_get("og_mailinglist_server_string", "example.com");
+      variable_get("og_mailinglist_server_string", $_SERVER['SERVER_NAME']);
+      $mailer->AddCustomHeader($mailer->HeaderLine("List-Id", "<" . $group->ogm_email .
+            "@" . variable_get('og_mailinglist_server_string', $_SERVER['SERVER_NAME']) . ">"));
+      $mailer->AddCustomHeader($mailer->HeaderLine("List-Post", "<mailto:" . $group->ogm_email .
+            "@" . variable_get('og_mailinglist_server_string', $_SERVER['SERVER_NAME']) . ">"));
+      $mailer->AddCustomHeader($mailer->HeaderLine("List-Archive", url("node/" .
+            $group->nid, array('absolute' => TRUE))));
       $mailer->AddAddress($email);
       $mailer->Subject = $subject;
       $mailer->Body = $body;
       $mailer->isHTML(TRUE);
       $mailer->Send();
-      echo "Sent digest email to " . $email . " for group " . $group->title . "\n";
+      watchdog('og_mailinglist', 'Sent digest email to @email for group @group', 
+                array('@email' => $email, '@group' => $group->title), WATCHDOG_INFO);
     }
   }
 }
 
 function og_mailinglist_style_node_message($node) {
   $user = user_load(array('uid' => $node->uid));
-  $body .= "<div style=\"" . MESSAGE_HEADER . "\"><strong>" . $user->realname . "</strong> " . $user->mail . " " .
-                date("d M Y — g:ia O", $node->created) . "</div>\n";
-  $body .= og_mailinglist_prepare_web_content($node->body); // TODO -- node_view and comment_view don't work -- they add too much junk. Just want body.
-  $body .= "<br />\n"; // Plus need realname + need to convert dates into something readable + add num new messages per discussion
+  $body .= "<div style=\"" . MESSAGE_HEADER . "\"><strong>" .
+    l((isset($user->realname) ? $user->realname : $user->name), "user/" . $user->uid, array('absolute' => TRUE))
+    . "</strong> " . $user->mail . " " .
+    date("d M Y — g:ia O", $node->created) . "</div>\n";
+
+  // Prepare node body for viewing.
+  $node = og_mailinglist_render_node_body($node);
+  $body .= og_mailinglist_prepare_web_content($node->body);
+  $body .= "<br />\n";
   
   return $body;
 }
 
 function og_mailinglist_style_comment_message($comment) {
   $user = user_load(array('uid' => $comment->uid));
-  $body .= "<div style=\"" . MESSAGE_HEADER . "\"><strong>" . $user->realname . "</strong> " . $user->mail . " " .
-              date("d M Y — g:ia O", $comment->timestamp) . "</div>\n";
+  $body = "<div style=\"" . MESSAGE_HEADER . "\"><strong>" .
+    l((isset($user->realname) ? $user->realname : $user->name), "user/" . $user->uid, array('absolute' => TRUE))
+    . "</strong> " . $user->mail . " " .
+    date("d M Y — g:ia O", $comment->timestamp) . "</div>\n";
 
   // Filter out quoted sections of emails.
   $comment->comment = _og_mailinglist_remove_quotes($comment->comment);

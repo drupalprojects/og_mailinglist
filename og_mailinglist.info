@@ -1,8 +1,8 @@
 ; $Id$
 name = OG Mailinglist 
-description = "Allows email submissions of new discussions and comments for organic groups."
+description = "Allows email submissions of new posts and comments for organic groups."
 dependencies[] = og
-dependencies[] = querypath
+package = "Organic groups"
 core = "6.x"
 
 version = "6.x-1.0"

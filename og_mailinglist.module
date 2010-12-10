@@ -5,7 +5,7 @@
 ###############################################################################
 ###   This module allows users to email a Drupal installation running the
 ###   Exim email server to create discussions and respond to comments.
-###   Because it is tied directly to Exim, emails are processed immediately
+###   Because it is tied directly to Exim, email is processed immediately
 ###   upon receipt in the mail server.  Mails should be sent to group_prefix@server.com
 ###   rather than to a single email address.
 ###
@@ -13,21 +13,30 @@
 ###   Maintained since by Kyle Mathews
 ###
 
-require_once("phpmailer/class.phpmailer.php");
+/**
+ * @name OG Mailinglist build modes.
+ * @{
+ */
+define('OG_MAILINGLIST_BUILD_FULL', 'og_mailinglist full');
+/**
+ * @} End of "Node as block build modes".
+*/
+
 require_once("og_mailinglist_phpmailer.inc");
 require_once('og_mailinglist_api.inc');
-// TODO remove thread subscriptions older than 3 months. If someone ressurrects a thread, then readd people to thread. Probably need a table to track which threads have been retired.
+og_mailinglist_phpmailer_load_library();
+
 /**
  * Implementation of hook_menu(). 
  */
 function og_mailinglist_menu() {
   # Administration
-  $items['admin/settings/og_mailinglist'] = array(
+  $items['admin/og/og_mailinglist'] = array(
     'title' => 'OG Mailinglist',
-    'description' => t('Configure discussions/comments generated from email'),
+    'description' => t('Configure posts/comments generated from email'),
     'page callback' => 'drupal_get_form',
     'page arguments' => array('og_mailinglist_admin_settings'),
-    'access arguments' => array('administer notifications'),
+    'access arguments' => array('access administration pages'),
   );
   $items['og_mailinglist/subscriptions'] = array(
     'title' => t('Manage Group Subscriptions'),
@@ -37,7 +46,7 @@ function og_mailinglist_menu() {
     'access arguments' => array('manage og_mailinglist subscriptions'),
   );
   $items['og_mailinglist/unsubscribe/%node'] = array(
-    'title' => t('Unsubscribe from discussion'),
+    'title' => t('Unsubscribe from post'),
     'description' => t('Users who hit this page will not get more emails for
                        comments on the node.'),
     'page callback' => 'og_mailinglist_unsubscribe_thread',
@@ -45,13 +54,20 @@ function og_mailinglist_menu() {
     'access arguments' => array('manage og_mailinglist subscriptions'),
   );
   $items['og_mailinglist/subscribe/%node'] = array(
-    'title' => t('Subscribe to discussion'),
+    'title' => t('Subscribe to post'),
     'description' => t('Users who hit this page will not get more emails for
                        comments on the node.'),
     'page callback' => 'og_mailinglist_subscribe_thread',
     'page arguments' => array(2),
     'access arguments' => array('manage og_mailinglist subscriptions'),
   );
+  $items['og_mailinglist'] = array(
+  'page callback' => 'og_mailinglist_post',
+  'access callback' => TRUE,
+  'type' => MENU_CALLBACK,
+  'file' => 'og_mailinglist_transport.inc',
+  );
+
   return $items;
 }
 
@@ -70,12 +86,14 @@ function og_mailinglist_init() {
   drupal_add_js(drupal_get_path('module', 'og_mailinglist') . "/og_mailinglist.js");
 }
 
-/** Admin settings form */
+/**
+ * Admin settings form
+ */
 function og_mailinglist_admin_settings() {
   $form['og_mailinglist_server_string'] = array(
     '#title' => t('Domain name'),
     '#type' => 'textfield',
-    '#default_value' => variable_get('og_mailinglist_server_string', 'example.com'),
+    '#default_value' => variable_get('og_mailinglist_server_string', $_SERVER['SERVER_NAME']),
     '#description' => t('Domain name for outgoing/incoming emails, e.g. example.com.'),
   );
   $form['og_mailinglist_max_message_size'] = array(
@@ -90,6 +108,12 @@ function og_mailinglist_admin_settings() {
     '#default_value' => variable_get('og_mailinglist_max_posts_per_hour', '20'),
     '#description' => t('The maximum number of messages a user is able to post per hour by email.  Set to 0 for unlimited.'),
   );
+  $form['og_mailinglist_reply_to_group'] = array(
+    '#title' => t('Add a Reply-To header to outgoing group emails'),
+    '#type' => 'checkbox',
+    '#default_value' => variable_get('og_mailinglist_reply_to_group', '0'),
+    '#description' => t('Set an explicit reply-to header. See http://wiki.list.org/pages/viewpage.action?pageId=4030691 for pros and cons on this setting.'),
+  );
   $node_types = node_get_types();
   $n_types = array();
   foreach ($node_types as $type) {
@@ -101,6 +125,34 @@ function og_mailinglist_admin_settings() {
     '#default_value' => variable_get('og_mailinglist_default_content_type', 'story'),
     '#options' => $n_types,
     '#description' => t('Choose the default content type to be created from new emails.'),
+  );
+  $form['og_mailinglist_exclude_content_types'] = array(
+    '#title' => t('Exclude the following content types'),
+    '#type' => 'select',
+    '#multiple' => TRUE,
+    '#default_value' => variable_get('og_mailinglist_exclude_content_types', 'group'),
+    '#options' => $n_types,
+    '#description' => t('Do not send emails on creation of these content types.'),
+  );
+  $form['og_mailinglist_default_group_subscription_type'] = array(
+    '#title' => t('Default group email subscription type'),
+    '#type' => 'select',
+    '#default_value' => variable_get('og_mailinglist_default_group_subscription_type', 'email'),
+    '#options' => array('email' => 'email', 'no email' => 'no email', 'digest email' => 'digest email'),
+    '#description' => t('Choose the default email subscription for users joining a new group. "Email" means the user will receive an email for each new post. "No email" means the user will recieve no emails except for discussion threads they participate in. "Digest" is the same as "no email" except the user will also receive digest emails. (Users can change this later at http://yoursite.com/og_mailinglist/subscriptions)'),
+  );
+  
+  // Save an incoming key by default.
+  if ((variable_get('og_mailinglist_incoming_key', '')) == '') {
+    variable_set('og_mailinglist_incoming_key',  md5(rand()));
+  }
+
+  $form['og_mailinglist_incoming_key'] = array(
+  '#type'          => 'textfield',
+  '#title'         => t('Message validation string'),
+  '#default_value' => variable_get('og_mailinglist_incoming_key', md5(rand())),
+  '#required' => TRUE,
+  '#description' => t('This string will be used to validate incoming messages.  It can be anything, but must be used on both sides of the transfer. For more see the INSTALL.txt for your Mail Transfer Agent.'),
   );
   $form['og_mailinglist_test_email_address'] = array(
     '#title' => t('DEBUGGING: Send an email for all events to a user account'),
@@ -184,7 +236,7 @@ function og_mailinglist_unsubscribe_thread($node) {
   
   if ($success) {
     return "<div class='messages success'>You were successfully unsubscribed from
-    the discussion <em>" . l($node->title, "node/" . $node->nid) . " </em>&nbsp;&nbsp; 
+    the post <em>" . l($node->title, "node/" . $node->nid) . " </em>&nbsp;&nbsp; 
      " . l("Undo", "og_mailinglist/subscribe/" . $node->nid, array("attributes" => array("id" => "og_mailinglist_undo")))
            . "</div>";
   }
@@ -195,7 +247,7 @@ function og_mailinglist_subscribe_thread($node) {
   og_mailinglist_save_thread_subscriptions($node->nid, array($user->uid));
   
   return "<div class='messages success'>You were successfully subscribed to
-    the discussion <em>" . l($node->title, "node/" . $node->nid) . " </em>&nbsp;&nbsp; 
+    the post <em>" . l($node->title, "node/" . $node->nid) . " </em>&nbsp;&nbsp; 
      " . l("Undo", "og_mailinglist/unsubscribe/" . $node->nid, array("attributes" => array("id" => "og_mailinglist_undo")))
            . "</div>";
 }
@@ -248,6 +300,9 @@ function og_mailinglist_form_alter(&$form, $form_state, $form_id) {
  */
 function og_mailinglist_group_form_validate($element, &$form_state) {
   $sql = "SELECT group_email FROM {og_mailinglist} WHERE group_email = '%s'";
+  if ($form_state['values']['nid']) {
+    $sql .= ' AND nid != ' . $form_state['values']['nid'];
+  }
   if (db_result(db_query($sql, $element['#value']))) {
     form_error($element, t('Someone has already choosen that group email address. Please choose another.'));
   }
@@ -279,11 +334,20 @@ function og_mailinglist_group_form_submit($form, &$form_state) {
  * Implementation of hook_nodeapi().
  */
 function og_mailinglist_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
-  if ($op == "insert" && $node->status && $node->type != "eduglu_group_reader_feed") { // TODO create hook so individual features can turn off
-    // email notifications + on admin interface, let people turn off notifications there as well.
-    
+  if ($op == "insert" && $node->status) {
     $group_node = _og_mailinglist_load_group($node);
-    
+
+    // If this node isn't part of a group, return.
+    if (empty($group_node)) {
+      return;
+    }
+
+    // If this content type doesn't use email notifications, then return.
+    $excluded_content_types = variable_get('og_mailinglist_exclude_content_types', array());
+    if (in_array($node->type, $excluded_content_types)) {
+      return;
+    }
+
     // User might not be automatically subscribed to new threads. Subscribe now if they aren't signed up to get emails normally.
     if (og_mailinglist_get_group_subscription_type($group_node->nid, $node->uid) != "email") {
       og_mailinglist_save_thread_subscriptions($node->nid, array($node->uid));
@@ -306,12 +370,16 @@ function og_mailinglist_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
       case 'insert':
       case 'update':
       case 'delete':
-        og_mailinglist_delete_group($node->nid);
+// Disabling this for now. Spaces deletes and recreates a group when you switch presets.
+//        og_mailinglist_delete_group($node->nid);
         break;
     }
   }
 }
 
+/**
+ * Implmentation of hook_comment().
+ */
 function og_mailinglist_comment($comment, $op) {
   // $comment can be an object or an array.
   $comment = (object)$comment;
@@ -371,6 +439,7 @@ function og_mailinglist_filter($op, $delta = 0, $format = -1, $text = "") {
 }
 
 function _og_mailinglist_build_quotes_toggle($text) {
+  module_load_include('inc', 'og_mailinglist', 'og_mailinglist_filter');
   $quotes = _og_mailinglist_find_quoted_sections($text);
   
   if (!empty($quotes)) {
@@ -391,9 +460,8 @@ function _og_mailinglist_build_quotes_toggle($text) {
   return $text;
 }
 
-// TODO would be useful at some point to add option to truncate long words
-// URLs tend to stick out side of comment box which is ugly.
 function _og_mailinglist_remove_quotes($text) {
+  module_load_include('inc', 'og_mailinglist', 'og_mailinglist_filter');
   $quotes = _og_mailinglist_find_quoted_sections($text);
   if (!empty($quotes)) {
     foreach ($quotes as $quote) {
@@ -403,232 +471,6 @@ function _og_mailinglist_remove_quotes($text) {
   return $text;
 }
 
-// TODO move all filter quote into an .inc file
-// Possible way to simplify this. Drop the find start of quoted section and loop through it
-// and just do as doing with Hotmail/Outlook and other clients that don't quote
-// properly and match all the quoted section w/ regex.
-// This rests on the assumption that everyone will either top-post or
-// properly trim their emails where they bottom post. It seems the vast majority
-// of people do that.
-// Making the switch would vastly simplify the code.
-// We could then hold the regex for each email client in an array and just pass
-// that and the text into a function. 
-function _og_mailinglist_find_quoted_sections($text) {
-  $quotes = array();
-  
-  // Some email clients are "special". They don't like to place ">" in front of
-  // quotes. We need to give them their own special functions.
-  $quotes[] = array();
-  $quotes[] = _og_mailinglist_filter_hotmail_quotes($text);
-  $quotes[] = _og_mailinglist_filter_outlook_quotes($text);
-  $quotes[] = _og_mailinglist_filter_android_gmail_quotes($text);
-  $quotes[] = _og_mailinglist_filter_unknown_client_quotes($text);
-  $quotes[] = _og_mailinglist_filter_unknown_client2_quotes($text);
-  $quotes[] = _og_mailinglist_filter_unknown_client3_quotes($text);
-  $quotes[] = _og_mailinglist_filter_unknown_client4_quotes($text);
-  $quotes[] = _og_mailinglist_filter_unknown_client5_quotes($text);
-  $quotes[] = _og_mailinglist_filter_quotes($text);
-  
-  // Identify the longest quoted section of all possible matches and only
-  // remove that one.
-  $quotes = _og_mailinglist_longest_string($quotes);
-  
-  return $quotes;
-}
-
-/*
- * Identify the longest quoted section as that should contain all the others
- * that are possibly within it.
- */
-function _og_mailinglist_longest_string ($quotes) {
-  $longest = array();
-  foreach($quotes as $quote) {
-    if (key($longest) < strlen(implode("", $quote))) {
-      $longest = array(strlen(implode("", $quote)) => $quote);
-    }
-  }
-  
-  return end($longest);
-}
-
-/*
- * Loops through the text line by line. If a line matches the header of
- * an email client's quoted section, that line is marked as a beginning of a
- * quoted section. Each succeeding line which starts with a ">"
- * (the traditional indicator for email quote) is included in the quoted section.
- **/
-function _og_mailinglist_filter_quotes($text) {
-  $lines = explode("\n", $text);
-  $quotes = array();
-  $count = 0;
-  foreach ($lines as $line) {
-    if (preg_match("/On\s\w{3},\s\w{3}\s\d{1,2},\s\d{4}\sat\s\d{1,2}:\d{2}\s[PM|AM]/s", #Gmail
-                             $line, $matches)
-      || preg_match("/On\s\w{3}\s\d{1,2},\s\d{4},\sat\s\d{1,2}:\d{2}\s(AM|PM),\s/s", #Apple mail
-                            $line, $matches)    
-      || preg_match("/On\s\w{3}\s\d{2},\s\d{4},\sat\s[0-9:]{4,5}\s(PM|AM),\s[a-zA-Z\s]+wrote:/s", #unknown as of yet
-                            $line, $matches)
-      || preg_match("/On\s\d{1,2}\/\d{1,2}\/\d{1,2},\s.+?<[a-zA-Z0-9_\-\.\+\^!#\$%&*+\/\=\?\`\|\{\}~\']+@(?:(?:[a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.?)+>\swrote:/s", # Some mobile email client, blackberry maybe?
-                            $line, $matches)) {
-      
-      $quotes[$count][] = $line;
-      $in_quote = true;
-    }
-    else if ($in_quote && (trim($line) === "" || substr(trim($line), 0, 1) === ">"
-      // or the previous line ended w/ a "<" Long emails addresses
-      // (e.g. <someaddress@gmail.com>) sometimes get truncated
-      // leaving the second part of the line on the next line.
-            || substr(trim(array_pop(end($quotes))), -1) === "<" 
-      // Same situation as above. But here the <someaddress@gmail.com> is
-      // brought down to the next line so the < is at the start of the line.
-            || substr(trim($line), 0, 1) === "<"
-      // And wrote: is also sometimes shoved down to the next line.
-            || substr(trim($line), 0, 6) === "wrote:")) {
-      $quotes[$count][] = $line;
-    }
-    else {
-      $in_quote = false;
-      $count++;
-    }
-  }
-  $quotes_imploded = array();
-  foreach ($quotes as $quote) {
-    $quotes_imploded[] = implode($quote, "\n");
-  }
-  
-  return $quotes_imploded;
-}
-
-/*
- * Filter quotes out of emails from hotmail.com.
- *
- * The assumption here is that once the headers to the quoted section begins,
- * all content after that is quotes. This seems to be how in practice people
- * send emails but occasionaly this might filter the wrong text.
- */
-function _og_mailinglist_filter_hotmail_quotes($text) {
-  $regex = "/Date:\s\w{3},\s\d{1,2}\s\w{3}\s\d{4}\s\d{2}:\d{2}:\d{2}\s-\d{4}.Subject:\s.*?From:.*?To:\s.*/s";
-  preg_match($regex, $text, $matches);
-  if (!empty($matches)) {
-    return $matches;
-  }
-  else {
-    return array();
-  }
-}
-
-/*
- * Filter quotes out of emails from hotmail.com.
- */
-function _og_mailinglist_filter_outlook_quotes($text) {
-  $regex = "/From:\s\w+\s\w+.+?\[mailto:\w+.+?Sent:\s\w+,\s\w+\s\d{2},\s\d{4}\s\d{1,2}:\d{1,2}\s[AM|PM]+.To:\s.+?Subject:\s.*/s";
-  preg_match($regex, $text, $matches);
-  if (!empty($matches)) {
-    return $matches;
-  }
-  else {
-    return array();
-  }  
-}
-
-/*
- * Filter quotes out of emails from Android's GMail client.
- */
-function _og_mailinglist_filter_android_gmail_quotes($text) {
-  $regex = "/On\s\w{3}\s\d{1,2},\s\d{4}\s\d{1,2}:\d{2}\s[PM|AM]+,\s.*/s";
-  preg_match($regex, $text, $matches);
-  if (!empty($matches)) {
-    return $matches;
-  }
-  else {
-    return array();
-  }  
-}
-
-/*
- * Filter quotes out of emails from some other microsoftie looking email client.
- */
-function _og_mailinglist_filter_unknown_client_quotes($text) {
-  $regex = "/From:\s\".*?\"\s<.*?@.*?>.Date:\s\w{3},.*?To:.*?<.*?@.*?>.*?Cc:\s.*?<.*?@.*?>.*?Subject:.*/s";
-  preg_match($regex, $text, $matches);
-  if (!empty($matches)) {
-    return $matches;
-  }
-  else {
-    return array();
-  }  
-}
-
-/*
- * Filter quotes out of emails from some other microsoftie looking email client.
- */
-function _og_mailinglist_filter_unknown_client2_quotes($text) {
-  $regex = "/From:\s.*?<.*?@.*?>.To:.*?@.*?Sent:\s\w{3},\s.*?\d{1,2},\s\d{4}\s.*?Subject:\s.*/s";
-  preg_match($regex, $text, $matches);
-  if (!empty($matches)) {
-    return $matches;
-  }
-  else {
-    return array();
-  }  
-}
-
-/*
- * Filter quotes out of emails from yet another microsoftie looking email client.
- *
- * From: Dave [mailto:bob@example.com]
- * Sent: Monday, April 05, 2010 5:30 PM
- * To: A group
- * Subject: [a-group] SQL Server Express
- * 
- */
-function _og_mailinglist_filter_unknown_client3_quotes($text) {
-  $regex = "/From:\s.*?\[.*?@.*?\].*?Sent:\s\w*?,\s\w*?\s\d{1,2},\s\d{4}\s\d{1,2}:\d{2}\s(PM|AM).*?To:\s.*?Subject:.*/s";
-  preg_match($regex, $text, $matches);
-  if (!empty($matches)) {
-    return $matches;
-  }
-  else {
-    return array();
-  }
-}
-/*
- * Filter quotes out of emails from yet another microsoftie looking email client.
- *
- * -----Original Message-----
- * From: Someone <someone@me.com>
- * Date: Sat, 10 Apr 2110 12:25:28 
- * To: Entrepreneurship<entrepreneurship@island.byu.edu>
- * Subject: Re: [entrepreneurship] Need Tech Guys to Form 
- * 
- */
-function _og_mailinglist_filter_unknown_client4_quotes($text) {
-  $regex = "/-----Original\sMessage-----.*?From:\s.*?@.*?Date:\s\w{3},\s\d{1,2}\s.*?:.*?:.*?To:.*?@.*?Subject:.*/s";
-  preg_match($regex, $text, $matches);
-  if (!empty($matches)) {
-    return $matches;
-  }
-  else {
-    return array();
-  }
-}
-
-/*
- * Filter quotes out of emails from yet another email client.
- *
- * On 15 April 2010 21:57, someone someone@example.com wrote:
- * 
- */
-function _og_mailinglist_filter_unknown_client5_quotes($text) {
-  $regex = "/On\s\d{1,2}\s\w.*?\s\d{4}\s\d{2}:\d{2},\s.*?@.*?\s.*?wrote:.*/s";
-  preg_match($regex, $text, $matches);
-  if (!empty($matches)) {
-    return $matches;
-  }
-  else {
-    return array();
-  }
-}
 /*
  * Implementation of hook_cron().
  */
@@ -645,5 +487,16 @@ function og_mailinglist_cron() {
 
     // Set tomorrow's run time.
     variable_set('og_mailinglist_digest_runtime', mktime(17, date("I"), date("s"), date("n"), date("j") + 1));
+  }
+}
+
+/**
+ * Implementation of hook_help().
+ */
+function og_mailinglist_help($path, $args) {
+  switch ($path) {
+    case 'admin/help#og_mailinglist':
+      // Return a line-break version of the module README
+      return filter_filter('process', 1, NULL, file_get_contents( dirname(__FILE__) . "/README.txt"));
   }
 }

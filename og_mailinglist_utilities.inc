@@ -31,28 +31,16 @@ function array_to_comma_delimited_string($array) {
 }
 
 function _og_mailinglist_build_footer($node) {
-    $footer = "______________________________________
-Full discussion: " .  url("node/" . $node->nid, array('absolute' => TRUE))   . "
+    $footer = "--
+Full post: " .  url("node/" . $node->nid, array('absolute' => TRUE))   . "
 Manage my subscriptions: " . url("og_mailinglist/subscriptions", array('absolute' => TRUE)) . "
-Stop emails for this discussion: " . url("og_mailinglist/unsubscribe/" . $node->nid, array("absolute" => TRUE));
+Stop emails for this post: " . url("og_mailinglist/unsubscribe/" . $node->nid, array("absolute" => TRUE));
   
   return $footer;
 }
 
-function _og_mailinglist_extract_emails($string) {
-  // Parse email address. Regex borrowed from valid_email_adddress().
-  $regex = "([a-zA-Z0-9_\-\.\+\^!#\$%&*+\/\=\?\`\|\{\}~\']+@(?:(?:[a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.?)+)";
-  $search = preg_match_all("/" . $regex . "/s"
-                       , $string, $matches);
-  
-  return $matches[0];
-}
-
 function og_mailinglist_prepare_web_content($text) {
-  // TODO replace this with check_markup.
-  $text = filter_filter('process', 1, NULL, $text);
-  $text = filter_filter('process', 2, NULL, $text);
-  return filter_filter('process', 3, NULL, $text);
+  return check_markup($text);
 }
 
  function _og_mailinglist_email_already_sent($nid, $cid = 0) {
@@ -66,28 +54,45 @@ function og_mailinglist_prepare_web_content($text) {
 function og_mailinglist_build_web_footer($node, $body, $cid = 0) {
   $footer = _og_mailinglist_build_footer($node);
   $footer = og_mailinglist_prepare_web_content($footer);
+  preg_match("/<p>(.+)<\/p>/s", $footer, $match);
+  $footer = $match[1] . "<br />";
+
   return $body . "\n" . $footer;
 }
   
 
-function og_mailinglist_add_web_headers($mailer, $node) {
+function og_mailinglist_add_web_headers($mailer, $node, $comment = 0, $in_reply_to = 0, $references = 0) {
   $group_node = _og_mailinglist_load_group($node);
   global $base_url;
   
   $mailer->AddCustomHeader($mailer->HeaderLine("List-Id", "<" . $group_node->ogm_email .
-            "@" . variable_get('og_mailinglist_server_string', 'example.com') . ">"));
+            "@" . variable_get('og_mailinglist_server_string', $_SERVER['SERVER_NAME']) . ">"));
   $mailer->AddCustomHeader($mailer->HeaderLine("List-Post", "<mailto:" . $group_node->ogm_email .
-            "@" . variable_get('og_mailinglist_server_string', 'example.com') . ">"));
+            "@" . variable_get('og_mailinglist_server_string', $_SERVER['SERVER_NAME']) . ">"));
   $mailer->AddCustomHeader($mailer->HeaderLine("List-Archive", url("node/" .
             $group_node->nid, array('absolute' => TRUE))));
   $mailer->AddCustomHeader($mailer->HeaderLine("X-Thread-Url", $base_url .
             "/node/" . $node->nid));
-  
+  $mailer->AddCustomHeader($mailer->HeaderLine("X-BeenThere", $group_node->ogm_email .
+            "@" . variable_get('og_mailinglist_server_string', $_SERVER['SERVER_NAME'])));
+
+  // Add in-reply-to / references
+  if (!empty($in_reply_to)) {
+    $mailer->AddCustomHeader($mailer->HeaderLine("In-Reply-To", $in_reply_to));
+  }
+  if (!empty($references)) {
+    $mailer->AddCustomHeader($mailer->HeaderLine("References", $references));
+  }
+
+  // Add a reply-to header directed to the group if enabled.
+  if (variable_get('og_mailinglist_reply_to_group', FALSE)) {
+    $mailer->AddCustomHeader($mailer->HeaderLine("reply-to", "<" . $group_node->ogm_email .
+            "@" . variable_get('og_mailinglist_server_string', $_SERVER['SERVER_NAME']) . ">"));
+  }
+
   // Set Message-ID.
-  $rand = rand(10, 10000);
-  $mailer->MessageID = "<node-" . $node->nid . "-" . $rand . "@" . variable_get('og_mailinglist_server_string', 'example.com') . ">";
-  
-  // TODO Set references here. Need to store message ids of previous emails.
+  $comment_id = (!empty($comment)) ? $comment->cid : 0;
+  $mailer->MessageID = "<node-" . $node->nid . "-comment-" . $comment_id . "@" . variable_get('og_mailinglist_server_string', $_SERVER['SERVER_NAME']) . ">";
   
   return $mailer;
 }
@@ -111,16 +116,26 @@ function _og_mailinglist_add_addresses($mailer, $node, $new_node = FALSE,
     $author_name = $author->name; 
   }
   
-  $mailer->From = $author->mail;
-  $mailer->FromName = $author_name;
-  $mailer->AddAddress($group_node->ogm_email . "@" .
-          variable_get('og_mailinglist_server_string', 'example.com'), $group_node->title);
- 
-  // Add emails to BCC
-  foreach ($subscribers as $subscriber) {
-    $mailer->AddBCC($subscriber);
+  if ($author->uid == 0) {
+    $author->mail = "anonymous@" . variable_get('og_mailinglist_server_string', $_SERVER['SERVER_NAME']);
+    $author_name = "anonymous";
   }
-  
+  try {
+    $mailer->From = $author->mail;
+    $mailer->FromName = $author_name;
+    $mailer->AddAddress($group_node->ogm_email . "@" .
+            variable_get('og_mailinglist_server_string', $_SERVER['SERVER_NAME']), $group_node->title);
+
+    // Add emails to BCC
+    foreach ($subscribers as $subscriber) {
+      $mailer->AddBCC($subscriber);
+    }
+  } catch (phpmailerException $e) {
+       watchdog('og_mailinglist', t('PHPMailer error: !error', array('!error' => $e->errorMessage())), NULL, WATCHDOG_ERROR);
+  } catch (Exception $e) {
+       watchdog('og_mailinglist', $e->getMessage(), NULL, WATCHDOG_ERROR);
+  }
+
   return $mailer;  
 }
 
@@ -188,96 +203,21 @@ function array_copy ($aSource) {
     return $aRetAr;
 }
 
-function _og_mailinglist_detect_email_char_set($email_text) {
-  $mail = mailparse_msg_create();
-  mailparse_msg_parse($mail, $email_text);
-  $struct = mailparse_msg_get_structure($mail); 
-  $info = array();
-  foreach($struct as $st) { 
-    $section = mailparse_msg_get_part($mail, $st); 
-    $info = mailparse_msg_get_part_data($section); 
-    if ($info["content-type"] == "text/plain") {
-      break;
-    }
-  }
-  
-  return $info["content-charset"];
-}
-
 /*
- * Try to parse nid from the email.
- */
-function og_mailinglist_parse_nid($email, $headers) {
-  $nid = "";
-  // Check the in-reply-to header.
-  if (isset($headers['in-reply-to']) && (preg_match("/node-(\d+?)-/s",
-                                          $headers['in-reply-to'], $matches))) {
-    $nid = $matches[1];
-  }
-  // If that fails (e.g. some got messaged directly and replied back to the
-  // list via that)., check the references header.
-  else if (isset($headers['references']) && (preg_match("/node-(\d+?)-/s",
-                                          $headers['references'], $matches))) {
-    $nid = $matches[1];
-  }
-  else if (preg_match("/og_mailinglist\/unsubscribe\/([0-9]+)/s", $email, $matches)) {
-    $nid = $matches[1];
-  }
-  // Else, as last resort, pick the last node that matches the title in the subject line.
-  else {
-    $nid = _og_mailinglist_nid_of_subject($headers['subject']);
-  }
-  return $nid;
-}
-
-function _og_mailinglist_nid_of_subject($subject) {
-  $nid = ""; 
-  preg_match("/[Rr][Ee]:\s\[.*?\]\s(.+)/s", $subject, $matches);
-  $title = $matches[1];
-  if ($title) {
-      $nid = db_result(db_query("SELECT nid
-                               FROM {node}
-                               WHERE title like '%%s%'
-                               ORDER BY created desc
-                               LIMIT 1", $title)); 
-  }
-  return $nid;
-}
-
-function _og_mailinglist_remove_subscribers($subscribers, $headers) {
-  $emails = _og_mailinglist_extract_emails($headers);
-  foreach ($emails as $email) {
-    unset($subscribers[array_search($email, $subscribers)]);
-  }
-  
-  return $subscribers;
-}
-
-/*
- * Hide some ugly confusing code. Pass in a node and return its group node.
+ * Load the parent group node of a node.
  */
 function _og_mailinglist_load_group($node) {
-  if (!empty($node->og_groups_both)) {
-    return node_load(array('nid' => array_pop(array_keys($node->og_groups_both)))); 
-  }
-  elseif (!empty($node->og_groups)) {
-    return node_load(array('nid' => array_pop($node->og_groups))); 
-  }
-  elseif (!empty($node->og_initial_groups)) {
-    return node_load(array('nid' => array_pop($node->og_initial_groups))); 
+  $group_node = node_load(array('nid' => db_result(db_query("SELECT group_nid
+                                            FROM {og_ancestry}
+                                            WHERE nid = %d", $node->nid))));
+  if (!empty($group_node)) {
+    return $group_node;
   }
   else {
-    $group_node = node_load(array('nid' => db_result(db_query("SELECT group_nid
-                                              FROM {og_ancestry}
-                                              WHERE nid = %d", $node->nid))));
-    if (!empty($group_node)) {
-      return $group_node;
-    }
-    else {
-      return null;
-    }
+    return null;
   }
 }
+
 /**
  * Capitalize all words
  * @param string Data to capitalize
@@ -306,3 +246,69 @@ function capitalize_headers($words, $charList = null) {
     return $words;
 }
 
+/**
+ * Loads PHPMailer library if it's not loaded already.
+ *
+ * @return
+ *  TRUE if the PHPMailer library is loaded, FALSE otherwise.
+ */
+function og_mailinglist_phpmailer_load_library() {
+  if (!class_exists('PHPMailer')) {
+    // First, try using libraries module.
+    if (module_exists('libraries')) {
+      // Let's see if PHPMailer is really available from libraries.
+      $phpmailer_library = './'. libraries_get_path('phpmailer') .'/class.phpmailer.php';
+      if (file_exists($phpmailer_library)) {
+        include_once $phpmailer_library;
+      }
+    }
+    // If PHPMailer is not already loaded, then try from module subdirectory.
+    if (!class_exists('PHPMailer')) {
+      $phpmailer_library = './'. drupal_get_path('module', 'og_mailinglist') .'/phpmailer/class.phpmailer.php';
+      if (file_exists($phpmailer_library)) {
+        include_once $phpmailer_library;
+      }
+    }
+  }
+  // Tell the caller if PHPMailer class exists.
+  return class_exists('PHPMailer');
+}
+
+function og_mailinglist_mimeDecode_load_library() {
+  if (!class_exists('Mail_mimeDecode')) {
+    // First we'll try grabbing the file from a few default pear install locations.
+    if (file_exists('Mail/mimeDecode.php')) {
+      include_once('Mail/mimeDecode.php');
+    }
+    if (!class_exists('Mail_mimeDecode')) {
+      if (file_exists('/usr/share/php/Mail/mimeDecode.php')) {
+        include_once('/usr/share/php/Mail/mimeDecode.php');
+      }
+    }
+    if (!class_exists('Mail_mimeDecode')) {
+      if (file_exists('/usr/share/pear/Mail/mimeDecode.php')) {
+        include_once('/usr/share/pear/Mail/mimeDecode.php');
+      }
+    }
+    // If that didn't work, let's try using the libraries module.
+    if (!class_exists('Mail_mimeDecode')) {
+      if (module_exists('libraries')) {
+        // Let's see if PHPMailer is really available from libraries.
+        $Mail_mimeDecode_library = './'. libraries_get_path('mimeDecode') .'/mimeDecode.php';
+        if (file_exists($Mail_mimeDecode_library)) {
+          include_once $Mail_mimeDecode_library;
+        }
+      }
+    }
+    // If Mail_mimeDecode is still not loaded, then try from module subdirectory.
+    if (!class_exists('Mail_mimeDecode')) {
+      $Mail_mimeDecode_library = './'. drupal_get_path('module', 'og_mailinglist') .'/mimeDecode/mimeDecode.php';
+      if (file_exists($Mail_mimeDecode_library)) {
+        include_once $Mail_mimeDecode_library;
+      }
+    }
+
+  }
+  // Tell the caller if Mail_mimeDecode class exists.
+  return class_exists('Mail_mimeDecode');
+}

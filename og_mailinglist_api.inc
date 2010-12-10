@@ -9,7 +9,7 @@
  */
 function og_mailinglist_save_group_thread_subscriptions($gid, $nid) {
   $subscribers = og_mailinglist_get_group_subscriptions($gid);
-  // Clean bad emails from list.
+  // Clean bad email addresses from the array.
   foreach ($subscribers as $uid => $email) {
     if (!valid_email_address($email)) {
       unset($subscribers[$uid]);
@@ -89,8 +89,10 @@ function og_mailinglist_check_user_subscribed_to_thread($nid, $uid) {
  */
 function og_mailinglist_save_thread_subscriptions($nid, $uids) {
   foreach ($uids as $uid) {
+    if ($uid != 0) { // Ignore anonymous users.
     db_query("INSERT INTO {og_mailinglist_thread}
              VALUES (%d, %d)", $nid, $uid);
+    }
   }
 }
 
@@ -121,7 +123,7 @@ function og_mailinglist_update_group_subcription_type($gid, $uid, $subscription_
 function og_mailinglist_save_group_subscriptions($gid, $uids) {
   foreach ($uids as $uid) {
     db_query("INSERT INTO {og_mailinglist_subscription}
-             VALUES (%d, %d, 'email')", $gid, $uid);
+             VALUES (%d, %d, '%s')", $gid, $uid, variable_get('og_mailinglist_default_group_subscription_type', 'email'));
   }
 }
 
@@ -176,16 +178,17 @@ function og_mailinglist_delete_thread_subscription($nid, $uid) {
 /*
  * Log successful sent email.
  */
-function og_mailinglist_log_email_sent($source, $nid, $cid = 0) {
+function og_mailinglist_log_email_sent($source, $nid, $cid = 0, $message_id = 0, $in_reply_to = 0, $references = 0, $parent_message_id = 0) {
   return db_query("INSERT INTO {og_mailinglist_source}
-           VALUES (%d, %d, '%s')", $nid, $cid, $source);
+           VALUES (%d, %d, '%s', '%s', '%s', '%s', '%s')", 
+           $nid, $cid, $source, $message_id, $in_reply_to, $references, $parent_message_id);
 }
 /*
  * @return PHPMailer object.
  */
 function og_mailinglist_create_mailer() {
-  require_once("phpmailer/class.phpmailer.php");
-  $mailer = new PHPMailer();
+  og_mailinglist_phpmailer_load_library();
+  $mailer = new PHPMailer(TRUE); // The TRUE param means it will throw exceptions on errors, which we need to catch.
   $mailer->CharSet = 'UTF-8';
 
   return $mailer;
@@ -195,12 +198,20 @@ function og_mailinglist_create_mailer() {
  * Save group information upon group creation and update.
  */
 function og_mailinglist_save_group($nid, $group_email) {
+  $update = db_result(db_query("SELECT nid
+                                FROM {og_mailinglist}
+                                WHERE nid = %d", $nid));
   $data = array(
       'nid' => $nid,
       'group_email' => $group_email,
   );
 
-  drupal_write_record('og_mailinglist', $data);
+  if ($update) {
+    drupal_write_record('og_mailinglist', $data, 'nid');
+  }
+  else {
+    drupal_write_record('og_mailinglist', $data);
+  }
 }
 
 /*
@@ -214,4 +225,48 @@ function og_mailinglist_delete_group($nid) {
   // Delete group subscriptions from og_mailinglist_subscriptions.
   db_query("DELETE FROM {og_mailinglist_subscription}
            WHERE nid = %d", $nid);
+}
+
+function _og_mailinglist_get_thread_parent_messageid($in_reply_to_message_id, $references) {
+  if (empty($in_reply_to_message_id)) {
+    return;
+  }
+  $parent_message_id = db_result(db_query("SELECT parent_message_id
+                              FROM {og_mailinglist_source}
+                              WHERE message_id = '%s'", $in_reply_to_message_id));
+
+  if (!empty($parent_message_id)) {
+    return $parent_message_id;
+  }
+
+  // Try to get the parent message-id from one of the message-ids in the references header.
+  $references = str_replace("\r\n", "", $references);
+  $refs = str_replace("\n", "", $references);
+  $refs_array = explode(" ", $refs);
+
+  foreach ($refs_array as $reference) {
+    if(!empty($reference)) {
+        $parent_message_id = db_result(db_query("SELECT parent_message_id
+                              FROM {og_mailinglist_source}
+                              WHERE message_id = '%s'", $reference));
+
+        if (!empty($parent_message_id)) {
+          return $parent_message_id;
+        }
+    }
+  }
+ 
+}
+
+function _og_mailinglist_get_nid_from_parent_messageid($message_id) {
+  return db_result(db_query("SELECT nid
+                              FROM {og_mailinglist_source}
+                              WHERE message_id = '%s'", $message_id));
+}
+
+function _og_mailinglist_get_messageid_from_nid($nid) {
+  return db_result(db_query("SELECT parent_message_id
+                              FROM {og_mailinglist_source}
+                              WHERE cid = 0
+                              AND nid = %d", $nid));
 }
