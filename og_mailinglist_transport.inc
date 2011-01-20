@@ -125,8 +125,8 @@ function _og_mailinglist_process_email($raw_email, $group_name) {
                                array('!mailfrom' => $mailfrom, '!account_page' => url("user/" . $email['userid'], array('absolute' => TRUE)))));
     }
     
-    // Try to get the Node ID. If the email is a comment to a node, we should be
-    // able to get the Node ID of the original node.
+    // See if the email is a comment to an existing node or a new node. 
+    // If the email is a comment to a node, we should be able to get the Node ID of the original node.
     $email['nid'] = og_mailinglist_parse_nid($email['text_plain'], $email['structure']->headers);
   
     // Create the new content in Drupal.
@@ -188,6 +188,7 @@ function _og_mailinglist_process_email($raw_email, $group_name) {
       $head[] = 'From: ' . variable_get("og_mailinglist_noreply_email", t("no-reply@" . variable_get("og_mailinglist_server_string", $_SERVER['SERVER_NAME'])));
       $head[] = 'References: ' . $email['headers']['message-id'];
       $head[] = 'In-Reply-To: ' . $email['headers']['message-id'];
+      $head[] = 'X-BeenThere: ' . variable_get("og_mailinglist_server_string", $_SERVER['SERVER_NAME']);
       $errormsg = $e->getMessage();
       $msgdate = $email['headers']['date'];
       $msgfrom = $email['headers']['from'];
@@ -220,6 +221,7 @@ function _og_mailinglist_process_email($raw_email, $group_name) {
 
 function og_mailinglist_save_comment($email) {
   $nid = $email['nid'];
+  $email['node'] = $node = node_load(array('nid' => $nid));
   
   // Let other modules alter the new comment or delay posting for another time
   // (e.g. a moderation module might want to delay posting for a time).
@@ -247,17 +249,10 @@ function og_mailinglist_save_comment($email) {
 
   $mailbody = $email['mailbody'];
 
-  // create an array representing the comment
+  // Create an array representing the comment
   $comment = array();
   $comment['uid'] = $email['userid'];
   $comment['nid'] = $nid;
-  
-  ////// DISABLED this so we don't have threaded messages
-  //if (FALSE && $messageid['cid']) {
-  //  $comment['pid'] = $messageid['cid'];
-  //}else{
-  //  $comment['pid'] = 0;
-  //}
   
   if (preg_match("/re:\s*\[.*?\]\s*(.*)/i", $email['headers']['subject'], $matches)) {
     $comment['subject'] = $matches[1];
@@ -287,8 +282,6 @@ function og_mailinglist_save_comment($email) {
     throw new Exception(t("An unknown error occurred while saving your comment."));
   }  
   
-  
-  $node = node_load(array('nid' => $nid));
   $comment['cid'] = $cid; // Not sure why this isn't added automatically.
   _og_mailinglist_email_comment_email($email, $node, $comment);
 
@@ -853,13 +846,12 @@ function og_mailinglist_parse_nid($email, $headers) {
   $nid = "";
   // Check the in-reply-to header.
   $parent_message_id = _og_mailinglist_get_thread_parent_messageid($headers['in-reply-to'], $headers['references']);
-  $nid = _og_mailinglist_get_nid_from_parent_messageid($parent_message_id);
+  if (!empty($parent_message_id)) {
+    $nid = _og_mailinglist_get_nid_from_parent_messageid($parent_message_id);
+  }
 
   if (!empty($nid)) {
     return $nid;
-  }
-  else if (preg_match("/og_mailinglist\/unsubscribe\/([0-9]+)/s", $email, $matches)) {
-    $nid = $matches[1];
   }
   // Else, as last resort, pick the last node that matches the title in the subject line.
   else {
