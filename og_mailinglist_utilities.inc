@@ -1,5 +1,4 @@
 <?php
-// $Id$
 
 function _og_mailinglist_get_subscribers($node, $new_node = FALSE) {
   $group_node = _og_mailinglist_load_group($node);
