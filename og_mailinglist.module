@@ -1,4 +1,5 @@
 <?php
+// $Id$
 // TODO -- rewrite this header part according to the normal Drupal style
 // TODO write docs for functions.
 ###############################################################################
@@ -25,7 +26,6 @@ require_once("og_mailinglist_phpmailer.inc");
 require_once('og_mailinglist_api.inc');
 og_mailinglist_phpmailer_load_library();
 
-// TODO remove thread subscriptions older than 3 months. If someone ressurrects a thread, then readd people to thread. Probably need a table to track which threads have been retired.
 /**
  * Implementation of hook_menu(). 
  */
@@ -86,12 +86,14 @@ function og_mailinglist_init() {
   drupal_add_js(drupal_get_path('module', 'og_mailinglist') . "/og_mailinglist.js");
 }
 
-/** Admin settings form */
+/**
+ * Admin settings form
+ */
 function og_mailinglist_admin_settings() {
   $form['og_mailinglist_server_string'] = array(
     '#title' => t('Domain name'),
     '#type' => 'textfield',
-    '#default_value' => variable_get('og_mailinglist_server_string', 'example.com'),
+    '#default_value' => variable_get('og_mailinglist_server_string', $_SERVER['SERVER_NAME']),
     '#description' => t('Domain name for outgoing/incoming emails, e.g. example.com.'),
   );
   $form['og_mailinglist_max_message_size'] = array(
@@ -238,6 +240,9 @@ function og_mailinglist_unsubscribe_thread($node) {
      " . l("Undo", "og_mailinglist/subscribe/" . $node->nid, array("attributes" => array("id" => "og_mailinglist_undo")))
            . "</div>";
   }
+  else {
+    return "Something unexpected happened and we weren't able to unsubscribe you from this post. Please contact your site administrator.";
+  }
 }
 
 function og_mailinglist_subscribe_thread($node) {
@@ -375,14 +380,18 @@ function og_mailinglist_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
   }
 }
 
+/**
+ * Implmentation of hook_comment().
+ */
 function og_mailinglist_comment($comment, $op) {
   // $comment can be an object or an array.
   $comment = (object)$comment;
 
   if ($op == 'publish') {
     // Check that the node is published.
-    $node = node_load($comment->nid);    
-    if ($node->status) {
+    $node = node_load($comment->nid);
+    $group_node = _og_mailinglist_load_group($node);
+    if ($node->status && is_object($group_node)) {
       og_mailinglist_send_comment_email($comment, $node);
       
       // User might not be subscribed to thread. Subscribe them now if not
@@ -455,8 +464,6 @@ function _og_mailinglist_build_quotes_toggle($text) {
   return $text;
 }
 
-// TODO would be useful at some point to add option to truncate long words
-// URLs tend to stick out side of comment box which is ugly.
 function _og_mailinglist_remove_quotes($text) {
   module_load_include('inc', 'og_mailinglist', 'og_mailinglist_filter');
   $quotes = _og_mailinglist_find_quoted_sections($text);

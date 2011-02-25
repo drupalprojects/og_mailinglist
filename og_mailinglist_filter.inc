@@ -1,6 +1,5 @@
 <?php
 
-// TODO move all filter quote into an .inc file
 // Possible way to simplify this. Drop the find start of quoted section and loop through it
 // and just do as doing with Hotmail/Outlook and other clients that don't quote
 // properly and match all the quoted section w/ regex.
@@ -61,6 +60,7 @@ function _og_mailinglist_filter_quotes($text) {
   $lines = explode("\n", $text);
   $quotes = array();
   $count = 0;
+  $in_quote = FALSE;
   foreach ($lines as $line) {
     if (preg_match("/On\s\w{3},\s\w{3}\s\d{1,2},\s\d{4}\sat\s\d{1,2}:\d{2}\s[PM|AM]/s", #Gmail
                              $line, $matches)
@@ -78,7 +78,7 @@ function _og_mailinglist_filter_quotes($text) {
 
       
       $quotes[$count][] = $line;
-      $in_quote = true;
+      $in_quote = TRUE;
     }
     else if ($in_quote && (trim($line) === "" || substr(trim($line), 0, 1) === ">"
       // or the previous line ended w/ a "<" Long emails addresses

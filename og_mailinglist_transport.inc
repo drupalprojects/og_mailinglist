@@ -43,12 +43,17 @@ function _og_mailinglist_process_email($raw_email, $group_name) {
       exit();
     }
 
+    // If there isn't a message-id (which sometimes happens with spam emails), reject it.
+    if (empty($email['headers']['message-id'])) {
+      exit();
+    }
+
     if (empty($email['headers']['subject'])) {
       $email['headers']['subject'] = t('(no subject)');
     }
 
     // Parse the group name from the email. Regex borrowed from valid_email_address().
-    $server_string = variable_get("og_mailinglist_server_string", "");
+    $server_string = variable_get("og_mailinglist_server_string", $_SERVER['SERVER_NAME']);
     if (empty($group_name)) {
       if (preg_match("/([a-zA-Z0-9_\-\.\+\^!#\$%&*+\/\=\?\`\|\{\}~\']+)@" . $server_string . "/", $email['headers']['to'], $matches)) {
         $group_name = $matches[1];
@@ -125,21 +130,22 @@ function _og_mailinglist_process_email($raw_email, $group_name) {
                                array('!mailfrom' => $mailfrom, '!account_page' => url("user/" . $email['userid'], array('absolute' => TRUE)))));
     }
     
-    // Try to get the Node ID. If the email is a comment to a node, we should be
-    // able to get the Node ID of the original node.
+    // See if the email is a comment to an existing node or a new node. 
+    // If the email is a comment to a node, we should be able to get the Node ID of the original node.
     $email['nid'] = og_mailinglist_parse_nid($email['text_plain'], $email['structure']->headers);
   
-    // create the new content in Drupal.
+    // Create the new content in Drupal.
     if (!empty($email['nid'])) { // a new comment
       
-      // Two checks first before creating the comment.
-      // There are at least two reasons why an email could have a nid but not be
-      // intended as a new comment.
-      // First, someone could be forwarding an email to a different group.
-      // Second, it's common on mailinglists to fork threads by changing
-      // the subject line. We need to check for both.
-      
-      // Does the detected nid belong to the same group as the email was forwarded to?
+      /* Two checks first before creating the comment.
+       * There are at least two reasons why an email could have a nid but not be
+       * intended as a new comment.
+       * First, someone could be forwarding an email to a different group.
+       * Second, it's common on mailinglists to fork threads by changing
+       * the subject line. We need to check for both.
+       */
+
+      //  Does the detected nid belong to the same group as the email was forwarded to?
       $nid_groupid = db_result(db_query("SELECT group_nid
                                         FROM {og_ancestry}
                                         WHERE nid = %d", $email['nid']));
@@ -184,9 +190,10 @@ function _og_mailinglist_process_email($raw_email, $group_name) {
     try {
       // Compose an email back to the sender informing them of the problem.
       $head = Array();
-      $head[] = 'From: ' . variable_get("og_mailinglist_noreply_email", t("no-reply@" . variable_get("og_mailinglist_server_string", "example.com")));
+      $head[] = 'From: ' . variable_get("og_mailinglist_noreply_email", t("no-reply@" . variable_get("og_mailinglist_server_string", $_SERVER['SERVER_NAME'])));
       $head[] = 'References: ' . $email['headers']['message-id'];
       $head[] = 'In-Reply-To: ' . $email['headers']['message-id'];
+      $head[] = 'X-BeenThere: ' . variable_get("og_mailinglist_server_string", $_SERVER['SERVER_NAME']);
       $errormsg = $e->getMessage();
       $msgdate = $email['headers']['date'];
       $msgfrom = $email['headers']['from'];
@@ -219,7 +226,18 @@ function _og_mailinglist_process_email($raw_email, $group_name) {
 
 function og_mailinglist_save_comment($email) {
   $nid = $email['nid'];
+  $email['node'] = $node = node_load(array('nid' => $nid));
   
+  // Let other modules alter the new comment or delay posting for another time
+  // (e.g. a moderation module might want to delay posting for a time).
+  drupal_alter('og_mailinglist_new_email_comment', $email);
+
+  // Other modules can unset certain emails to stop them from being saved and sent.
+  // If they do, we'll just exit out.
+  if (empty($email)) {
+    exit(0);
+  }
+
   // set the user account to this poster (comment_save checks the global user rights)
   global $user;
   $user = user_load($email['userid']);
@@ -236,17 +254,10 @@ function og_mailinglist_save_comment($email) {
 
   $mailbody = $email['mailbody'];
 
-  // create an array representing the comment
+  // Create an array representing the comment
   $comment = array();
   $comment['uid'] = $email['userid'];
   $comment['nid'] = $nid;
-  
-  ////// DISABLED this so we don't have threaded messages
-  //if (FALSE && $messageid['cid']) {
-  //  $comment['pid'] = $messageid['cid'];
-  //}else{
-  //  $comment['pid'] = 0;
-  //}
   
   if (preg_match("/re:\s*\[.*?\]\s*(.*)/i", $email['headers']['subject'], $matches)) {
     $comment['subject'] = $matches[1];
@@ -265,7 +276,10 @@ function og_mailinglist_save_comment($email) {
   // Log that comment came from email so og_mailinglist_phpmailer doesn't send an email as well.
   $parent_message_id = _og_mailinglist_get_thread_parent_messageid($email['headers']['in-reply-to'], $email['headers']['references']);
   og_mailinglist_log_email_sent('email', $nid, $cid, $email['headers']['message-id'], $email['headers']['in-reply-to'], $email['headers']['references'], $parent_message_id);
-  
+
+  // Let other modules alter the comment array before saving.
+  drupal_alter('og_mailinglist_save_commment', $comment);
+
   // Save the new comment.
   $cid = comment_save($comment);  
   
@@ -273,8 +287,6 @@ function og_mailinglist_save_comment($email) {
     throw new Exception(t("An unknown error occurred while saving your comment."));
   }  
   
-  
-  $node = node_load(array('nid' => $nid));
   $comment['cid'] = $cid; // Not sure why this isn't added automatically.
   _og_mailinglist_email_comment_email($email, $node, $comment);
 
@@ -287,6 +299,16 @@ function og_mailinglist_save_comment($email) {
 } 
  
 function og_mailinglist_save_node($email) {
+
+  // Let other modules alter the new node or delay posting for another time (e.g. a moderation module might want to delay posting for a time).
+  drupal_alter('og_mailinglist_new_email_node', $email);
+
+  // Other modules can unset certain emails to stop them from being saved and sent.
+  // If they do, we'll just exit out.
+  if (empty($email)) {
+    exit(0);
+  }
+
   $mailbody = $email['mailbody'];
 
   // Get the nid that'll be used. Yes, this isn't a very pretty way to do this.
@@ -703,7 +725,7 @@ function _og_mailinglist_rewrite_headers($email, $node, $new_node = FALSE, $comm
   }
   
   $new_headers['from'] = $headers['from'];
-  $new_headers['to'] = $group_node->ogm_email . "@" . variable_get('og_mailinglist_server_string', 'example.com');
+  $new_headers['to'] = $group_node->ogm_email . "@" . variable_get('og_mailinglist_server_string', $_SERVER['SERVER_NAME']);
   $new_headers['bcc'] =
     array_to_comma_delimited_string(
       _og_mailinglist_get_subscribers($node, $new_node));
@@ -712,14 +734,14 @@ function _og_mailinglist_rewrite_headers($email, $node, $new_node = FALSE, $comm
   
   // Add a reply-to header directed to the group if enabled.
   if (variable_get('og_mailinglist_reply_to_group', FALSE)) {
-    $new_headers['reply-to'] = $group_node->ogm_email . "@" . variable_get('og_mailinglist_server_string', 'example.com');
+    $new_headers['reply-to'] = $group_node->ogm_email . "@" . variable_get('og_mailinglist_server_string', $_SERVER['SERVER_NAME']);
   }
 
   // Add list headers.
   $new_headers['List-Id'] = "<" . $group_node->ogm_email . "@" .
-                variable_get('og_mailinglist_server_string', 'example.com') . ">";
+                variable_get('og_mailinglist_server_string', $_SERVER['SERVER_NAME']) . ">";
   $new_headers['List-Post'] = "<mailto:" . $group_node->ogm_email . "@" .
-                variable_get('og_mailinglist_server_string', 'example.com') . ">";
+                variable_get('og_mailinglist_server_string', $_SERVER['SERVER_NAME']) . ">";
   $new_headers['List-Archive'] = url("node/" . $group_node->nid, array('absolute' => TRUE));
   
   // Thread-URL header.
@@ -728,7 +750,7 @@ function _og_mailinglist_rewrite_headers($email, $node, $new_node = FALSE, $comm
   
   // Set x-BeenThere header
   $new_headers['X-BeenThere'] = $group_node->ogm_email . "@" .
-                variable_get('og_mailinglist_server_string', 'example.com');
+                variable_get('og_mailinglist_server_string', $_SERVER['SERVER_NAME']);
 
   // Set Message-Id
   $new_headers['Message-ID'] = $email['headers']['message-id'];
@@ -829,13 +851,12 @@ function og_mailinglist_parse_nid($email, $headers) {
   $nid = "";
   // Check the in-reply-to header.
   $parent_message_id = _og_mailinglist_get_thread_parent_messageid($headers['in-reply-to'], $headers['references']);
-  $nid = _og_mailinglist_get_nid_from_parent_messageid($parent_message_id);
+  if (!empty($parent_message_id)) {
+    $nid = _og_mailinglist_get_nid_from_parent_messageid($parent_message_id);
+  }
 
   if (!empty($nid)) {
     return $nid;
-  }
-  else if (preg_match("/og_mailinglist\/unsubscribe\/([0-9]+)/s", $email, $matches)) {
-    $nid = $matches[1];
   }
   // Else, as last resort, pick the last node that matches the title in the subject line.
   else {
