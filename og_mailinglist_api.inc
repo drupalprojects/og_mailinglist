@@ -1,5 +1,4 @@
 <?php
-// $Id$
 
 /**
  * Saves new thread subscriptions for members of a group.

@@ -1,5 +1,4 @@
 <?php
-// $Id$
 include_once 'og_mailinglist_utilities.inc'; //Load our utilities so the hook_requirements can call those functions.
 /**
  * Implementation of hook_install().

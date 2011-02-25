@@ -1,5 +1,4 @@
 <?php
-// $Id$
 
 require_once('og_mailinglist_utilities.inc');
 require_once('og_mailinglist_api.inc');
