@@ -70,9 +70,15 @@ function _og_mailinglist_filter_quotes($text) {
                             $line, $matches)
       || preg_match("/On\s\d{1,2}\/\d{1,2}\/\d{1,2},\s.+?<[a-zA-Z0-9_\-\.\+\^!#\$%&*+\/\=\?\`\|\{\}~\']+@(?:(?:[a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.?)+>\swrote:/s", # Some mobile email client, blackberry maybe?
                             $line, $matches)
-      || preg_match("/On\s\w{3,10},\s\w{3}\s\d{1,2},\s\d{4},\s.+?wrote:/s", #unknown as of yet "On Saturday, May 22, 2010, Joe Smith wrote:"
+      || preg_match("/On\s\w{3,10},\s\w{3,9}\s\d{1,2},\s\d{4},\s.+?wrote:/s", #unknown as of yet "On Saturday, May 22, 2010, Joe Smith wrote:"
                             $line, $matches)
       || preg_match("/On.\d{1,2}\/\d{1,2}\/\d{1,2}.\d{1,2}:\d{1,2}\s(PM|AM),.+?wrote:/s", #unknown as of yet "On 5/21/10 8:43 PM, Joe Smith wrote:"
+                            $line, $matches)
+      || preg_match("/On.\d{1,2}\/\d{1,2}\/\d{1,2}.\d{1,2}:\d{1,2},.+?wrote:/s", #unknown as of yet "On 30/01/11 22:38, Joe Smith wrote:"
+                            $line, $matches)
+      || preg_match("/On\s\d{1,2}\s\w{3,9}\s\d{4}\s\d{1,2}:\d{1,2},?\s.+?wrote:/s", #unknown as of yet "On 1 February 2011 10:24, Joe Smith wrote:" (the comma after the time is optional)
+                            $line, $matches)
+      || preg_match("/On\s\d{1,2}\s\w{3,9}\s\d{4},\sat\s\d{1,2}:\d{1,2},\s.+?wrote:/s", #unknown as of yet "On 30 Jan 2011, at 13:18, Joe Smith  wrote:"
                             $line, $matches)
       && !$in_quote) {
 
@@ -101,7 +107,6 @@ function _og_mailinglist_filter_quotes($text) {
   foreach ($quotes as $quote) {
     $quotes_imploded[] = implode($quote, "\n");
   }
-  
   return $quotes_imploded;
 }
 
