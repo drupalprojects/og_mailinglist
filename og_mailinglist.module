@@ -453,8 +453,12 @@ function _og_mailinglist_build_quotes_toggle($text) {
   $quotes = _og_mailinglist_find_quoted_sections($text);
   
   if (!empty($quotes)) {
-    foreach ($quotes as $quote) {      
-      $replace = '<br /><span class="toggle-quoted-text">- Show quoted text -</span><div class="quoted-text">'. $quote .'</div>';
+    foreach ($quotes as $quote) {
+      // Run the quote through the Line break filter before replacing it in the text.
+      // Otherwise the HTML Converter input filter will bork the HTML. This *could* be a 
+      // potential problem if someone doesn't want the Line Break filter run.
+      $filtered_quote = _filter_autop($quote);
+      $replace = '<br /><span class="toggle-quoted-text">- Show quoted text -</span><div class="quoted-text">'. $filtered_quote .'</div>';
       $text = str_replace($quote, $replace, $text);
       
       // Remove email addresses. Regex borrowed from valid_email_adddress().
