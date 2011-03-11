@@ -127,11 +127,9 @@ function array_copy ($aSource) {
  * Load the parent group node of a node.
  */
 function _og_mailinglist_load_group($node) {
-  $group_node = node_load(array('nid' => db_result(db_query("SELECT group_nid
-                                            FROM {og_ancestry}
-                                            WHERE nid = %d", $node->nid))));
-  if (!empty($group_node)) {
-    return $group_node;
+  $groups = og_get_node_groups($node);
+  if (!empty($groups)) {
+    return $groups[0];
   }
   else {
     return null;
