@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Implementation of hook_og_mailinglist_save_thread_subscription().
+ * Implements hook_og_mailinglist_save_thread_subscription().
  *
  * Flag the node for the user when they subscribe to a node.
  **/
@@ -11,7 +11,7 @@ function og_mailinglist_flag_og_mailinglist_save_thread_subscription($nid, $uid)
 }
 
 /**
- * Implementation of hook_og_mailinglist_delete_thread_subscription().
+ * Implements hook_og_mailinglist_delete_thread_subscription().
  *
  * When a thread subscription is deleted, unflag the node as well.
  **/
@@ -21,7 +21,7 @@ function og_mailinglist_flag_og_mailinglist_delete_thread_subscription($nid, $ui
 }
 
 /**
- * Implementation of hook_flag().
+ * Implements hook_flag().
  **/
 function og_mailinglist_flag_flag($action, $flag, $content_id, $account) {
   if ($flag->name == "follow_node") {
@@ -32,24 +32,23 @@ function og_mailinglist_flag_flag($action, $flag, $content_id, $account) {
 
       case 'unflag':
         og_mailinglist_delete_thread_subscription($content_id, $account->uid);
-        break;  
+        break;
     }
   }
 }
 
 /**
- * Implementation of hook_flag_default_flags().
+ * Implements hook_flag_default_flags().
  **/
 function og_mailinglist_flag_flag_default_flags() {
   $flags = array();
   // Exported flag: "Follow Node".
-  $flags[] = array (
+  $flags[] = array(
     'content_type' => 'node',
     'name' => 'follow_node',
     'title' => 'Follow Node',
     'global' => '0',
-    'types' => 
-    array (
+    'types' => array(
       0 => 'poll',
       1 => 'note',
       2 => 'job_form',
@@ -64,15 +63,12 @@ function og_mailinglist_flag_flag_default_flags() {
     'unflag_message' => '',
     'unflag_denied_text' => '',
     'link_type' => 'toggle',
-    'roles' => 
-    array (
-      'flag' => 
-      array (
+    'roles' => array(
+      'flag' => array(
         0 => 2,
         1 => 3,
       ),
-      'unflag' => 
-      array (
+      'unflag' => array(
         0 => 2,
         1 => 3,
       ),

@@ -3,7 +3,32 @@ name = OG Mailinglist
 description = "Allows email submissions of new posts and comments for organic groups."
 dependencies[] = og
 package = "Organic groups"
-core = "6.x"
+core = 7.x
 
 version = "6.x-1.0"
-core = "6.x"
+core = 7.x
+
+
+
+
+
+
+
+
+
+
+
+
+
+files[] = migrate_notifications_og_mailinglist.php
+files[] = og_mailinglist.install
+files[] = og_mailinglist.module
+files[] = og_mailinglist_api.inc
+files[] = og_mailinglist_digest_email.inc
+files[] = og_mailinglist_filter.inc
+files[] = og_mailinglist_phpmailer.inc
+files[] = og_mailinglist_transport.inc
+files[] = og_mailinglist_utilities.inc
+files[] = exim_og_mailinglist/og_mailinglist_exim4_transport.php
+files[] = postfix_og_mailinglist/og_mailinglist_postfix_transport.php
+files[] = testing/testing_mailer_integration.php

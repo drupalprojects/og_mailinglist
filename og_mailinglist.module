@@ -20,14 +20,14 @@
 define('OG_MAILINGLIST_BUILD_FULL', 'og_mailinglist full');
 /**
  * @} End of "Node as block build modes".
-*/
+ */
 
-require_once("og_mailinglist_phpmailer.inc");
-require_once('og_mailinglist_api.inc');
+require_once DRUPAL_ROOT . '/' . "og_mailinglist_phpmailer.inc";
+require_once DRUPAL_ROOT . '/' . 'og_mailinglist_api.inc';
 og_mailinglist_phpmailer_load_library();
 
 /**
- * Implementation of hook_menu(). 
+ * Implements hook_menu(). ().
  */
 function og_mailinglist_menu() {
   # Administration
@@ -62,10 +62,10 @@ function og_mailinglist_menu() {
     'access arguments' => array('manage og_mailinglist subscriptions'),
   );
   $items['og_mailinglist'] = array(
-  'page callback' => 'og_mailinglist_post',
-  'access callback' => TRUE,
-  'type' => MENU_CALLBACK,
-  'file' => 'og_mailinglist_transport.inc',
+    'page callback' => 'og_mailinglist_post',
+    'access callback' => TRUE,
+    'type' => MENU_CALLBACK,
+    'file' => 'og_mailinglist_transport.inc',
   );
 
   return $items;
@@ -74,12 +74,25 @@ function og_mailinglist_menu() {
 /*
  * Implementation of hook_perm().
  */
-function og_mailinglist_perm() {
-  return array('manage og_mailinglist subscriptions');
+/**
+ * @todo Please document this function.
+ * @see http://drupal.org/node/1354
+ */
+function og_mailinglist_permission() {
+  return array(
+    'manage og_mailinglist subscriptions' => array(
+      'title' => t('manage og_mailinglist subscriptions'),
+      'description' => t('TODO Add a description for \'manage og_mailinglist subscriptions\''),
+    ),
+  );
 }
 
 /*
  * Implementation of hook_init().
+ */
+/**
+ * @todo Please document this function.
+ * @see http://drupal.org/node/1354
  */
 function og_mailinglist_init() {
   drupal_add_css(drupal_get_path('module', 'og_mailinglist') . "/og_mailinglist.css");
@@ -89,7 +102,7 @@ function og_mailinglist_init() {
 /**
  * Admin settings form
  */
-function og_mailinglist_admin_settings() {
+function og_mailinglist_admin_settings($form, &$form_state) {
   $form['og_mailinglist_server_string'] = array(
     '#title' => t('Domain name'),
     '#type' => 'textfield',
@@ -114,7 +127,7 @@ function og_mailinglist_admin_settings() {
     '#default_value' => variable_get('og_mailinglist_reply_to_group', '0'),
     '#description' => t('Set an explicit reply-to header. See http://wiki.list.org/pages/viewpage.action?pageId=4030691 for pros and cons on this setting.'),
   );
-  $node_types = node_get_types();
+  $node_types = node_type_get_types();
   $n_types = array();
   foreach ($node_types as $type) {
     $n_types[$type->type] = $type->name;
@@ -138,21 +151,25 @@ function og_mailinglist_admin_settings() {
     '#title' => t('Default group email subscription type'),
     '#type' => 'select',
     '#default_value' => variable_get('og_mailinglist_default_group_subscription_type', 'email'),
-    '#options' => array('email' => 'email', 'no email' => 'no email', 'digest email' => 'digest email'),
+    '#options' => array(
+      'email' => 'email',
+      'no email' => 'no email',
+      'digest email' => 'digest email',
+    ),
     '#description' => t('Choose the default email subscription for users joining a new group. "Email" means the user will receive an email for each new post. "No email" means the user will recieve no emails except for discussion threads they participate in. "Digest" is the same as "no email" except the user will also receive digest emails. (Users can change this later at http://yoursite.com/og_mailinglist/subscriptions)'),
   );
-  
+
   // Save an incoming key by default.
   if ((variable_get('og_mailinglist_incoming_key', '')) == '') {
-    variable_set('og_mailinglist_incoming_key',  md5(rand()));
+    variable_set('og_mailinglist_incoming_key',     md5(rand()));
   }
 
   $form['og_mailinglist_incoming_key'] = array(
-  '#type'          => 'textfield',
-  '#title'         => t('Message validation string'),
-  '#default_value' => variable_get('og_mailinglist_incoming_key', md5(rand())),
-  '#required' => TRUE,
-  '#description' => t('This string will be used to validate incoming messages.  It can be anything, but must be used on both sides of the transfer. For more see the INSTALL.txt for your Mail Transfer Agent.'),
+    '#type' => 'textfield',
+    '#title' => t('Message validation string'),
+    '#default_value' => variable_get('og_mailinglist_incoming_key', md5(rand())),
+    '#required' => TRUE,
+    '#description' => t('This string will be used to validate incoming messages.  It can be anything, but must be used on both sides of the transfer. For more see the INSTALL.txt for your Mail Transfer Agent.'),
   );
   $form['og_mailinglist_test_email_address'] = array(
     '#title' => t('DEBUGGING: Send an email for all events to a user account'),
@@ -160,28 +177,43 @@ function og_mailinglist_admin_settings() {
     '#default_value' => variable_get('og_mailinglist_test_email_address', ''),
     '#description' => t('For testing / monitoring purposes, you can set one user account to receive all emails sent by OG Mailinglist. Enter the User ID of the user who should receive all emails.'),
   );
-  
+
   return system_settings_form($form);
 }
 
-function og_mailinglist_subscriptions_settings_form() {
+/**
+ * @todo Please document this function.
+ * @see http://drupal.org/node/1354
+ */
+function og_mailinglist_subscriptions_settings_form($form, &$form_state) {
   global $user;
-  
+
   $sql = 'SELECT m.nid as gid, m.subscription_type, n.title
           FROM {og_mailinglist_subscription} m, {node} n
           WHERE m.nid = n.nid
           AND m.uid = %d
           ORDER BY n.title';
-  
-  $results = db_query($sql, $user->uid);
-  
+
+  $results = db_query('SELECT m.nid as gid, m.subscription_type, n.title
+          FROM {og_mailinglist_subscription} m, {node} n
+          WHERE m.nid = :m.nid
+          AND m.uid = :m.uid
+          ORDER BY n.title', array(':m.nid' => : m . nid, ':m.uid' => : m . uid, '' => array(
+      ':m.nid' => : m . nid,
+      ':m.uid' => : m . uid,
+      '' => array(
+        ':m.nid' => n . nid,
+        ':m.uid' => $user->uid,
+      ),
+    )));
+
   $subscription_options = array(
     'email' => t('Email'),
     'no email' => t('No email'),
     'digest email' => t('Digest email'),
   );
   $form = array();
-  
+
   while ($data = db_fetch_array($results)) {
     $form[$data['gid']] = array(
       '#type' => 'fieldset',
@@ -200,14 +232,18 @@ function og_mailinglist_subscriptions_settings_form() {
       '#suffix' => "<hr />",
     );
   }
-    $form['submit'] = array(
-      '#type' => 'submit',
-      '#value' => t('Save Settings')
-    );
-  
+  $form['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t('Save Settings'),
+  );
+
   return $form;
 }
 
+/**
+ * @todo Please document this function.
+ * @see http://drupal.org/node/1354
+ */
 function og_mailinglist_subscriptions_settings_form_submit($form, &$form_state) {
   global $user;
   foreach ($form_state['values'] as $gid => $settings) {
@@ -222,7 +258,10 @@ function og_mailinglist_subscriptions_settings_form_submit($form, &$form_state) 
       // If they choose to leave the group.
       if ($settings['leave-group']) {
         og_delete_subscription($gid, $user->uid);
-        $group_name = db_result(db_query("SELECT title FROM {node} WHERE nid = %d", $gid));
+        $group_name = db_query("SELECT title FROM {node} WHERE nid = :nid", array(':nid' => : nid, '' => array(
+            ':nid' => : nid,
+            '' => array(':nid' => $gid),
+          )))->fetchField();
         drupal_set_message(t("You are no longer in the <a href='@gid'>@group_name</a> group", array("@gid" => url("node/" . $gid), "@group_name" => $group_name)));
       }
     }
@@ -230,13 +269,17 @@ function og_mailinglist_subscriptions_settings_form_submit($form, &$form_state) 
   drupal_set_message("Your group subscriptions were updated.");
 }
 
+/**
+ * @todo Please document this function.
+ * @see http://drupal.org/node/1354
+ */
 function og_mailinglist_unsubscribe_thread($node) {
   global $user;
   $success = og_mailinglist_delete_thread_subscription($node->nid, $user->uid);
-  
+
   if ($success) {
     return "<div class='messages success'>You were successfully unsubscribed from
-    the post <em>" . l($node->title, "node/" . $node->nid) . " </em>&nbsp;&nbsp; 
+    the post <em>" . l($node->title, "node/" . $node->nid) . " </em>&nbsp;&nbsp;
      " . l("Undo", "og_mailinglist/subscribe/" . $node->nid, array("attributes" => array("id" => "og_mailinglist_undo")))
            . "</div>";
   }
@@ -245,12 +288,16 @@ function og_mailinglist_unsubscribe_thread($node) {
   }
 }
 
+/**
+ * @todo Please document this function.
+ * @see http://drupal.org/node/1354
+ */
 function og_mailinglist_subscribe_thread($node) {
   global $user;
   og_mailinglist_save_thread_subscriptions($node->nid, array($user->uid));
-  
+
   return "<div class='messages success'>You were successfully subscribed to
-    the post <em>" . l($node->title, "node/" . $node->nid) . " </em>&nbsp;&nbsp; 
+    the post <em>" . l($node->title, "node/" . $node->nid) . " </em>&nbsp;&nbsp;
      " . l("Undo", "og_mailinglist/unsubscribe/" . $node->nid, array("attributes" => array("id" => "og_mailinglist_undo")))
            . "</div>";
 }
@@ -258,16 +305,23 @@ function og_mailinglist_subscribe_thread($node) {
 /*
  * Implementation of hook_form_alter().
  */
+/**
+ * @todo Please document this function.
+ * @see http://drupal.org/node/1354
+ */
 function og_mailinglist_form_alter(&$form, $form_state, $form_id) {
-  if ($form['#id'] == 'node-form' && (arg(0) .'/'. arg(1) != 'admin/content')) {
+  if ($form['#id'] == 'node-form' && (arg(0) . '/' . arg(1) != 'admin/content')) {
     // Group nodes
     if (og_is_group_type($form['#node']->type)) {
       if (!module_exists('purl') && !module_exists('spaces_og')) {
         $group_email = "";
         if (isset($form['nid']['#value'])) {
-          $group_email = db_result(db_query("SELECT group_email
+          $group_email = db_query("SELECT group_email
                                              FROM {og_mailinglist}
-                                             WHERE nid = %d", $form['nid']['#value']));
+                                             WHERE nid = :nid", array(':nid' => : nid, '' => array(
+              ':nid' => : nid,
+              '' => array(':nid' => $form['nid']['#value']),
+            )))->fetchField();
         }
         // Add our form, compatible with purl's form.
         $form['og_mailinglist'] = array(
@@ -292,7 +346,7 @@ function og_mailinglist_form_alter(&$form, $form_state, $form_id) {
         // Make sure our submit function is second after node_form_submit.
         $first = array_shift($form['buttons']['submit']['#submit']);
         array_unshift($form['buttons']['submit']['#submit'], $first, "og_mailinglist_group_form_submit");
-     }
+      }
     }
   }
 }
@@ -302,11 +356,17 @@ function og_mailinglist_form_alter(&$form, $form_state, $form_id) {
  * email username is valid.
  */
 function og_mailinglist_group_form_validate($element, &$form_state) {
-  $sql = "SELECT group_email FROM {og_mailinglist} WHERE group_email = '%s'";
+  $query = db_query('og_mailinglist')
+    ->fields('group_email')
+    ->condition('group_email' $element['#value']);
+
   if ($form_state['values']['nid']) {
-    $sql .= ' AND nid != ' . $form_state['values']['nid'];
+    $query->addCondition('nid', $form_state['values']['nid'], '!=');
   }
-  if (db_result(db_query($sql, $element['#value']))) {
+
+  $result = $query->execute();
+
+  if ($result->fetchField()) {
     form_error($element, t('Someone has already choosen that group email address. Please choose another.'));
   }
   else if (preg_match('!^[\.a-z0-9_-]+$!', $element['#value'])) {
@@ -320,6 +380,10 @@ function og_mailinglist_group_form_validate($element, &$form_state) {
 /*
  * Submit handler for og_mailinglist_group_form.
  */
+/**
+ * @todo Please document this function.
+ * @see http://drupal.org/node/1354
+ */
 function og_mailinglist_group_form_submit($form, &$form_state) {
   $group_email = "";
   if (isset($form_state['values']['purl']['value'])) {
@@ -330,14 +394,17 @@ function og_mailinglist_group_form_submit($form, &$form_state) {
   }
 
   og_mailinglist_save_group($form_state['nid'], $group_email);
-  
+
 }
 
 /*
  * Implementation of hook_nodeapi().
  */
-function og_mailinglist_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
-  if ($op == "insert" && $node->status) {
+/**
+ * Implements hook_node_insert().
+ */
+function og_mailinglist_node_insert($node) {
+  if (TRUE && $node->status) {
     $group_node = _og_mailinglist_load_group($node);
 
     // If this node isn't part of a group, return.
@@ -354,46 +421,54 @@ function og_mailinglist_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
     // User might not be automatically subscribed to new threads. Subscribe now if they aren't signed up to get emails normally.
     if (og_mailinglist_get_group_subscription_type($group_node->nid, $node->uid) != "email") {
       og_mailinglist_save_thread_subscriptions($node->nid, array($node->uid));
-    }    
+    }
     // Send emails
     og_mailinglist_send_node_email($node);
   }
+}
+
+/**
+ * @todo Please document this function.
+ * @see http://drupal.org/node/1354
+ */
+function og_mailinglist_nodeapi_OLD(&$node, $op, $a3 = NULL, $a4 = NULL) {
+  // TODO Remaining code in this function needs to be moved to the appropriate new hook function.
   // Node is a group
   if (og_is_group_type($node->type)) {
     switch ($op) {
       case 'load':
         // Load the group's email username.
         if (isset($node->nid)) {
-          $ogm_email = db_result(db_query("SELECT group_email
+          $ogm_email = db_query("SELECT group_email
                                        FROM {og_mailinglist}
-                                       WHERE nid = %d", $node->nid));
+                                       WHERE nid = :nid", array(':nid' => : nid, '' => array(
+              ':nid' => : nid,
+              '' => array(':nid' => $node->nid),
+            )))->fetchField();
           $node->ogm_email = $ogm_email;
         }
         break;
       case 'insert':
       case 'update':
       case 'delete':
-// Disabling this for now. Spaces deletes and recreates a group when you switch presets.
-//        og_mailinglist_delete_group($node->nid);
+        // Disabling this for now. Spaces deletes and recreates a group when you switch presets.
+        //        og_mailinglist_delete_group($node->nid);
         break;
     }
   }
 }
 
 /**
- * Implmentation of hook_comment().
+ * Implements hook_comment_publish().
  */
-function og_mailinglist_comment($comment, $op) {
-  // $comment can be an object or an array.
-  $comment = (object)$comment;
-
-  if ($op == 'publish') {
+function og_mailinglist_comment_publish($comment) {
+  if (TRUE) {
     // Check that the node is published.
     $node = node_load($comment->nid);
     $group_node = _og_mailinglist_load_group($node);
     if ($node->status && is_object($group_node)) {
       og_mailinglist_send_comment_email($comment, $node);
-      
+
       // User might not be subscribed to thread. Subscribe them now if not
       // already subscribed.
       if (!og_mailinglist_check_user_subscribed_to_thread($comment->nid, $comment->uid)) {
@@ -404,7 +479,16 @@ function og_mailinglist_comment($comment, $op) {
 }
 
 /**
- * Implementation of hook_og().
+ * Implmentation of hook_comment().
+ */
+function og_mailinglist_comment_OLD($comment, $op) {
+  // TODO Remaining code in this function needs to be moved to the appropriate new hook function.
+  // $comment can be an object or an array.
+  $comment = (object) $comment;
+}
+
+/**
+ * Implements hook_og().
  *
  * Add a og_mailinglist subscription when a user joins a group
  * and delete should they leave.
@@ -414,7 +498,7 @@ function og_mailinglist_og($op, $gid, $uid, $args) {
     case 'user insert':
       og_mailinglist_save_group_subscriptions($gid, array($uid));
       break;
-    
+
     case 'user delete':
       og_mailinglist_delete_group_subscriptions($gid, array($uid));
       break;
@@ -422,21 +506,21 @@ function og_mailinglist_og($op, $gid, $uid, $args) {
 }
 
 /**
- * Implementation of hook_filter().
+ * Implements hook_filter().
  */
-function og_mailinglist_filter($op, $delta = 0, $format = -1, $text = "") {
+function og_mailinglist_filter_XXX($op, $delta = 0, $format = -1, $text = "") {
   switch ($op) {
     case 'list':
       return array(
-        0 => t('Hide quoted text from comments created via email')
+        0 => t('Hide quoted text from comments created via email'),
       );
-    
+
     case 'description':
       return t('Finds quoted text from comments created via email and hides them.');
-      
+
     case 'prepare':
       return $text;
-    
+
     case 'process':
       return _og_mailinglist_build_quotes_toggle($text);
   }
@@ -445,22 +529,22 @@ function og_mailinglist_filter($op, $delta = 0, $format = -1, $text = "") {
 function _og_mailinglist_build_quotes_toggle($text) {
   module_load_include('inc', 'og_mailinglist', 'og_mailinglist_filter');
   $quotes = _og_mailinglist_find_quoted_sections($text);
-  
+
   if (!empty($quotes)) {
-    foreach ($quotes as $quote) {      
-      $replace = '<br /><span class="toggle-quoted-text">- Show quoted text -</span><div class="quoted-text">'. $quote .'</div>';
+    foreach ($quotes as $quote) {
+      $replace = '<br /><span class="toggle-quoted-text">- Show quoted text -</span><div class="quoted-text">' . $quote . '</div>';
       $text = str_replace($quote, $replace, $text);
-      
+
       // Remove email addresses. Regex borrowed from valid_email_adddress().
       $regex = "([a-zA-Z0-9_\-\.\+\^!#\$%&*+\/\=\?\`\|\{\}~\']+@(?:(?:[a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.?)+)";
       preg_match_all($regex, $quote, $matches);
 
-      foreach($matches[0] as $email) {
+      foreach ($matches[0] as $email) {
         $text = str_replace($email, "***@***.***", $text);
       }
     }
-  } 
-  
+  }
+
   return $text;
 }
 
@@ -478,12 +562,16 @@ function _og_mailinglist_remove_quotes($text) {
 /*
  * Implementation of hook_cron().
  */
+/**
+ * @todo Please document this function.
+ * @see http://drupal.org/node/1354
+ */
 function og_mailinglist_cron() {
   // On first run, set digest to run today.
   $next_digest_runtime = variable_get('og_mailinglist_digest_runtime',
           mktime(17, date("I"), date("s"), date("n"), date("j")));
 
-  if (time() > $next_digest_runtime) {
+  if (REQUEST_TIME > $next_digest_runtime) {
     module_load_include('inc', 'og_mailinglist', 'og_mailinglist_digest_email');
 
     // Send off digest emails.
@@ -495,7 +583,7 @@ function og_mailinglist_cron() {
 }
 
 /**
- * Implementation of hook_help().
+ * Implements hook_help().
  */
 function og_mailinglist_help($path, $args) {
   switch ($path) {

@@ -3,7 +3,7 @@
 
 /**
  * Saves new thread subscriptions for members of a group.
- * 
+ *
  * @param int $gid Group ID
  * @param int $nid Node ID
  */
@@ -22,28 +22,38 @@ function og_mailinglist_save_group_thread_subscriptions($gid, $nid) {
  * Returns users who are active email subscribers in a group.
  *
  * @param int $gid Group id to query for subscriptions
- * 
+ *
  * @return array of UIDs and email addresses that are subscribed to this group.
  *  Format = key (UID) => value (email address)
  */
 function og_mailinglist_get_group_subscriptions($gid) {
   $result = db_query("SELECT uid
                      FROM {og_mailinglist_subscription}
-                     WHERE nid = %d
-                     AND subscription_type = 'email'", $gid);
-  
+                     WHERE nid = :nid
+                     AND subscription_type = :subscription_type", array(':nid' => : nid, ':subscription_type' => : subscription_type, '' => array(
+      ':nid' => : nid,
+      ':subscription_type' => : subscription_type,
+      '' => array(
+        ':nid' => $gid,
+        ':subscription_type' => 'email',
+      ),
+    )));
+
   $uids = array();
   while ($data = db_fetch_array($result)) {
-    $uids[] = $data['uid'];  
+    $uids[] = $data['uid'];
   }
-  
+
   $emails = array();
   foreach ($uids as $uid) {
-    $emails[$uid] = db_result(db_query("SELECT mail
+    $emails[$uid] = db_query("SELECT mail
                                    FROM {users}
-                                   WHERE uid = %d", $uid));
+                                   WHERE uid = :uid", array(':uid' => : uid, '' => array(
+        ':uid' => : uid,
+        '' => array(':uid' => $uid),
+      )))->fetchField();
   }
-  
+
   return $emails;
 }
 
@@ -51,34 +61,55 @@ function og_mailinglist_get_group_subscriptions($gid) {
  * @return array of UIDs and email addresses that are subscribed to this thread.
  *  Format = key (UID) => value (email address)
  */
+/**
+ * @todo Please document this function.
+ * @see http://drupal.org/node/1354
+ */
 function og_mailinglist_get_thread_subscriptions($nid) {
   $result = db_query("SELECT uid
                      FROM {og_mailinglist_thread}
-                     WHERE nid = %d", $nid);
-  
+                     WHERE nid = :nid", array(':nid' => : nid, '' => array(
+      ':nid' => : nid,
+      '' => array(':nid' => $nid),
+    )));
+
   $uids = array();
   while ($data = db_fetch_array($result)) {
-    $uids[] = $data['uid'];  
+    $uids[] = $data['uid'];
   }
-  
+
   $emails = array();
   foreach ($uids as $uid) {
-    $emails[$uid] = db_result(db_query("SELECT mail
+    $emails[$uid] = db_query("SELECT mail
                                    FROM {users}
-                                   WHERE uid = %d", $uid));
+                                   WHERE uid = :uid", array(':uid' => : uid, '' => array(
+        ':uid' => : uid,
+        '' => array(':uid' => $uid),
+      )))->fetchField();
   }
-  
+
   return $emails;
 }
 
 /*
  * Check if a user is subscribed to a thread.
  */
+/**
+ * @todo Please document this function.
+ * @see http://drupal.org/node/1354
+ */
 function og_mailinglist_check_user_subscribed_to_thread($nid, $uid) {
-  return db_result(db_query("SELECT uid
+  return db_query("SELECT uid
           FROM {og_mailinglist_thread
-          WHERE nid = %d
-          AND uid = %d", $nid, $uid));
+          WHERE nid = :nid
+          AND uid = :uid", array(':nid' => : nid, ':uid' => : uid, '' => array(
+      ':nid' => : nid,
+      ':uid' => : uid,
+      '' => array(
+        ':nid' => $nid,
+        ':uid' => $uid,
+      ),
+    )))->fetchField();
 }
 
 /*
@@ -86,6 +117,10 @@ function og_mailinglist_check_user_subscribed_to_thread($nid, $uid) {
  * @param array $uids array of User IDs that are subscribed to this thread.
  *
  * @return null.
+ */
+/**
+ * @todo Please document this function.
+ * @see http://drupal.org/node/1354
  */
 function og_mailinglist_save_thread_subscriptions($nid, $uids) {
   static $saved = array();
@@ -97,8 +132,13 @@ function og_mailinglist_save_thread_subscriptions($nid, $uids) {
     $saved[] = $nid . "_" . $uid;
 
     if ($uid != 0) { // Ignore anonymous users.
-      $result = db_query("INSERT INTO {og_mailinglist_thread}
-             VALUES (%d, %d)", $nid, $uid);
+      $result = db_insert('og_mailinglist_save_thread_subscription')
+        ->fields(array(
+        'nid' => $nid,
+        'uid' => $uid,
+      ))
+        ->execute();
+
       if ($result) {
         // Invoke hook
         module_invoke_all('og_mailinglist_save_thread_subscription', $nid, $uid);
@@ -110,31 +150,58 @@ function og_mailinglist_save_thread_subscriptions($nid, $uids) {
 /*
  * @return subscription type for the given group and user.
  */
+/**
+ * @todo Please document this function.
+ * @see http://drupal.org/node/1354
+ */
 function og_mailinglist_get_group_subscription_type($gid, $uid) {
-  return db_result(db_query("SELECT subscription_type
+  return db_query("SELECT subscription_type
                             FROM {og_mailinglist_subscription}
-                            WHERE nid = %d
-                            AND uid = %d", $gid, $uid));
+                            WHERE nid = :nid
+                            AND uid = :uid", array(':nid' => : nid, ':uid' => : uid, '' => array(
+      ':nid' => : nid,
+      ':uid' => : uid,
+      '' => array(
+        ':nid' => $gid,
+        ':uid' => $uid,
+      ),
+    )))->fetchField();
 }
 
 /*
  * Update a user's subscription type for one of their groups.
  */
+/**
+ * @todo Please document this function.
+ * @see http://drupal.org/node/1354
+ */
 function og_mailinglist_update_group_subcription_type($gid, $uid, $subscription_type) {
-  db_query("UPDATE {og_mailinglist_subscription}
-         SET subscription_type = '%s'
-         WHERE uid = %d
-         AND nid = %d", $subscription_type, $uid, $gid);
+  db_update('og_mailinglist_subscription')
+  ->fields(array(
+    'subscription_type' => $subscription_type,
+  ))
+  ->condition('uid', $uid)
+  ->condition('nid', $gid)
+  ->execute();
 }
 
 /*
  * @param int $gid Group id.
  * @param array $uids array of User IDs to add group subscriptions.
  */
+/**
+ * @todo Please document this function.
+ * @see http://drupal.org/node/1354
+ */
 function og_mailinglist_save_group_subscriptions($gid, $uids) {
   foreach ($uids as $uid) {
-    db_query("INSERT INTO {og_mailinglist_subscription}
-             VALUES (%d, %d, '%s')", $gid, $uid, variable_get('og_mailinglist_default_group_subscription_type', 'email'));
+    db_query('og_mailinglist_subscription')
+      ->fields(array(
+      'nid' => $gid,
+      'uid' => $uid,
+      'subscription_type' => variable_get('og_mailinglist_default_group_subscription_type', 'email'),
+    ))
+      ->execute();
   }
 }
 
@@ -142,13 +209,18 @@ function og_mailinglist_save_group_subscriptions($gid, $uids) {
  * @param int $gid Group id.
  * @param array $uids array of User IDs to add group subscriptions.
  */
+/**
+ * @todo Please document this function.
+ * @see http://drupal.org/node/1354
+ */
 function og_mailinglist_delete_group_subscriptions($gid, $uids) {
   foreach ($uids as $uid) {
     // Delete subscription.
-    db_query("DELETE FROM {og_mailinglist_subscription}
-             WHERE nid = %d
-             AND uid = %d", $gid, $uid);
-    
+    db_delete('og_mailinglist_subscription')
+      ->condition('nid', $gid)
+      ->condition('uid', $uid)
+      ->execute();
+
     og_mailinglist_delete_group_threads($gid, $uid);
   }
 }
@@ -156,16 +228,23 @@ function og_mailinglist_delete_group_subscriptions($gid, $uids) {
 /*
  * Adds person to 15 latest threads in a group.
  */
+/**
+ * @todo Please document this function.
+ * @see http://drupal.org/node/1354
+ */
 function og_mailinglist_subscribe_group_threads($gid, $uid) {
   // Select threads created in the past month.
   $results = db_query("SELECT o.nid
                       FROM {og_ancestry} o
                       INNER JOIN {node} n
                       ON n.nid = o.nid
-                      WHERE o.group_nid = %d
+                      WHERE o.group_nid = :o.group_nid
                       ORDER BY created DESC
-                      LIMIT 15", $gid);
-  
+                      LIMIT 15", array(':o.group_nid' => : o . group_nid, '' => array(
+      ':o.group_nid' => : o . group_nid,
+      '' => array(':o.group_nid' => $gid),
+    )));
+
   while ($data = db_fetch_array($results)) {
     og_mailinglist_save_thread_subscriptions($data['nid'], array($uid));
   }
@@ -175,22 +254,12 @@ function og_mailinglist_subscribe_group_threads($gid, $uid) {
  * Unsubscribe a user from all group threads when they leave that group.
  **/
 function og_mailinglist_delete_group_threads($gid, $uid) {
-  // Delete threads.  See http://drupal.org/node/1079620
-  global $db_type;
-  if ($db_type == 'pgsql') {
-    db_query("DELETE FROM {og_mailinglist_thread} AS m
-             USING {og_ancestry} AS o
-             WHERE (o.nid = m.nid)
-             AND m.uid = %d
-             AND o.group_nid = %d", $uid, $gid);
-  }
-  else {
-    db_query("DELETE FROM m
-             USING {og_mailinglist_thread} AS m, {og_ancestry} AS o
-             WHERE (o.nid = m.nid)
-             AND m.uid = %d
-             AND o.group_nid = %d", $uid, $gid);
-  }
+  db_delete('og_mailinglist_thread', 'm')
+    ->using('og_ancestry', 'o')
+    ->condition('o.nid = m.nid')
+    ->condition('m.uid' $uid)
+    ->condition('o.group_nid' $gid)
+    ->execute();
 }
 
 /**
@@ -204,9 +273,10 @@ function og_mailinglist_delete_thread_subscription($nid, $uid) {
   }
   $deleted[] = $nid . "_" . $uid;
 
-  $result = db_query("DELETE FROM {og_mailinglist_thread}
-           WHERE nid = %d
-           AND uid = %d", $nid, $uid);
+  $result = db_delete('og_mailinglist_thread')
+    ->condition('nid', $nid)
+    ->condition('uid', $uid)
+    ->execute();
 
   if ($result) {
     // Invoke hook
@@ -219,13 +289,29 @@ function og_mailinglist_delete_thread_subscription($nid, $uid) {
 /*
  * Log successful sent email.
  */
+/**
+ * @todo Please document this function.
+ * @see http://drupal.org/node/1354
+ */
 function og_mailinglist_log_email_sent($source, $nid, $cid = 0, $message_id = 0, $in_reply_to = 0, $references = 0, $parent_message_id = 0) {
-  return db_query("INSERT INTO {og_mailinglist_source}
-           VALUES (%d, %d, '%s', '%s', '%s', '%s', '%s')", 
-           $nid, $cid, $source, $message_id, $in_reply_to, $references, $parent_message_id);
+  return db_insert('og_mailinglist_source')
+    ->fields(array(
+    'nid' => $nid,
+    'cid' => $cid,
+    'source' => $source,
+    'message_id' => $message_id,
+    'in_reply_to' => $in_reply_to,
+    'references_header' => $references,
+    'parent_message_id' => $parent_message_id,
+  ))
+    ->execute();
 }
 /*
  * @return PHPMailer object.
+ */
+/**
+ * @todo Please document this function.
+ * @see http://drupal.org/node/1354
  */
 function og_mailinglist_create_mailer() {
   og_mailinglist_phpmailer_load_library();
@@ -238,13 +324,20 @@ function og_mailinglist_create_mailer() {
 /*
  * Save group information upon group creation and update.
  */
+/**
+ * @todo Please document this function.
+ * @see http://drupal.org/node/1354
+ */
 function og_mailinglist_save_group($nid, $group_email) {
-  $update = db_result(db_query("SELECT nid
+  $update = db_query("SELECT nid
                                 FROM {og_mailinglist}
-                                WHERE nid = %d", $nid));
+                                WHERE nid = :nid", array(':nid' => : nid, '' => array(
+      ':nid' => : nid,
+      '' => array(':nid' => $nid),
+    )))->fetchField();
   $data = array(
-      'nid' => $nid,
-      'group_email' => $group_email,
+    'nid' => $nid,
+    'group_email' => $group_email,
   );
 
   if ($update) {
@@ -258,23 +351,32 @@ function og_mailinglist_save_group($nid, $group_email) {
 /*
  * Delete group information.
  */
+/**
+ * @todo Please document this function.
+ * @see http://drupal.org/node/1354
+ */
 function og_mailinglist_delete_group($nid) {
   // Delete information from og_mailinglist.
-  db_query("DELETE FROM {og_mailinglist}
-           WHERE nid = %d", $nid);
-  
+  db_delete('og_mailinglist')
+    ->condition('nid', $nid)
+    ->execute();
+
   // Delete group subscriptions from og_mailinglist_subscriptions.
-  db_query("DELETE FROM {og_mailinglist_subscription}
-           WHERE nid = %d", $nid);
+  db_delete('og_mailinglist_subscription')
+    ->condition('nid', $nid)
+    ->execute();
 }
 
 function _og_mailinglist_get_thread_parent_messageid($in_reply_to_message_id, $references) {
   if (empty($in_reply_to_message_id)) {
     return;
   }
-  $parent_message_id = db_result(db_query("SELECT parent_message_id
+  $parent_message_id = db_query("SELECT parent_message_id
                               FROM {og_mailinglist_source}
-                              WHERE message_id = '%s'", $in_reply_to_message_id));
+                              WHERE message_id = :message_id", array(':message_id' => : message_id, '' => array(
+      ':message_id' => : message_id,
+      '' => array(':message_id' => $in_reply_to_message_id),
+    )))->fetchField();
 
   if (!empty($parent_message_id)) {
     return $parent_message_id;
@@ -286,28 +388,41 @@ function _og_mailinglist_get_thread_parent_messageid($in_reply_to_message_id, $r
   $refs_array = explode(" ", $refs);
 
   foreach ($refs_array as $reference) {
-    if(!empty($reference)) {
-        $parent_message_id = db_result(db_query("SELECT parent_message_id
+    if (!empty($reference)) {
+      $parent_message_id = db_query("SELECT parent_message_id
                               FROM {og_mailinglist_source}
-                              WHERE message_id = '%s'", $reference));
+                              WHERE message_id = :message_id", array(':message_id' => : message_id, '' => array(
+          ':message_id' => : message_id,
+          '' => array(':message_id' => $reference),
+        )))->fetchField();
 
-        if (!empty($parent_message_id)) {
-          return $parent_message_id;
-        }
+      if (!empty($parent_message_id)) {
+        return $parent_message_id;
+      }
     }
   }
- 
+
 }
 
 function _og_mailinglist_get_nid_from_parent_messageid($message_id) {
-  return db_result(db_query("SELECT nid
+  return db_query("SELECT nid
                               FROM {og_mailinglist_source}
-                              WHERE message_id = '%s'", $message_id));
+                              WHERE message_id = :message_id", array(':message_id' => : message_id, '' => array(
+      ':message_id' => : message_id,
+      '' => array(':message_id' => $message_id),
+    )))->fetchField();
 }
 
 function _og_mailinglist_get_messageid_from_nid($nid) {
-  return db_result(db_query("SELECT parent_message_id
+  return db_query("SELECT parent_message_id
                               FROM {og_mailinglist_source}
-                              WHERE cid = 0
-                              AND nid = %d", $nid));
+                              WHERE cid = :cid
+                              AND nid = :nid", array(':cid' => : cid, ':nid' => : nid, '' => array(
+      ':cid' => : cid,
+      ':nid' => : nid,
+      '' => array(
+        ':cid' => 0,
+        ':nid' => $nid,
+      ),
+    )))->fetchField();
 }

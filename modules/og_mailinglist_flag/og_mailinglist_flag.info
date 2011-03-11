@@ -3,4 +3,9 @@ description = "Integrates Og Mailinglist with the Flag module to provide a simpl
 dependencies[] = og_mailinglist
 dependencies[] = flag
 package = "Organic groups"
-core = "6.x"
+core = 7.x
+
+
+
+files[] = og_mailinglist_flag.install
+files[] = og_mailinglist_flag.module
