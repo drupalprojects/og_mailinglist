@@ -175,12 +175,22 @@ function og_mailinglist_subscribe_group_threads($gid, $uid) {
  * Unsubscribe a user from all group threads when they leave that group.
  **/
 function og_mailinglist_delete_group_threads($gid, $uid) {
-  // Delete threads.
-  db_query("DELETE m FROM {og_mailinglist_thread} m
-           INNER JOIN {og_ancestry} o
-           WHERE o.nid = m.nid
-           AND m.uid = %d
-           AND o.group_nid = %d", $uid, $gid);  
+  // Delete threads.  See http://drupal.org/node/1079620
+  global $db_type;
+  if ($db_type == 'pgsql') {
+    db_query("DELETE FROM {og_mailinglist_thread} AS m
+             USING {og_ancestry} AS o
+             WHERE (o.nid = m.nid)
+             AND m.uid = %d
+             AND o.group_nid = %d", $uid, $gid);
+  }
+  else {
+    db_query("DELETE FROM m
+             USING {og_mailinglist_thread} AS m, {og_ancestry} AS o
+             WHERE (o.nid = m.nid)
+             AND m.uid = %d
+             AND o.group_nid = %d", $uid, $gid);
+  }
 }
 
 /**
