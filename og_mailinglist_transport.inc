@@ -62,6 +62,9 @@ function _og_mailinglist_process_email($raw_email, $group_name) {
         $group_name = $matches[1];
       }
     }
+
+    // Strip enclosing quotes sometimes added by MS Outlook.
+    $group_name = trim($group_name, '"\' ');
     
     // Did we actually get email text back? If not, throw an exception.
     if ($email['mailbody'] == "") {
