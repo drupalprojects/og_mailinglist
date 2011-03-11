@@ -347,6 +347,11 @@ function og_mailinglist_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
       return;
     }
 
+    // If this the Maillog module has been set to turn off emails, return.
+    if (!variable_get('maillog_send', TRUE)) {
+      return;
+    }
+
     // If this content type doesn't use email notifications, then return.
     $excluded_content_types = variable_get('og_mailinglist_exclude_content_types', array());
     if (in_array($node->type, $excluded_content_types)) {
@@ -390,17 +395,22 @@ function og_mailinglist_comment($comment, $op) {
   $comment = (object)$comment;
 
   if ($op == 'publish') {
+    // If this the Maillog module has been set to turn off emails, return.
+    if (!variable_get('maillog_send', TRUE)) {
+      return;
+    }
+
     // Check that the node is published.
     $node = node_load($comment->nid);
     $group_node = _og_mailinglist_load_group($node);
     if ($node->status && is_object($group_node)) {
-      og_mailinglist_send_comment_email($comment, $node);
-      
       // User might not be subscribed to thread. Subscribe them now if not
       // already subscribed.
       if (!og_mailinglist_check_user_subscribed_to_thread($comment->nid, $comment->uid)) {
         og_mailinglist_save_thread_subscriptions($comment->nid, array($comment->uid));
       }
+
+      og_mailinglist_send_comment_email($comment, $node);
     }
   }
 }
