@@ -1,5 +1,4 @@
 <?php
-// $Id$
 // TODO -- rewrite this header part according to the normal Drupal style
 // TODO write docs for functions.
 ###############################################################################
@@ -15,12 +14,8 @@
 
 /**
  * @name OG Mailinglist build modes.
- * @{
  */
-define('OG_MAILINGLIST_BUILD_FULL', 'og_mailinglist full');
-/**
- * @} End of "Node as block build modes".
-*/
+define('OG_MAILINGLIST_BUILD_FULL', 'og_mailinglist_full');
 
 require_once("og_mailinglist_phpmailer.inc");
 require_once('og_mailinglist_api.inc');
@@ -503,4 +498,21 @@ function og_mailinglist_help($path, $args) {
       // Return a line-break version of the module README
       return filter_filter('process', 1, NULL, file_get_contents( dirname(__FILE__) . "/README.txt"));
   }
+}
+
+/**
+ * Implementation of hook_content_build_modes().
+ **/
+function og_mailinglist_content_build_modes() {
+  return array(
+    'og_mailinglist' => array(
+      'title' => t('OG Mailinglist'),
+      'build modes' => array(
+        'og_mailinglist_full' => array(
+          'title' => t('OG Mailinglist Full'),
+          'views style' => TRUE,
+        ),
+      ),
+    ),
+  );
 }
