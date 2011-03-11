@@ -33,6 +33,7 @@ function og_mailinglist_menu() {
     'page arguments' => array('og_mailinglist_admin_settings'),
     'access arguments' => array('access administration pages'),
   );
+  $items['user/%user/og_mailinglist'] =
   $items['og_mailinglist/subscriptions'] = array(
     'title' => t('Manage Group Subscriptions'),
     'description' => t('Allows users to manage their group subscriptions'),
@@ -40,6 +41,8 @@ function og_mailinglist_menu() {
     'page arguments' => array('og_mailinglist_subscriptions_settings_form'),
     'access arguments' => array('manage og_mailinglist subscriptions'),
   );
+  $items['user/%user/og_mailinglist']['type'] = MENU_LOCAL_TASK;
+
   $items['og_mailinglist/unsubscribe/%node'] = array(
     'title' => t('Unsubscribe from post'),
     'description' => t('Users who hit this page will not get more emails for
@@ -255,7 +258,7 @@ function og_mailinglist_subscribe_thread($node) {
  */
 function og_mailinglist_form_alter(&$form, $form_state, $form_id) {
   if ($form['#id'] == 'node-form' && (arg(0) .'/'. arg(1) != 'admin/content')) {
-    // Group nodes
+    // If this is a group node form.
     if (og_is_group_type($form['#node']->type)) {
       if (!module_exists('purl') && !module_exists('spaces_og')) {
         $group_email = "";
