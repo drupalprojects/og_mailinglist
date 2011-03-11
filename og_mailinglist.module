@@ -287,6 +287,10 @@ function og_mailinglist_form_alter(&$form, $form_state, $form_id) {
       // If Spaces OG is already using purl to get a shortcode, we'll use that
       // shortcode instead of collecting another one.
       else {
+        // Modify the title and description to match our custom form.
+        $form['purl']['value']['#title'] = t('Group Email Address');
+        $form['purl']['value']['#description'] = t('Choose an email address for your group. May contain only lowercase letters, numbers, dashes and underscores. e.g. "my-group"');
+
         // Make sure our submit function is second after node_form_submit.
         $first = array_shift($form['buttons']['submit']['#submit']);
         array_unshift($form['buttons']['submit']['#submit'], $first, "og_mailinglist_group_form_submit");
