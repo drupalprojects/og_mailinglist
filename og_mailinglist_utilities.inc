@@ -129,7 +129,8 @@ function array_copy ($aSource) {
 function _og_mailinglist_load_group($node) {
   $groups = og_get_node_groups($node);
   if (!empty($groups)) {
-    return $groups[0];
+    $keys = array_keys($groups);
+    return node_load(array_pop($keys));
   }
   else {
     return null;
