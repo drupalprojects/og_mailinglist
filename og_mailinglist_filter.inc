@@ -80,6 +80,8 @@ function _og_mailinglist_filter_quotes($text) {
                             $line, $matches)
       || preg_match("/On\s\d{1,2}\s\w{3,9}\s\d{4},\sat\s\d{1,2}:\d{1,2},\s.+?wrote:/s", #unknown as of yet "On 30 Jan 2011, at 13:18, Joe Smith  wrote:"
                             $line, $matches)
+      || preg_match("/On.\d{1,2}\/\d{1,2}\/\d{1,2}.\d{1,2}:\d{1,2},.+?wrote:/s", #Thunderbird 24hr "On 21/5/10 13:45, Joe Smith wrote:"
+                            $line, $matches)
       && !$in_quote) {
 
       
