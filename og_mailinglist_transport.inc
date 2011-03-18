@@ -286,6 +286,11 @@ function og_mailinglist_save_comment($email) {
   $parent_message_id = _og_mailinglist_get_thread_parent_messageid($email['headers']['in-reply-to'], $email['headers']['references']);
   og_mailinglist_log_email_sent('email', $nid, $cid, $email['headers']['message-id'], $email['headers']['in-reply-to'], $email['headers']['references'], $parent_message_id);
 
+  // If enabled, set comment parent = cid of in-reply-to for comment threading
+  if (variable_get('og_mailinglist_thread_comments', FALSE)) {
+    $comment['pid'] = db_result(db_query("SELECT cid FROM {og_mailinglist_source} WHERE message_id='%s'", $email['headers']['in-reply-to']));
+  }
+
   // Let other modules alter the comment array before saving.
   drupal_alter('og_mailinglist_save_commment', $comment);
 
