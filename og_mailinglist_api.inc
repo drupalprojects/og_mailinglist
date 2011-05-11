@@ -41,7 +41,8 @@ function og_mailinglist_get_group_subscriptions($gid) {
   foreach ($uids as $uid) {
     $emails[$uid] = db_result(db_query("SELECT mail
                                    FROM {users}
-                                   WHERE uid = %d", $uid));
+                                   WHERE status = 1
+                                   AND uid = %d", $uid));
   }
   
   return $emails;
