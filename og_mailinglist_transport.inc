@@ -91,11 +91,13 @@ function _og_mailinglist_process_email($raw_email, $group_name) {
     }
     if (!$email['userid'] = db_result(db_query("SELECT uid
                                       FROM {users}
-                                      WHERE mail='%s'", $mailfrom))) {
+                                      WHERE status = 1
+                                      AND mail='%s'", $mailfrom))) {
       // If not posting from their normal email account, let's try their mail alias.
       $email['userid'] = db_result(db_query("SELECT uid
                                             FROM {users}
-                                            WHERE data LIKE '%%%s%%'", $mailfrom));
+                                            WHERE status = 1
+                                            AND data LIKE '%%%s%%'", $mailfrom));
     }
     if (!$email['userid']) {
       $exception = t("Could not locate the user account for !mailfrom. For security reasons, please post from the email account you are registered with.", array('!mailfrom' => $mailfrom));
