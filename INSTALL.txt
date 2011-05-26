@@ -40,21 +40,25 @@ INSTALLATION INSTRUCTIONS:
 * Download and unpack the latest PHPMailer 5.x then move the library to
 * og_mailinglist/phpmailer or to libraries/phpmailer if you use the libraries
 * module -
-* http://kent.dl.sourceforge.net/project/phpmailer/phpmailer%20for%20php5_6/PHPMailer%20v5.1/PHPMailer_v5.1.tar.gz 
+* http://kent.dl.sourceforge.net/project/phpmailer/phpmailer%20for%20php5_6/PHPMailer%20v5.1/PHPMailer_v5.1.tar.gz
 
-* Install the PHP library mimeDecode. On Debian/Ubuntu run from the command
-* line, "apt-get install php-mail-mimedecode". You can also download the file
-* directly from http://pear.php.net/package/Mail_mimeDecode and add the file
-* either as a subdirectory to og_mailinglist or to the libraries folder. Note,
-* mimeDecode depends on PHP PEAR, which sould be installed on any recent install
-* of PHP but if you get weird errors, this might be something worth checking.
-* (Note, this installation step is only necessary if you want members of your
-* site to be able to send email to the site to start or respond to posts. If all
-* posting will happen directly on the site, this step is unnecessary)
+* Install the PHP library mimeDecode. Use the command listed below for your OS:
+*
+*   Debian/Ubuntu:           apt-get install php-mail-mimedecode
+*   Fedora/RHEL/CentOS:      yum -y install php-pear-Mail-mimeDecode
+*
+* You can also download the file directly from:
+*   http://pear.php.net/package/Mail_mimeDecode
+* and add the file either as a subdirectory to og_mailinglist or to the libraries
+* folder. Note that this installation step is only necessary if you want members of
+* your site to be able to send email to the site to start or respond to posts. If all
+* posting will happen directly on the site, this step is unnecessary.
 
 * Install the PHP library Curl (if it's not already installed. Many setups come
-* preinstalled with Curl support.). On Debian/Ubuntu run from the command line,
-* "apt-get install php5-curl".
+* preinstalled with Curl support.). Use the command listed below for your OS:
+*
+*   Debian/Ubuntu:           apt-get install php5-curl
+*   Fedora/RHEL/CentOS:      yum -y install php-pear-Net-Curl
 
 * Go to the Modules page in Drupal and enable the module (like normal).  After
 * saving, navigate to admin/og/og_mailinglist and configure per your server
@@ -68,7 +72,7 @@ INSTALLATION INSTRUCTIONS:
 * quoted text from comments created via email" at admin/settings/filter and
 * rearrange the filters to set this one first. Note, that for this to work, your
 * input filter(s) will need to allow both the <span> and <div> HTML tags.
-  
+
 * Congratulations.  You're running og_mailinglist!
 
 FAQ 
@@ -88,9 +92,14 @@ more on this.
 
 
 Q: Users want to be able to post from email accounts other than the one they
-registered with on the site, is this possible?  
+registered with on the site, is this possible?
 
 A: Yes! OG Mailinglist supports
 the Mailalias module - http://drupal.org/project/mailalias. Install this on your
 site and users will be able to add additional email addresses they'd like to
 post from.
+
+Q: I can't get mimeDecode to install or work.
+A: mimeDecode depends on PHP PEAR, which should be installed on any
+recent install of PHP but if you get weird errors, this might be something
+worth checking. 
