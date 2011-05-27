@@ -34,7 +34,7 @@ function og_mailinglist_post() {
   _og_mailinglist_process_email($message, $group_name);
 }
 
-function _og_mailinglist_process_email($raw_email, $group_name) {
+function _og_mailinglist_process_email($raw_email, $group_name = NULL) {
   try {
     $email = array();
 
