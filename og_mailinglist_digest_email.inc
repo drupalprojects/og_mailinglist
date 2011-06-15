@@ -29,6 +29,7 @@ function _og_mailinglist_send_digest_emails() {
             JOIN {og_ancestry} o
             JOIN {comments} c
             WHERE s.nid = o.group_nid
+            AND c.status = 0
             AND o.nid = c.nid
             AND c.timestamp > (unix_timestamp() - %d)
             AND s.subscription_type = "digest email"';
@@ -59,6 +60,7 @@ function _og_mailinglist_send_digest_emails() {
                           FROM {comments} c
                           JOIN {og_ancestry} o
                           WHERE c.nid = o.nid
+                          AND c.status = 1
                           AND c.timestamp > (unix_timestamp() - %d)
                           AND o.group_nid = %d';
 
