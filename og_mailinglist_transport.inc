@@ -71,18 +71,18 @@ function _og_mailinglist_process_email($raw_email, $group_name = NULL) {
 
     // Strip enclosing quotes sometimes added by MS Outlook.
     $group_name = trim($group_name, '"\' ');
-    
+
     // Did we actually get email text back? If not, throw an exception.
     if ($email['mailbody'] == "") {
       throw new Exception(t("Could not parse message body from the text/plain portion of the email."));
     }
-    
+
     // Check the size of the body and kick out if too large (for security).
     $max_size = variable_get('og_mailinglist_max_message_size', 200);  // 200kb
     if (strlen($email['mailbody']) > $max_size * 1024 && $max_size != 0) {
       throw new Exception(t("Discussion items sent via email must be less than !max_size Kb. For security reasons, please post larger messages through the web interface.", array("!max_size" => $max_size)));
     }
-  
+
     // This regex worries me... do *all* email clients place email addresses between <>?
     // Get the user id.
     $mailfrom = $email['headers']['from'];
@@ -119,7 +119,7 @@ function _og_mailinglist_process_email($raw_email, $group_name = NULL) {
        throw new Exception(t("You have posted via email too many times in the last hour.  For security reasons, please wait a while or post through the regular web interface."));
       }
     }
-    
+
     // Get the group id.
     $email['groupid'] = db_result(db_query("SELECT nid
                                            FROM {og_mailinglist}
@@ -127,7 +127,7 @@ function _og_mailinglist_process_email($raw_email, $group_name = NULL) {
     if (!$email['groupid']) { 
       throw new Exception(t("Could not locate group named !group_name", array('!group_name' => $group_name)));
     }
-    
+
     // Check the this user is a member of this group (for security).
     $results = db_query("SELECT og.nid, n.title
                         FROM {og_uid} og JOIN {node} n
@@ -135,19 +135,19 @@ function _og_mailinglist_process_email($raw_email, $group_name = NULL) {
                         WHERE og.uid=%d AND
                         og.nid=%d AND
                         og.nid=n.nid AND
-                        o.nid=og.nid", $email['userid'], $email['groupid']);   
+                        o.nid=og.nid", $email['userid'], $email['groupid']);
     if (!db_result($results)) { // TODO also check if person is subscribed to this thread -- if they are, let them comment by email.
       throw new Exception(t("You (email: !mailfrom, account page: !account_page) are not a member of this group.  Please join the group via the web site before posting.",
                                array('!mailfrom' => $mailfrom, '!account_page' => url("user/" . $email['userid'], array('absolute' => TRUE)))));
     }
-    
+
     // See if the email is a comment to an existing node or a new node. 
     // If the email is a comment to a node, we should be able to get the Node ID of the original node.
     $email['nid'] = og_mailinglist_parse_nid($email['text_plain'], $email['structure']->headers);
-  
+
     // Create the new content in Drupal.
     if (!empty($email['nid'])) { // a new comment
-      
+
       /* Two checks first before creating the comment.
        * There are at least two reasons why an email could have a nid but not be
        * intended as a new comment.
@@ -160,7 +160,7 @@ function _og_mailinglist_process_email($raw_email, $group_name = NULL) {
       $nid_groupid = db_result(db_query("SELECT group_nid
                                         FROM {og_ancestry}
                                         WHERE nid = %d", $email['nid']));
-      
+
       if ($nid_groupid != $email['groupid']) {
         og_mailinglist_save_node($email);
         exit(0); // So we don't save a comment as well
@@ -185,18 +185,18 @@ function _og_mailinglist_process_email($raw_email, $group_name = NULL) {
         og_mailinglist_save_node($email);
         exit(0); // So we don't save a comment as well.
       }
-      
+
       // If we got this far, the email is definitely intended as a new comment.
       og_mailinglist_save_comment($email);
-      
+
     }
     else {  // A new node.
       og_mailinglist_save_node($email);
     }
-    
+
     // Tell Exim4 we had success!
-    exit(0);  
-  
+    exit(0);
+
   }catch (Exception $e) {
     try {
       // Compose an email back to the sender informing them of the problem.
@@ -210,23 +210,23 @@ function _og_mailinglist_process_email($raw_email, $group_name = NULL) {
       $msgfrom = $email['headers']['from'];
       $commentedbody = str_replace("\n", "\n> ", $mailbody);
       $body = "An error occurred while processing your submission:
-      
+
        $errormsg
-  
+
   Please correct this error and try again, or contact the system administrator.  Thank you.
-  
+
   On $msgdate, $msgfrom wrote:
   > $commentedbody";
-      
+
       // send it off
       if (!mail($email['headers']['from'], "Error processing message", $body, implode("\n", $head))) {
         throw new Exception("Mail error");
       }
-    
+
       // print error message to log, then quit
       echo t("Error: !message\n", array('!message' => $e->getMessage()));
       exit(0);
-      
+
     }catch (Exception $e2) {
       // if we get here, we couldn't even send an email back to sender, so just have Exim compose an error message and send back
       echo t("Error: !e2 ::: Embedded Error: !e\n", array('!e2' => $e2->getMessage(), '!e' => $e->getMessage()));
@@ -238,7 +238,7 @@ function _og_mailinglist_process_email($raw_email, $group_name = NULL) {
 function og_mailinglist_save_comment($email) {
   $nid = $email['nid'];
   $email['node'] = $node = node_load(array('nid' => $nid));
-  
+
   // Let other modules alter the new comment or delay posting for another time
   // (e.g. a moderation module might want to delay posting for a time).
   drupal_alter('og_mailinglist_new_email_comment', $email);

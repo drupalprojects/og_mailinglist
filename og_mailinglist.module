@@ -60,10 +60,10 @@ function og_mailinglist_menu() {
     'access arguments' => array('manage og_mailinglist subscriptions'),
   );
   $items['og_mailinglist'] = array(
-  'page callback' => 'og_mailinglist_post',
-  'access callback' => TRUE,
-  'type' => MENU_CALLBACK,
-  'file' => 'og_mailinglist_transport.inc',
+    'page callback' => 'og_mailinglist_post',
+    'access callback' => TRUE,
+    'type' => MENU_CALLBACK,
+    'file' => 'og_mailinglist_transport.inc',
   );
 
   return $items;
