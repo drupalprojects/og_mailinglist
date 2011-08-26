@@ -91,7 +91,7 @@ function _og_mailinglist_send_digest_emails() {
                                         WHERE nid = %d", $gid));
 
     $subject = "[" . $group->ogm_email . "] Digest for " . $group_email . "@" . variable_get("og_mailinglist_server_string", $_SERVER['SERVER_NAME'])
-          . " - " . $message_count . " Messages in " . count($nids) . " Discussions";
+          . " - " . $message_count . " " . format_plural($message_count, "Message", "Messages") . " in " . count($nids) . " Discussions";
 
     // Assemble message
     $body = "";
