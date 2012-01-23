@@ -19,8 +19,8 @@ function _og_mailinglist_send_digest_emails() {
             FROM {og_mailinglist_subscription} s
             JOIN {og_ancestry} o
             JOIN {node} n
-            WHERE s.nid = o.group_nid
-            AND o.nid = n.nid
+            ON s.nid = o.group_nid
+            WHERE o.nid = n.nid
             AND n.created > (unix_timestamp() - %d)
             AND s.subscription_type = "digest email"';
 
@@ -28,8 +28,8 @@ function _og_mailinglist_send_digest_emails() {
             FROM {og_mailinglist_subscription} s
             JOIN {og_ancestry} o
             JOIN {comments} c
-            WHERE s.nid = o.group_nid
-            AND c.status = 0
+            ON s.nid = o.group_nid
+            WHERE c.status = 0
             AND o.nid = c.nid
             AND c.timestamp > (unix_timestamp() - %d)
             AND s.subscription_type = "digest email"';
@@ -45,22 +45,21 @@ function _og_mailinglist_send_digest_emails() {
     $digest_groups[$data['nid']] = $data['nid'];
   }
 
-  //print_r($digest_groups);
   foreach ($digest_groups as $gid) {
     $group = node_load(array('nid' => $gid));
     // Get list of new activity -- new nodes and new comments
     $new_nids = 'SELECT o.nid
                   FROM {node} n
                   JOIN {og_ancestry} o
-                  WHERE n.nid = o.nid
-                  AND n.created > (unix_timestamp() - %d)
+                  ON n.nid = o.nid
+                  WHERE n.created > (unix_timestamp() - %d)
                   AND o.group_nid = %d';
 
     $new_comment_nids = 'SELECT c.nid, c.cid
                           FROM {comments} c
                           JOIN {og_ancestry} o
-                          WHERE c.nid = o.nid
-                          AND c.status = 1
+                          ON c.nid = o.nid
+                          WHERE c.status = 1
                           AND c.timestamp > (unix_timestamp() - %d)
                           AND o.group_nid = %d';
 
@@ -90,7 +89,7 @@ function _og_mailinglist_send_digest_emails() {
                                         FROM {og_mailinglist}
                                         WHERE nid = %d", $gid));
 
-    $subject = "[" . $group->ogm_email . "] Digest for " . $group_email . "@" . 
+    $subject = "[" . $group->ogm_email . "] Digest for " . $group_email . "@" .
       variable_get("og_mailinglist_server_string", $_SERVER['SERVER_NAME'])
       . " - " . $message_count . " " . format_plural($message_count, "Message", "Messages")
       . " in " . count($nids) . " " . format_plural(count($nids), "Discussion", "Discussions");
@@ -109,7 +108,7 @@ function _og_mailinglist_send_digest_emails() {
     $body .= "</ul>\n";
     $body .= "<hr />\n";
 
-    // Add individual posts. 
+    // Add individual posts.
     foreach ($nids as $nid) {
       $body .= '<a name="digest-' . $nid['node_obj']->nid . '"></a>';
       $body .= '<div style="' . DISCUSSION_HEADER . '">';
@@ -175,7 +174,7 @@ function _og_mailinglist_send_digest_emails() {
       $mailer->Body = $body;
       $mailer->isHTML(TRUE);
       $mailer->Send();
-      watchdog('og_mailinglist', 'Sent digest email to @email for group @group', 
+      watchdog('og_mailinglist', 'Sent digest email to @email for group @group',
                 array('@email' => $email, '@group' => $group->title), WATCHDOG_INFO);
     }
   }
@@ -192,7 +191,7 @@ function og_mailinglist_style_node_message($node) {
   $node = og_mailinglist_render_node_body($node);
   $body .= og_mailinglist_prepare_web_content($node->body);
   $body .= "<br />\n";
-  
+
   return $body;
 }
 
@@ -207,7 +206,7 @@ function og_mailinglist_style_comment_message($comment) {
   $comment->comment = _og_mailinglist_remove_quotes($comment->comment);
   $body .= og_mailinglist_prepare_web_content($comment->comment);
   $body .= "<br />\n";
-  
+
   return $body;
 }
 
@@ -217,6 +216,6 @@ function og_mailinglist_count_new_messages($message) {
       $count++;
     }
     $count += count(array_keys($message)) - 2;
-    
+
     return $count;
 }
