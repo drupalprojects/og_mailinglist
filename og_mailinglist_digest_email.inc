@@ -59,7 +59,7 @@ function _og_mailinglist_send_digest_emails() {
                           FROM {comments} c
                           JOIN {og_ancestry} o
                           ON c.nid = o.nid
-                          WHERE c.status = 1
+                          WHERE c.status = 0
                           AND c.timestamp > (unix_timestamp() - %d)
                           AND o.group_nid = %d';
 
