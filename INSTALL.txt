@@ -1,5 +1,5 @@
 OG Mailinglist - Turns Drupal into a multi-group email list.
-                
+
 
 OG Mailinglist allows users to start new posts by email and post comments on
 existing discussions by simply replying to emails.  You get the best of both
@@ -75,10 +75,10 @@ INSTALLATION INSTRUCTIONS:
 
 * Congratulations.  You're running og_mailinglist!
 
-FAQ 
+FAQ
 Q: I have an existing OG site that I want to install OG Mailinglist on but I
 don't want people to be subscribed to the mailinglist right away when I install
-the module. How do I do this?  
+the module. How do I do this?
 
 A: Once the OG Mailinglist is installed, you can
 set the default subscription setting for people joining a group on the OG
@@ -102,4 +102,4 @@ post from.
 Q: I can't get mimeDecode to install or work.
 A: mimeDecode depends on PHP PEAR, which should be installed on any
 recent install of PHP but if you get weird errors, this might be something
-worth checking. 
+worth checking.
