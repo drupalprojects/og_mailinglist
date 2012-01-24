@@ -711,6 +711,7 @@ function _og_mailinglist_encode_email($structure, $boundary = "", $email = "") {
       }
     }
   }
+
   return $email;
 }
 
@@ -896,7 +897,9 @@ function _og_mailinglist_send_email($headers, $body, $node) {
           $mailer->From = $value;
         break;
       case 'content-type':
-        // Parse the charset.
+        $mailer->ContentType = $value;
+
+        // Parse out the charset if one is set.
         preg_match("/charset=(.*)/s", $value, $matches);
         $charset = $matches[1];
         // If we succeed, set that for the mailer than proceed.
@@ -909,6 +912,7 @@ function _og_mailinglist_send_email($headers, $body, $node) {
     }
   }
 
+  $body = trim($body);
   $mailer->Body = $body;
 
   $success = $mailer->Send();
