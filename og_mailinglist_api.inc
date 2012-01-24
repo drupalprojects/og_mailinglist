@@ -232,6 +232,7 @@ function og_mailinglist_log_email_sent($source, $nid, $cid = 0, $message_id = 0,
 function og_mailinglist_create_mailer() {
   og_mailinglist_phpmailer_load_library();
   $mailer = new PHPMailer(TRUE); // The TRUE param means it will throw exceptions on errors, which we need to catch.
+  $mailer->PluginDir = og_mailinglist_get_phpmailer_plugin_dir();
   $mailer->CharSet = 'UTF-8';
 
   return $mailer;
