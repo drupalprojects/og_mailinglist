@@ -717,6 +717,9 @@ function _og_mailinglist_encode_email($structure, $boundary = "", $email = "") {
 
 function _og_mailinglist_encode_email_headers($array) {
   $header = "";
+  if (empty($array)) {
+    return $header;
+  }
   foreach ($array as $key => $value) {
     // We remove quoted-printable as content-transfer-encoding
     // because mime_decode decodes that and PHP doesn't have a function
