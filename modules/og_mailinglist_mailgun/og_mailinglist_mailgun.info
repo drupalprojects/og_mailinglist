@@ -1,0 +1,5 @@
+name = OG Mailinglist Mailgun
+description = "Integrates OG Mailinglist with Mailgun's commercial email service."
+dependencies[] = og_mailinglist
+package = "Organic groups"
+core = "6.x"

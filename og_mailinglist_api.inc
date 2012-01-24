@@ -234,6 +234,7 @@ function og_mailinglist_create_mailer() {
   $mailer = new PHPMailer(TRUE); // The TRUE param means it will throw exceptions on errors, which we need to catch.
   $mailer->PluginDir = og_mailinglist_get_phpmailer_plugin_dir();
   $mailer->CharSet = 'UTF-8';
+  drupal_alter('og_mailinglist_new_phpmailer', $mailer);
 
   return $mailer;
 }
