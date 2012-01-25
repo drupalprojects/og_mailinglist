@@ -124,7 +124,15 @@ function _og_mailinglist_process_email($raw_email, $group_name = NULL) {
     $email['groupid'] = db_result(db_query("SELECT nid
                                            FROM {og_mailinglist}
                                            WHERE LOWER(group_email)='%s'", $group_name));
+
     if (!$email['groupid']) {
+      throw new Exception(t("Could not locate group named !group_name", array('!group_name' => $group_name)));
+    }
+
+    // Check that the group is published. If it's not published, it's effectively
+    // not there.
+    $group_node = node_load($email['groupid']);
+    if ($group_node->status === 0) {
       throw new Exception(t("Could not locate group named !group_name", array('!group_name' => $group_name)));
     }
 
