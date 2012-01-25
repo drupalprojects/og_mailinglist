@@ -12,6 +12,7 @@ function og_mailinglist_mailgun_og_mailinglist_new_phpmailer_alter(&$mailer) {
     $mailer->IsSMTP();
     $mailer->Mailer = "smtp";
     $mailer->Port = 587;
+    $mailer->Host = 'smtp.mailgun.org';
     $mailer->SMTPAuth = true; // turn on SMTP authentication
     $mailer->Username = $login; // SMTP username
     $mailer->Password = $password; // SMTP password
@@ -24,7 +25,7 @@ function og_mailinglist_mailgun_og_mailinglist_new_phpmailer_alter(&$mailer) {
 function og_mailinglist_mailgun_menu() {
   # Administration
   $items['admin/og/og_mailinglist/mailgun'] = array(
-    'title' => 'OG Mailinglist Mailgun Settings',
+    'title' => 'OG Mailinglist/Mailgun Settings',
     'description' => t('Manage Mailgun/OG Mailinglist integration settings'),
     'page callback' => 'drupal_get_form',
     'page arguments' => array('og_mailinglist_mailgun_admin_settings'),
@@ -42,12 +43,12 @@ function og_mailinglist_mailgun_admin_settings() {
     '#title' => t('Mailgun Login'),
     '#type' => 'textfield',
     '#default_value' => variable_get('og_mailinglist_mailgun_login', ''),
-    '#description' => t('Mailgun Login. Find this by logging into Mailgun. Then clicking on "Domains". Then the domain you\'ll be using for sending OG Mailinglist emails.'),
+    '#description' => t('Mailgun Login. Find this by logging into Mailgun then clicking on "Domains", then on the domain you\'ll be using for sending OG Mailinglist emails.'),
   );
   $form['og_mailinglist_mailgun_password'] = array(
     '#title' => t('Mailgun Password'),
     '#type' => 'textfield',
-    '#default_value' => variable_get('og_mailinglist_max_message_size', '100'),
+    '#default_value' => variable_get('og_mailinglist_mailgun_password', ''),
     '#description' => t('Mailgun password. This can be found at the same place as the mailgun login.'),
   );
 
