@@ -51,6 +51,8 @@ function og_mailinglist_mailgun_admin_settings() {
     '#type' => 'textfield',
     '#default_value' => variable_get('og_mailinglist_mailgun_login', ''),
     '#description' => t('Mailgun Login. Find this by logging into Mailgun then clicking on "Domains", then on the domain you\'ll be using for sending OG Mailinglist emails.'),
+    '#prefix' => '<p><a href="admin/help#og_mailinglist_mailgun">Instructions for setting up the Mailgun/OG
+    Mailinglist integration</a></p>',
   );
   $form['og_mailinglist_mailgun_password'] = array(
     '#title' => t('Mailgun Password'),
@@ -88,5 +90,16 @@ function og_mailinglist_mailgun_new_email() {
   else {
     require_once(drupal_get_path('module', 'og_mailinglist') . "/og_mailinglist_transport.inc");
     _og_mailinglist_process_email($raw_email);
+  }
+}
+
+/**
+ * Implementation of hook_help().
+ */
+function og_mailinglist_mailgun_help($path, $args) {
+  switch ($path) {
+    case 'admin/help#og_mailinglist_mailgun':
+      // Return a line-break version of the module README
+      return filter_filter('process', 1, NULL, file_get_contents( dirname(__FILE__) . "/README.txt"));
   }
 }
