@@ -32,6 +32,13 @@ function og_mailinglist_mailgun_menu() {
     'access arguments' => array('access administration pages'),
   );
 
+  $items['og_mailinglist/mailgun_callback_mime'] = array(
+    'title' => 'URL for Mailgun to call when a new email is received',
+    'access callback' => TRUE,
+    'page callback' => 'og_mailinglist_mailgun_new_email',
+    'type' => MENU_CALLBACK,
+  );
+
   return $items;
 }
 
@@ -51,6 +58,35 @@ function og_mailinglist_mailgun_admin_settings() {
     '#default_value' => variable_get('og_mailinglist_mailgun_password', ''),
     '#description' => t('Mailgun password. This can be found at the same place as the mailgun login.'),
   );
+  $form['og_mailinglist_mailgun_api_key'] = array(
+    '#title' => t('Mailgun API Key'),
+    '#type' => 'textfield',
+    '#default_value' => variable_get('og_mailinglist_mailgun_api_key', ''),
+    '#description' => t('Mailgun API Key. This can be found under the Mailgun "My Account" tab.'),
+  );
 
   return system_settings_form($form);
+}
+
+function og_mailinglist_mailgun_new_email() {
+  $raw_email = $_POST['body-mime'];
+
+  // Verify email is from Mailgun.
+  // See http://documentation.mailgun.net/user_manual.html#securing-webhooks
+  $signature = $_POST['signature'];
+  $token = $_POST['token'];
+  $timestamp = $_POST['timestamp'];
+  $api_key = variable_get('og_mailinglist_mailgun_api_key', '');
+  $my_signature = hash_hmac('sha256', $timestamp . '' . $token , $api_key);
+
+  // If the signature's don't match, set watchdog entry and return.
+  if ($signature != $my_signature) {
+    watchdog('access denied', 'Authentication error for e-mail sent to the OG Mailinglist Mailgun webhook. Check that you\'ve set your API key from Mailgun in /admin/settings/og_mailinglist/mailgun', NULL, WATCHDOG_WARNING);
+    return;
+  }
+  // The email is legit, pass it on.
+  else {
+    require_once(drupal_get_path('module', 'og_mailinglist') . "/og_mailinglist_transport.inc");
+    _og_mailinglist_process_email($raw_email);
+  }
 }
