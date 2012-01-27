@@ -415,10 +415,12 @@ function _og_mailinglist_email_comment_email($email, $node, $comment) {
   $email = _og_mailinglist_rewrite_headers($email, $node, FALSE, $comment);
   $footer = _og_mailinglist_build_footer($node);
   $email = _og_mailinglist_add_footer($email, $footer);
+  $headers = $email['structure']->headers;
+  unset($email['structure']->headers);
   $email['new_email_text'] = _og_mailinglist_encode_email(array($email['structure']));
 
   // Send it off.
-  _og_mailinglist_send_email($email['new_email_text']);
+  _og_mailinglist_send_email($headers, $email['new_email_text'], $node);
 }
 
 function _og_mailinglist_parse_email($email) {
