@@ -51,8 +51,7 @@ function og_mailinglist_mailgun_admin_settings() {
     '#type' => 'textfield',
     '#default_value' => variable_get('og_mailinglist_mailgun_login', ''),
     '#description' => t('Mailgun Login. Find this by logging into Mailgun then clicking on "Domains", then on the domain you\'ll be using for sending OG Mailinglist emails.'),
-    '#prefix' => '<p><a href="admin/help#og_mailinglist_mailgun">Instructions for setting up the Mailgun/OG
-    Mailinglist integration</a></p>',
+    '#prefix' => '<p>' . l('Instructions for setting up the Mailgun/OG Mailinglist integration', 'admin/help/og_mailinglist_mailgun') . '</p>'
   );
   $form['og_mailinglist_mailgun_password'] = array(
     '#title' => t('Mailgun Password'),
