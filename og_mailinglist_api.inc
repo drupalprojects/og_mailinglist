@@ -272,7 +272,7 @@ function og_mailinglist_delete_group($nid) {
            WHERE nid = %d", $nid);
 }
 
-function _og_mailinglist_get_thread_parent_messageid($in_reply_to_message_id, $references) {
+function _og_mailinglist_get_thread_parent_messageid($in_reply_to_message_id, $references = "") {
   if (empty($in_reply_to_message_id)) {
     return;
   }
