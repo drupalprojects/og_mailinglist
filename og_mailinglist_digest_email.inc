@@ -162,7 +162,7 @@ function _og_mailinglist_send_digest_emails() {
       $mailer = og_mailinglist_create_mailer();
       $mailer->From = $group->ogm_email . "+no-reply@" . variable_get("og_mailinglist_server_string", $_SERVER['SERVER_NAME']);
       $mailer->FromName = $group_email . "@" .
-      variable_get("og_mailinglist_server_string", $_SERVER['SERVER_NAME']);
+            variable_get("og_mailinglist_server_string", $_SERVER['SERVER_NAME']);
       $mailer->AddCustomHeader($mailer->HeaderLine("List-Id", "<" . $group->ogm_email .
             "@" . variable_get('og_mailinglist_server_string', $_SERVER['SERVER_NAME']) . ">"));
       $mailer->AddCustomHeader($mailer->HeaderLine("List-Post", "<mailto:" . $group->ogm_email .
