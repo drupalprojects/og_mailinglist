@@ -341,7 +341,7 @@ function og_mailinglist_save_node($email) {
   $nid = 1 + db_result(db_query("SELECT nid FROM {node} ORDER BY nid DESC LIMIT 1"));
 
   // Log that comment came from email so og_mailinglist_phpmailer doesn't send an email as well.
-  og_mailinglist_log_email_sent('email', $nid, $cid, $email['headers']['message-id'], 0, 0, $email['headers']['message-id']);
+  og_mailinglist_log_email_sent('email', $nid, 0, $email['headers']['message-id'], 0, 0, $email['headers']['message-id']);
 
   // Is the group public? If not, we need to set the node as private.
   $is_private = db_result(db_query("SELECT og_private
@@ -403,7 +403,7 @@ function _og_mailinglist_email_node_email($email, $node) {
 
   // Send it off.
   $sender_account = user_load($email['userid']);
-  _og_mailinglist_send_email($headers, $email['new_email_text'], $node, $sender_account);
+  _og_mailinglist_send_email($headers, $email['new_email_text'], $node, null, $sender_account);
 
   // If the sender's subscription type isn't email, give him a thread subscription.
   if (og_mailinglist_get_group_subscription_type($node->og_groups[0], $node->uid) != "email") {
@@ -422,7 +422,7 @@ function _og_mailinglist_email_comment_email($email, $node, $comment) {
 
   // Send it off.
   $sender_account = user_load($email['userid']);
-  _og_mailinglist_send_email($headers, $email['new_email_text'], $node, $sender_account);
+  _og_mailinglist_send_email($headers, $email['new_email_text'], $node, $comment, $sender_account);
 }
 
 function _og_mailinglist_parse_email($email) {
@@ -870,7 +870,7 @@ function _og_mailinglist_add_footer($email, $footer) {
   return $email;
 }
 
-function _og_mailinglist_send_email($headers, $body, $node, $sender_account) {
+function _og_mailinglist_send_email($headers, $body, $node, $comment = null, $sender_account) {
   $mailer = og_mailinglist_create_mailer();
   $mailer->ClearAddresses();
   foreach($headers as $key => $value) {
@@ -935,12 +935,8 @@ function _og_mailinglist_send_email($headers, $body, $node, $sender_account) {
 
   $success = $mailer->Send();
 
-  if ($success) {
-    $parent_message_id = _og_mailinglist_get_thread_parent_messageid($email['headers']['in-reply-to']);
-    og_mailinglist_log_email_sent('web', $node->nid, $comment->cid, $mailer->MessageID, $headers['in_reply_to'], $headers['References'], $parent_message_id);
-  }
-  else {
-    watchdog('og_mailinglist', "OG_Mailinglist couldn't send a new node email.", NULL,
+  if (!$success) {
+    watchdog('og_mailinglist', "OG_Mailinglist couldn't send an email.", NULL,
              WATCHDOG_ERROR);
   }
 
