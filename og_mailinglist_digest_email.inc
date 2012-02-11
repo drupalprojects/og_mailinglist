@@ -159,6 +159,10 @@ function _og_mailinglist_send_digest_emails() {
     }
 
     foreach ($uids as $email) {
+      // Ensure email is valid.
+      if (!valid_email_address($email)) {
+        continue;
+      }
       $mailer = og_mailinglist_create_mailer();
       $mailer->From = $group->ogm_email . "+no-reply@" . variable_get("og_mailinglist_server_string", $_SERVER['SERVER_NAME']);
       $mailer->FromName = $group_email . "@" .
