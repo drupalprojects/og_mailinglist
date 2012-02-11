@@ -272,18 +272,9 @@ function og_mailinglist_delete_group($nid) {
            WHERE nid = %d", $nid);
 }
 
+// References are apparently a more reliable header than in-reply-to
+// http://cr.yp.to/immhf/thread.html
 function _og_mailinglist_get_thread_parent_messageid($in_reply_to_message_id, $references = "") {
-  if (empty($in_reply_to_message_id)) {
-    return;
-  }
-  $parent_message_id = db_result(db_query("SELECT parent_message_id
-                              FROM {og_mailinglist_source}
-                              WHERE message_id = '%s'", $in_reply_to_message_id));
-
-  if (!empty($parent_message_id)) {
-    return $parent_message_id;
-  }
-
   // Try to get the parent message-id from one of the message-ids in the references header.
   $references = str_replace("\r\n", "", $references);
   $refs = str_replace("\n", "", $references);
@@ -301,6 +292,17 @@ function _og_mailinglist_get_thread_parent_messageid($in_reply_to_message_id, $r
     }
   }
 
+  // If references don't find anything, try the in-reply-to header.
+  if (empty($in_reply_to_message_id)) {
+    return;
+  }
+  $parent_message_id = db_result(db_query("SELECT parent_message_id
+                              FROM {og_mailinglist_source}
+                              WHERE message_id = '%s'", $in_reply_to_message_id));
+
+  if (!empty($parent_message_id)) {
+    return $parent_message_id;
+  }
 }
 
 function _og_mailinglist_get_nid_from_parent_messageid($message_id) {
