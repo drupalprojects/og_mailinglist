@@ -118,6 +118,12 @@ function og_mailinglist_admin_settings() {
     '#default_value' => variable_get('og_mailinglist_thread_comments', '0'),
     '#description' => t('New comments will be threaded on save. Existing comments will not be affected.'),
   );
+  $form['og_mailinglist_add_signatures'] = array(
+    '#title' => t('Add user signatures to nodes and comments created on the site'),
+    '#type' => 'checkbox',
+    '#default_value' => variable_get('og_mailinglist_add_signatures', '1'),
+    '#description' => t('Add a user\'s signature if they have one.'),
+  );
   $node_types = node_get_types();
   $n_types = array();
   foreach ($node_types as $type) {

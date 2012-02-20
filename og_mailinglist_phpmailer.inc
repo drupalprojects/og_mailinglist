@@ -41,6 +41,17 @@ function og_mailinglist_send_comment_email($comment, $node) {
 
   // Decorate body.
   $body = og_mailinglist_prepare_web_content($comment->comment);
+
+  // Add the user's signature.
+  if (variable_get('og_mailinglist_add_signatures', 1)) {
+    $account = user_load($comment->uid);
+    if (!empty($account->signature)) {
+      $signature = check_markup($account->signature, $account->signature_format);
+      $body = $body . $signature;
+    }
+  }
+
+  // Add footer
   $body = og_mailinglist_build_web_footer($node, $body);
 
   $mailer->Body = $body;
@@ -96,6 +107,17 @@ function og_mailinglist_send_node_email($node) {
 
   // Decorate body.
   $body = og_mailinglist_prepare_web_content($node->body);
+
+  // Add the user's signature.
+  if (variable_get('og_mailinglist_add_signatures', 1)) {
+    $account = user_load($node->uid);
+    if (!empty($account->signature)) {
+      $signature = check_markup($account->signature, $account->signature_format);
+      $body = $body . $signature;
+    }
+  }
+
+  // Add the footer.
   $body = og_mailinglist_build_web_footer($node, $body, 0, TRUE);
 
   // Let other modules alter outgoing node emails.
