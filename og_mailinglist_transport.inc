@@ -401,6 +401,9 @@ function _og_mailinglist_email_node_email($email, $node) {
   unset($email['structure']->headers);
   $email['new_email_text'] = _og_mailinglist_encode_email(array($email['structure']));
 
+  // Check if entire body should be encoded as base64
+  $email['new_email_text'] = _og_mailinglist_check_base64($email['new_email_text'], $headers);
+
   // Send it off.
   $sender_account = user_load($email['userid']);
   _og_mailinglist_send_email($headers, $email['new_email_text'], $node, null, $sender_account);
@@ -419,6 +422,9 @@ function _og_mailinglist_email_comment_email($email, $node, $comment) {
   $headers = $email['structure']->headers;
   unset($email['structure']->headers);
   $email['new_email_text'] = _og_mailinglist_encode_email(array($email['structure']));
+
+  // Check if entire body should be encoded as base64
+  $email['new_email_text'] = _og_mailinglist_check_base64($email['new_email_text'], $headers);
 
   // Send it off.
   $sender_account = user_load($email['userid']);
@@ -796,6 +802,18 @@ function _og_mailinglist_rewrite_headers($email, $node, $new_node = FALSE, $comm
   $email['structure']->headers = $new_headers;
 
   return $email;
+}
+
+function _og_mailinglist_check_base64($body, $headers) {
+  # If text/plain + base64
+  if ($headers['content-transfer-encoding'] == 'base64') {
+    $email = wordwrap(base64_encode($body), 76, "\n", true);
+    $email .= "\n";
+    return $email;
+  }
+  else {
+    return $body;
+  }
 }
 
 function _og_mailinglist_add_footer($email, $footer) {
