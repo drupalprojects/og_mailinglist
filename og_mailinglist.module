@@ -38,7 +38,7 @@ function og_mailinglist_menu() {
     'title' => t('Manage Group Subscriptions'),
     'description' => t('Allows users to manage their group subscriptions'),
     'page callback' => 'drupal_get_form',
-    'page arguments' => array('og_mailinglist_subscriptions_settings_form'),
+    'page arguments' => array('og_mailinglist_subscriptions_settings_form', 1),
     'access arguments' => array('manage og_mailinglist subscriptions'),
   );
   $items['user/%user/og_mailinglist']['type'] = MENU_LOCAL_TASK;
@@ -174,8 +174,12 @@ function og_mailinglist_admin_settings() {
   return system_settings_form($form);
 }
 
-function og_mailinglist_subscriptions_settings_form() {
+function og_mailinglist_subscriptions_settings_form($form, $account) {
   global $user;
+  $uid = $user->uid;
+  if (is_object($account)) {
+    $uid = $account->uid;
+  }
 
   $sql = 'SELECT m.nid as gid, m.subscription_type, n.title
           FROM {og_mailinglist_subscription} m, {node} n
@@ -183,7 +187,7 @@ function og_mailinglist_subscriptions_settings_form() {
           AND m.uid = %d
           ORDER BY n.title';
 
-  $results = db_query($sql, $user->uid);
+  $results = db_query($sql, $uid);
 
   $subscription_options = array(
     'email' => t('Email'),
@@ -191,6 +195,8 @@ function og_mailinglist_subscriptions_settings_form() {
     'digest email' => t('Digest email'),
   );
   $form = array();
+
+  $form['uid'] = array('#type' => 'value', '#value' => $uid);
 
   while ($data = db_fetch_array($results)) {
     $form[$data['gid']] = array(
@@ -219,19 +225,20 @@ function og_mailinglist_subscriptions_settings_form() {
 }
 
 function og_mailinglist_subscriptions_settings_form_submit($form, &$form_state) {
-  global $user;
+  $uid = $form_state['values']['uid'];
+  unset($form_state['values']['uid']);
   foreach ($form_state['values'] as $gid => $settings) {
     // We only care about GIDs and their values.
     if (is_numeric($gid)) {
-      og_mailinglist_update_group_subcription_type($gid, $user->uid, $settings['subscription-type']);
+      og_mailinglist_update_group_subcription_type($gid, $uid, $settings['subscription-type']);
 
       if ($sub_type != "email") {
-        og_mailinglist_delete_group_threads($gid, $user->uid);
+        og_mailinglist_delete_group_threads($gid, $uid);
       }
 
       // If they choose to leave the group.
       if ($settings['leave-group']) {
-        og_delete_subscription($gid, $user->uid);
+        og_delete_subscription($gid, $uid);
         $group_name = db_result(db_query("SELECT title FROM {node} WHERE nid = %d", $gid));
         drupal_set_message(t("You are no longer in the <a href='@gid'>@group_name</a> group", array("@gid" => url("node/" . $gid), "@group_name" => $group_name)));
       }
