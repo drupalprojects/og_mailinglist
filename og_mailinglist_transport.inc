@@ -222,14 +222,14 @@ function _og_mailinglist_process_email($raw_email, $group_name = NULL) {
       $errormsg = $e->getMessage();
       $msgdate = $email['headers']['date'];
       $msgfrom = $email['headers']['from'];
-      $commentedbody = str_replace("\n", "\n> ", $mailbody);
-      $body = "An error occurred while processing your submission:
+      $commentedbody = str_replace("\n", "\n> ", $email['mailbody']);
+      $body = "Hi, sorry about this but we were unable to handle your email correctly for the following reason:
 
        $errormsg
 
   Please correct this error and try again, or contact the system administrator.  Thank you.
 
-  On $msgdate, $msgfrom wrote:
+  ---- Below this line is a copy of the message ----
   > $commentedbody";
 
       // send it off
