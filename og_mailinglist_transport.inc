@@ -99,6 +99,12 @@ function _og_mailinglist_process_email($raw_email, $group_name = NULL) {
                                             WHERE status = 1
                                             AND data LIKE '%%%s%%'", $mailfrom));
     }
+
+    // If site is using multiple_email, check for alternative emails.
+    if (!$email['userid'] && module_exists('multiple_email') && $multiple = multiple_email_find_address($mailfrom)){
+      $email['userid'] = $multiple->uid;
+    }
+
     if (!$email['userid']) {
       $exception = t("Could not locate the user account for !mailfrom. For security reasons, please post from the email account you are registered with.", array('!mailfrom' => $mailfrom));
       if (module_exists('mailalias')) {
