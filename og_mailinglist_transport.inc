@@ -688,15 +688,6 @@ function _og_mailinglist_sanitise_filename($filename) {
   return $filename;
 }
 
-function _og_mailinglist_create_new_email($email) {
-  $structure = clone $email['structure'];
-  $structure = _og_mailinglist_rewrite_headers($structure, $email);
-  $structure = _og_mailinglist_add_footer($structure, $email);
-  $email['new_email_text'] = _og_mailinglist_encode_email(array($structure));
-
-  return $email;
-}
-
 // Turn structure back into a plain text email using recursion.
 function _og_mailinglist_encode_email($structure, $boundary = "", $email = "") {
   foreach($structure as $part) {
