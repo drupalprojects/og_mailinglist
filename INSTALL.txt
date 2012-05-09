@@ -57,13 +57,13 @@ Drupal installation.
 *   Debian/Ubuntu:           apt-get install php-mail-mimedecode
 *   Fedora/RHEL/CentOS:      yum -y install php-pear-Mail-mimeDecode
 *
-* You can also download the file directly from:
+* You can also download the library directly from:
 *   http://pear.php.net/package/Mail_mimeDecode
-* and add the file either as a subdirectory to og_mailinglist
+* and place the library (mimeDecode.php) either in a subdirectory to og_mailinglist
 * (path_to_modules/og_mailinglist/mimeDecode) or to the libraries folder. Note that
 * this installation step is only necessary if you want members of your site to be
 * able to send email to the site to start or respond to posts. If all posting will
-* happen directly on the site, this step is unnecessary.
+* happen directly on the site, installing mimeDecode is unnecessary.
 
 * Install the PHP library Curl (if it's not already installed. Many setups come
 * preinstalled with Curl support.). Use the command listed below for your OS:
