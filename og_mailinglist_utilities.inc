@@ -189,14 +189,14 @@ function og_mailinglist_phpmailer_load_library() {
       // Let's see if PHPMailer is really available from libraries.
       $phpmailer_library = './' . libraries_get_path('phpmailer') . '/class.phpmailer.php';
       if (file_exists($phpmailer_library)) {
-        include_once DRUPAL_ROOT . '/' . $phpmailer_library;
+        include_once $phpmailer_library;
       }
     }
     // If PHPMailer is not already loaded, then try from module subdirectory.
     if (!class_exists('PHPMailer')) {
       $phpmailer_library = './' . drupal_get_path('module', 'og_mailinglist') . '/phpmailer/class.phpmailer.php';
       if (file_exists($phpmailer_library)) {
-        include_once DRUPAL_ROOT . '/' . $phpmailer_library;
+        include_once $phpmailer_library;
       }
     }
   }
@@ -226,16 +226,16 @@ function og_mailinglist_mimeDecode_load_library() {
   if (!class_exists('Mail_mimeDecode')) {
     // First we'll try grabbing the file from a few default pear install locations.
     if (file_exists('Mail/mimeDecode.php')) {
-      include_once DRUPAL_ROOT . '/' . 'Mail/mimeDecode.php';
+      include_once 'Mail/mimeDecode.php';
     }
     if (!class_exists('Mail_mimeDecode')) {
       if (file_exists('/usr/share/php/Mail/mimeDecode.php')) {
-        include_once DRUPAL_ROOT . '/' . '/usr/share/php/Mail/mimeDecode.php';
+        include_once '/usr/share/php/Mail/mimeDecode.php';
       }
     }
     if (!class_exists('Mail_mimeDecode')) {
       if (file_exists('/usr/share/pear/Mail/mimeDecode.php')) {
-        include_once DRUPAL_ROOT . '/' . '/usr/share/pear/Mail/mimeDecode.php';
+        include_once '/usr/share/pear/Mail/mimeDecode.php';
       }
     }
     // If that didn't work, let's try using the libraries module.
@@ -244,7 +244,7 @@ function og_mailinglist_mimeDecode_load_library() {
         // Let's see if PHPMailer is really available from libraries.
         $Mail_mimeDecode_library = './' . libraries_get_path('mimeDecode') . '/mimeDecode.php';
         if (file_exists($Mail_mimeDecode_library)) {
-          include_once DRUPAL_ROOT . '/' . $Mail_mimeDecode_library;
+          include_once $Mail_mimeDecode_library;
         }
       }
     }
@@ -252,7 +252,7 @@ function og_mailinglist_mimeDecode_load_library() {
     if (!class_exists('Mail_mimeDecode')) {
       $Mail_mimeDecode_library = './' . drupal_get_path('module', 'og_mailinglist') . '/mimeDecode/mimeDecode.php';
       if (file_exists($Mail_mimeDecode_library)) {
-        include_once DRUPAL_ROOT . '/' . $Mail_mimeDecode_library;
+        include_once $Mail_mimeDecode_library;
       }
     }
 

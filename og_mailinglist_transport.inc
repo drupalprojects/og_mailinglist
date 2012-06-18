@@ -1,8 +1,8 @@
 <?php
 
 // TODO rewrite header info here.
-require_once DRUPAL_ROOT . '/' . 'og_mailinglist_utilities.inc';
-require_once DRUPAL_ROOT . '/' . 'og_mailinglist_api.inc';
+require_once 'og_mailinglist_utilities.inc';
+require_once 'og_mailinglist_api.inc';
 og_mailinglist_mimeDecode_load_library();
 og_mailinglist_phpmailer_load_library();
 

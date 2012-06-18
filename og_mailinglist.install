@@ -6,7 +6,7 @@
  */
 
 // $Id$
-include_once DRUPAL_ROOT . '/' . 'og_mailinglist_utilities.inc'; //Load our utilities so the hook_requirements can call those functions.
+include_once drupal_get_path('module', 'og_mailinglist') . '/og_mailinglist_utilities.inc'; //Load our utilities so the hook_requirements can call those functions.
 /**
  * Implements hook_install().
  */

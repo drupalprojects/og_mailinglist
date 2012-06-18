@@ -17,8 +17,8 @@
  */
 define('OG_MAILINGLIST_BUILD_FULL', 'og_mailinglist_full');
 
-require_once DRUPAL_ROOT . '/' . "og_mailinglist_phpmailer.inc";
-require_once DRUPAL_ROOT . '/' . 'og_mailinglist_api.inc';
+require_once "og_mailinglist_phpmailer.inc";
+require_once "og_mailinglist_api.inc";
 og_mailinglist_phpmailer_load_library();
 
 /**

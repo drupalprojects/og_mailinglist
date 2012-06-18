@@ -1,8 +1,8 @@
 <?php
 // $Id$
 
-require_once DRUPAL_ROOT . '/' . 'og_mailinglist_utilities.inc';
-require_once DRUPAL_ROOT . '/' . 'og_mailinglist_api.inc';
+require_once 'og_mailinglist_utilities.inc';
+require_once 'og_mailinglist_api.inc';
 
 function og_mailinglist_send_comment_email($comment, $node) {
   // Check if comment arrived via email so already sent.

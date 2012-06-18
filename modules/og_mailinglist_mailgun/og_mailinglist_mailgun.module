@@ -92,7 +92,7 @@ function og_mailinglist_mailgun_new_email() {
   }
   // The email is legit, pass it on.
   else {
-    require_once DRUPAL_ROOT . '/' . drupal_get_path('module', 'og_mailinglist') . "/og_mailinglist_transport.inc";
+    require_once drupal_get_path('module', 'og_mailinglist') . "/og_mailinglist_transport.inc";
     _og_mailinglist_process_email($raw_email);
   }
 }

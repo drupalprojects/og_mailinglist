@@ -1,6 +1,6 @@
 <?php
 
-require_once DRUPAL_ROOT . '/' . 'og_mailinglist_utilities.inc';
+require_once 'og_mailinglist_utilities.inc';
 
 define("EMAIL_HEADER", 'background-color: #D1DCFF; font-family: helvetica;
        font-size: 160%; border-top: 1px solid #262c40; padding: 2px');
