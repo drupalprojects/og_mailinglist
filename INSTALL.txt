@@ -49,7 +49,7 @@ NOTE: We're using a slightly forked version of PHPMailer. OG Mailinglist
 *won't work* with a standard version of PHPMailer. Our bug report in the
 PHPMailer issue queue has sat untouched for over a year so we're forced
 to go with our forked version of the library. The changes are quite
-minor however and won't interfer with other uses of PHPMailer by your
+minor however and won't interfere with other uses of PHPMailer by your
 Drupal installation.
 
 * Install the PHP library mimeDecode. Use the command listed below for your OS:
