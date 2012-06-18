@@ -137,10 +137,9 @@ function array_copy($aSource) {
  * Load the parent group node of a node.
  */
 function _og_mailinglist_load_group($node) {
-  $groups = og_get_node_groups($node);
-  if (!empty($groups)) {
-    $keys = array_keys($groups);
-    return node_load(array_pop($keys));
+  $group = og_get_group('node', $node->nid);
+  if (!empty($group)) {
+    return $group;
   }
   else {
     return null;

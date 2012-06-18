@@ -193,17 +193,11 @@ function og_mailinglist_subscriptions_settings_form($form, $account) {
     $uid = $account->uid;
   }
 
-  $sql = 'SELECT m.nid as gid, m.subscription_type, n.title
+  $result = db_query('SELECT m.nid as gid, m.subscription_type, n.title
           FROM {og_mailinglist_subscription} m, {node} n
           WHERE m.nid = n.nid
-          AND m.uid = %d
-          ORDER BY n.title';
-
-  $results = db_query('SELECT m.nid as gid, m.subscription_type, n.title
-          FROM {og_mailinglist_subscription} m, {node} n
-          WHERE m.nid = :m.nid
-          AND m.uid = :m.uid
-          ORDER BY n.title', array(':m.nid' => n . nid, ':m.uid' => $uid));
+          AND m.uid = :uid
+          ORDER BY n.title', array(':uid' => $uid));
 
   $subscription_options = array(
     'email' => t('Email'),
@@ -217,7 +211,7 @@ function og_mailinglist_subscriptions_settings_form($form, $account) {
     '#value' => $uid,
   );
 
-  while ($data = db_fetch_array($results)) {
+  foreach($result as $data) {
     $form[$data['gid']] = array(
       '#type' => 'fieldset',
       '#title' => l(t($data['title']), "node/" . $data['gid']),
@@ -306,7 +300,7 @@ function og_mailinglist_subscribe_thread($node) {
 function og_mailinglist_form_alter(&$form, $form_state, $form_id) {
   if ($form['#id'] == 'node-form' && (arg(0) . '/' . arg(1) != 'admin/content')) {
     // If this is a group node form.
-    if (og_is_group_type($form['#node']->type)) {
+    if (og_is_group_type($form['#node']->type, 'node')) {
       if (!module_exists('purl') && !module_exists('spaces_og')) {
         $group_email = "";
         if (isset($form['nid']['#value'])) {
@@ -426,7 +420,7 @@ function og_mailinglist_node_load(&$nodes, $types) {
   // Check first that at least one of the nodes is a group type.
   $group_types = false;
   foreach($types as $type) {
-    if (og_is_group_type($type)) {
+    if (og_is_group_type($type, 'node')) {
       $group_types = true;
     }
   }
