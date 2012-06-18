@@ -38,6 +38,7 @@ $token = md5($validation_string . $raw_email);
 
 $ch = curl_init();
 curl_setopt($ch, CURLOPT_RETURNTRANSFER, FALSE);
+curl_setopt($ch, CURLOPT_HTTPHEADER, array('Expect:'));
 curl_setopt($ch, CURLOPT_POST, 1);
 curl_setopt($ch, CURLOPT_HEADER, 1);
 curl_setopt($ch, CURLOPT_URL, $post_url);

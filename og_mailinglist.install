@@ -11,28 +11,31 @@ include_once DRUPAL_ROOT . '/' . 'og_mailinglist_utilities.inc'; //Load our util
  * Implements hook_install().
  */
 function og_mailinglist_install() {
+  // TODO The drupal_(un)install_schema functions are called automatically in D7.
+  $success = array()/*drupal_install_schema('og_mailinglist')*/;
+
   // Add any previously created groups to og_mailinglist.
   add_groups_to_og_mailinglist();
 
-  drupal_set_message(st('OG Mailinglist module installed tables successfully.'));
+  if ($success) {
+    drupal_set_message(st('OG Mailinglist module installed tables successfully.'));
+  }
+  else {
+    drupal_set_message(st('The installation of the OG Mailinglist tables failed.'), 'error');
+  }
 
   // Set OGM's system weight to be after Pathauto so our email footers always use the correct path.
-  $weight = db_query("SELECT weight FROM {system} WHERE type = :type AND name = :name", array(':type' => : type, ':name' => : name, '' => array(
-      ':type' => : type,
-      ':name' => : name,
-      '' => array(
-        ':type' => 'module',
-        ':name' => 'pathauto',
-      ),
-    )))->fetchField();
+  $weight = db_query("SELECT weight FROM {system} WHERE type = :type AND name = :name", array(':type' => 'module', ':name' => 'pathauto'))->fetchField();
   if (!empty($weight)) {
+    // TODO Please review the conversion of this statement to the D7 database API syntax.
+    /* db_query("UPDATE {system} SET weight = %d WHERE type = 'module' AND name = 'og_mailinglist'", $weight + 1) */
     db_update('system')
-      ->fields(array(
+  ->fields(array(
       'weight' => $weight + 1,
     ))
-      ->condition('type', 'module')
-      ->condition('name', 'og_mailinglist')
-      ->execute();
+  ->condition('type', 'module')
+  ->condition('name', 'og_mailinglist')
+  ->execute();
   }
 }
 
@@ -40,12 +43,12 @@ function og_mailinglist_install() {
  * Implements hook_uninstall().
  */
 function og_mailinglist_uninstall() {
-  $result = db_query('variable')
-    ->fields('name')
-    ->condition('name', 'og_mailinglist_%', 'LIKE')
-    ->execute();
-  foreach ($result as $record) {
-    variable_del($record->fetchObject->name);
+  // TODO The drupal_(un)install_schema functions are called automatically in D7.
+  // drupal_uninstall_schema('og_mailinglist')
+  // TODO Please convert this statement to the D7 database API syntax.
+  $result = db_query("SELECT name FROM {variable} WHERE name LIKE 'og_mailinglist_%'");
+  while ($row = db_fetch_object($result)) {
+    variable_del($row->name);
   }
 
   drupal_set_message(t('OG Mailinglist has been uninstalled.'));
@@ -261,12 +264,12 @@ function og_mailinglist_update_6000() {
     ),
     'primary key' => array('nid'),
   );
-  db_create_table();
+  db_create_table('og_mailinglist', $schema['og_mailinglist']);
 
   // hook_update_N() no longer returns a $ret array. Instead, return
   // nothing or a translated string indicating the update ran successfully.
   // See http://drupal.org/node/224333#update_sql.
-  return t('TODO Add a descriptive string here to show in the UI.') /* t('OG Mailing List Update 6000 executed') */;
+  return t('TODO Add a descriptive string here to show in the UI.') /* $ret */;
 }
 
 /**
@@ -282,8 +285,8 @@ function og_mailinglist_update_6001() {
 function og_mailinglist_update_6002() {
   $ret = array();
 
-  db_drop_field();
-  db_change_field('nid', array(
+  db_drop_field('og_mailinglist_subscription', 'space_type');
+  db_change_field('og_mailinglist_subscription', 'sid', 'nid', array(
     'type' => 'int',
     'not null' => TRUE,
     'default' => 0,
@@ -292,7 +295,7 @@ function og_mailinglist_update_6002() {
   // hook_update_N() no longer returns a $ret array. Instead, return
   // nothing or a translated string indicating the update ran successfully.
   // See http://drupal.org/node/224333#update_sql.
-  return t('TODO Add a descriptive string here to show in the UI.') /* t('OG Mailinglist update 6002 executed') */;
+  return t('TODO Add a descriptive string here to show in the UI.') /* $ret */;
 }
 
 /**
@@ -302,7 +305,7 @@ function og_mailinglist_update_6002() {
 function og_mailinglist_update_6003() {
   $ret = array();
 
-  db_add_field(array(
+  db_add_field('og_mailinglist_source', 'message_id', array(
     'type' => 'varchar',
     'description' => 'The message-id field of this post, either
                 from the email or auto-generated',
@@ -311,7 +314,7 @@ function og_mailinglist_update_6003() {
     'length' => 255,
   ));
 
-  db_add_field(array(
+  db_add_field('og_mailinglist_source', 'in_reply_to', array(
     'type' => 'varchar',
     'description' => 'The in-reply-to header of this email, either
                 from the email or implied from the comment.',
@@ -320,7 +323,7 @@ function og_mailinglist_update_6003() {
     'length' => 255,
   ));
 
-  db_add_field(array(
+  db_add_field('og_mailinglist_source', 'references', array(
     'type' => 'varchar',
     'description' => 'The reference header of this post.
                 If it originated from the web, this stores the references + message-id
@@ -330,7 +333,7 @@ function og_mailinglist_update_6003() {
     'length' => 512,
   ));
 
-  db_add_field(array(
+  db_add_field('og_mailinglist_source', 'parent_message_id', array(
     'type' => 'varchar',
     'description' => 'The message-id of the parent of this post.',
     'non null' => TRUE,
@@ -341,7 +344,7 @@ function og_mailinglist_update_6003() {
   // hook_update_N() no longer returns a $ret array. Instead, return
   // nothing or a translated string indicating the update ran successfully.
   // See http://drupal.org/node/224333#update_sql.
-  return t('TODO Add a descriptive string here to show in the UI.') /* t('OG MailingList Update 6003 executed') */;
+  return t('TODO Add a descriptive string here to show in the UI.') /* $ret */;
 }
 
 /**
@@ -350,7 +353,7 @@ function og_mailinglist_update_6003() {
 function og_mailinglist_update_6004() {
   $ret = array();
 
-  db_change_field('references_header', array(
+  db_change_field('og_mailinglist_source', 'references', 'references_header', array(
     'type' => 'varchar',
     'non null' => TRUE,
     'default' => 0,
@@ -361,7 +364,7 @@ function og_mailinglist_update_6004() {
   // hook_update_N() no longer returns a $ret array. Instead, return
   // nothing or a translated string indicating the update ran successfully.
   // See http://drupal.org/node/224333#update_sql.
-  return t('TODO Add a descriptive string here to show in the UI.') /* t('OG MailingList Update 6004 executed') */;
+  return t('TODO Add a descriptive string here to show in the UI.') /* $ret */;
 }
 
 /**
@@ -370,36 +373,28 @@ function og_mailinglist_update_6004() {
 function og_mailinglist_update_6005() {
   $ret = array();
 
-  $weight = db_query("SELECT weight FROM {system} WHERE type = :type AND name = :name", array(':type' => : type, ':name' => : name, '' => array(
-      ':type' => : type,
-      ':name' => : name,
-      '' => array(
-        ':type' => 'module',
-        ':name' => 'pathauto',
-      ),
-    )))->fetchField();
+  $weight = db_query("SELECT weight FROM {system} WHERE type = :type AND name = :name", array(':type' => 'module', ':name' => 'pathauto'))->fetchField();
   if (!empty($weight)) {
+    // TODO Please review the conversion of this statement to the D7 database API syntax.
+    /* db_query("UPDATE {system} SET weight = %d WHERE type = 'module' AND name = 'og_mailinglist'", $weight + 1) */
     db_update('system')
-      ->fields(array(
+  ->fields(array(
       'weight' => $weight + 1,
     ))
-      ->condition('type', 'module')
-      ->condition('name', 'og_mailinglist')
-      ->execute();
+  ->condition('type', 'module')
+  ->condition('name', 'og_mailinglist')
+  ->execute();
   }
 
   // hook_update_N() no longer returns a $ret array. Instead, return
   // nothing or a translated string indicating the update ran successfully.
   // See http://drupal.org/node/224333#update_sql.
-  return t('TODO Add a descriptive string here to show in the UI.') /* t('OG MailingList Update 6005 executed') */;
+  return t('TODO Add a descriptive string here to show in the UI.') /* $ret */;
 }
 
 function add_groups_to_og_mailinglist() {
   if (!module_exists('purl') && !module_exists('spaces_og')) {
-    $results = db_query("SELECT nid, title FROM {node} WHERE type = :type", array(':type' => : type, '' => array(
-        ':type' => : type,
-        '' => array(':type' => 'group'),
-      )));
+    $results = db_query("SELECT nid, title FROM {node} WHERE type = :type", array(':type' => 'group'));
 
     $groups = array();
 
@@ -409,12 +404,10 @@ function add_groups_to_og_mailinglist() {
 
     foreach ($groups as $nid => $title) {
       $title = string_to_machine_readable($title);
-      db_insert('og_mailinglist')
-        ->fields(array(
-        'nid' => $nid,
-        'title' => $title,
-      ))
-        ->execute();
+      // TODO Please convert this statement to the D7 database API syntax.
+      /* db_query("INSERT INTO {og_mailinglist}
+       VALUES (%d, '%s')", $nid, $title) */
+      NULL;
 
       // Subscribe group members to active threads.
       og_mailinglist_create_subscriptions_for_last_month($nid);
@@ -424,21 +417,16 @@ function add_groups_to_og_mailinglist() {
   else {
     $results = db_query("SELECT id, value
                         FROM {purl}
-                        WHERE provider = :provider", array(':provider' => : provider, '' => array(
-        ':provider' => : provider,
-        '' => array(':provider' => 'spaces_og'),
-      )));
+                        WHERE provider = :provider", array(':provider' => 'spaces_og'));
     $groups = array();
     while ($data = db_fetch_array($results)) {
       $groups[$data['id']] = $data['value'];
     }
     foreach ($groups as $nid => $title) {
-      db_insert('og_mailinglist')
-        ->fields(array(
-        'nid' => $nid,
-        'title' => $title,
-      ))
-        ->execute();
+      // TODO Please convert this statement to the D7 database API syntax.
+      /* db_query("INSERT INTO {og_mailinglist}
+       VALUES (%d, '%s')", $nid, $title) */
+      NULL;
 
       // Subscribe group members to active threads.
       og_mailinglist_create_subscriptions_for_last_month($nid);
@@ -456,10 +444,7 @@ function og_mailinglist_create_subscriptions_for_last_month($gid) {
   // Create email subscriptions to group for all group members.
   $results = db_query("SELECT uid
                        FROM {og_uid}
-                       WHERE nid = :nid", array(':nid' => : nid, '' => array(
-      ':nid' => : nid,
-      '' => array(':nid' => $gid),
-    )));
+                       WHERE nid = :nid", array(':nid' => $gid));
   $uids = array();
   while ($data = db_fetch_array($results)) {
     $uids[] = $data['uid'];
@@ -478,11 +463,7 @@ function og_mailinglist_create_subscriptions_for_last_month($gid) {
           JOIN {node} n
           ON o.nid = n.nid
           WHERE o.group_nid = :o.group_nid
-          AND n.created > :n.created - 2592000)", array(':o.group_nid' => : o . group_nid, ':n.created' => : n . created, '' => array(
-      ':o.group_nid' => : o . group_nid,
-      ':n.created' => : n . created,
-      '' => array(':o.group_nid' => $gid ':n.created' =>),
-    )));
+          AND n.created > :n.created - 2592000)", array(':o.group_nid' => $gid ':n.created' =>));
 
   while ($data = db_fetch_array($results)) {
     og_mailinglist_save_group_thread_subscriptions($gid, $data['nid']);

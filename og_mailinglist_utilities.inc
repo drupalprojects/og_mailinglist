@@ -15,10 +15,7 @@ function _og_mailinglist_get_subscribers($node, $new_node = FALSE) {
 
   if (is_numeric(variable_get('og_mailinglist_test_email_address', ''))) {
     $uid = variable_get('og_mailinglist_test_email_address', '');
-    $email = db_query("SELECT mail FROM {users} WHERE uid = :uid", array(':uid' => : uid, '' => array(
-        ':uid' => : uid,
-        '' => array(':uid' => $uid),
-      )))->fetchField();
+    $email = db_query("SELECT mail FROM {users} WHERE uid = :uid", array(':uid' => $uid))->fetchField();
     $uids[$uid] = $email;
   }
 
@@ -54,14 +51,7 @@ function _og_mailinglist_email_already_sent($nid, $cid = 0) {
   return (db_query("SELECT nid
                FROM {og_mailinglist_source}
                WHERE nid = :nid
-               AND cid = :cid", array(':nid' => : nid, ':cid' => : cid, '' => array(
-      ':nid' => : nid,
-      ':cid' => : cid,
-      '' => array(
-        ':nid' => $nid,
-        ':cid' => $cid,
-      ),
-    )))->fetchField());
+               AND cid = :cid", array(':nid' => $nid, ':cid' => $cid))->fetchField());
 }
 
 
@@ -72,6 +62,8 @@ function _og_mailinglist_email_already_sent($nid, $cid = 0) {
 function og_mailinglist_build_web_footer($node, $body, $cid = 0) {
   $footer = _og_mailinglist_build_footer($node);
   $footer = og_mailinglist_prepare_web_content($footer);
+
+  // Pull out footer from the <p> tags that check_markup wraps the content with.
   preg_match("/<p>(.+)<\/p>/s", $footer, $match);
   $footer = $match[1] . "<br />";
 
@@ -147,14 +139,10 @@ function array_copy($aSource) {
  * Load the parent group node of a node.
  */
 function _og_mailinglist_load_group($node) {
-  $group_node = node_load(db_query("SELECT group_nid
-                                            FROM {og_ancestry}
-                                            WHERE nid = :nid", array(':nid' => : nid, '' => array(
-      ':nid' => : nid,
-      '' => array(':nid' => $node->nid),
-    )))->fetchField());
-  if (!empty($group_node)) {
-    return $group_node;
+  $groups = og_get_node_groups($node);
+  if (!empty($groups)) {
+    $keys = array_keys($groups);
+    return node_load(array_pop($keys));
   }
   else {
     return null;
@@ -216,6 +204,21 @@ function og_mailinglist_phpmailer_load_library() {
   }
   // Tell the caller if PHPMailer class exists.
   return class_exists('PHPMailer');
+}
+
+/**
+ * Gets the directory in which PHPMailer is stored (for plugins)
+ *
+ * @return
+ *  TRUE if the PHPMailer library is loaded, FALSE otherwise.
+ */
+function og_mailinglist_get_phpmailer_plugin_dir() {
+  // First, try using libraries module.
+  if (module_exists('libraries')) {
+    // Let's see if PHPMailer is available from libraries.
+    return './' . libraries_get_path('phpmailer') . '/';
+  }
+  return './' . drupal_get_path('module', 'og_mailinglist') . '/phpmailer/';
 }
 
 /**

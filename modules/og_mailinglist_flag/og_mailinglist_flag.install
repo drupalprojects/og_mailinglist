@@ -28,15 +28,15 @@ function og_mailinglist_flag_add_flags() {
   // Loop through users fetching all their subscriptions from past month
   // and adding a flag for each.
   foreach ($uids as $uid) {
+    // TODO Convert "user_load" to "user_load_multiple" if "$uid" is other than a uid.
+    // To return a single user object, wrap "user_load_multiple" with "array_shift" or equivalent.
+    // Example: array_shift(user_load_multiple(array(), $uid))
     $account = user_load($uid);
     $result = db_query("SELECT o.nid
                          FROM {node} n
                          INNER JOIN {og_mailinglist_thread} o
                          ON n.nid = o.nid
-                         WHERE o.uid = :o.uid", array(':o.uid' => : o . uid, '' => array(
-        ':o.uid' => : o . uid,
-        '' => array(':o.uid' => $uid),
-      )));
+                         WHERE o.uid = :o.uid", array(':o.uid' => $uid));
 
     $nids = array();
     while ($info = db_fetch_array($result)) {

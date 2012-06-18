@@ -19,8 +19,8 @@ function _og_mailinglist_send_digest_emails() {
             FROM {og_mailinglist_subscription} s
             JOIN {og_ancestry} o
             JOIN {node} n
-            WHERE s.nid = o.group_nid
-            AND o.nid = n.nid
+            ON s.nid = o.group_nid
+            WHERE o.nid = n.nid
             AND n.created > (unix_timestamp() - %d)
             AND s.subscription_type = "digest email"';
 
@@ -28,7 +28,8 @@ function _og_mailinglist_send_digest_emails() {
             FROM {og_mailinglist_subscription} s
             JOIN {og_ancestry} o
             JOIN {comments} c
-            WHERE s.nid = o.group_nid
+            ON s.nid = o.group_nid
+            WHERE c.status = 0
             AND o.nid = c.nid
             AND c.timestamp > (unix_timestamp() - %d)
             AND s.subscription_type = "digest email"';
@@ -37,30 +38,19 @@ function _og_mailinglist_send_digest_emails() {
             FROM {og_mailinglist_subscription} s
             JOIN {og_ancestry} o
             JOIN {node} n
-            WHERE s.nid = :s.nid
-            AND o.nid = :o.nid
+            ON s.nid = o.group_nid
+            WHERE o.nid = :o.nid
             AND n.created > :n.created - %d)
-            AND s.subscription_type = :s.subscription_type', array(':s.nid' => : s . nid, ':o.nid' => : o . nid, ':n.created' => : n . created, ':s.subscription_type' => : s . subscription_type, '' => array(
-      ':s.nid' => : s . nid,
-      ':o.nid' => : o . nid,
-      ':n.created' => : n . created,
-      ':s.subscription_type' => : s . subscription_type,
-      '' => array(':s.nid' => o . group_nid ':o.nid' => n . nid ':n.created' =>),
-    )));
+            AND s.subscription_type = :s.subscription_type', array(':o.nid' => n . nid ':n.created' =>));
   $groups_with_new_comments = db_query('SELECT DISTINCT s.nid
             FROM {og_mailinglist_subscription} s
             JOIN {og_ancestry} o
             JOIN {comments} c
-            WHERE s.nid = :s.nid
+            ON s.nid = o.group_nid
+            WHERE c.status = :c.status
             AND o.nid = :o.nid
             AND c.timestamp > :c.timestamp - %d)
-            AND s.subscription_type = :s.subscription_type', array(':s.nid' => : s . nid, ':o.nid' => : o . nid, ':c.timestamp' => : c . timestamp, ':s.subscription_type' => : s . subscription_type, '' => array(
-      ':s.nid' => : s . nid,
-      ':o.nid' => : o . nid,
-      ':c.timestamp' => : c . timestamp,
-      ':s.subscription_type' => : s . subscription_type,
-      '' => array(':s.nid' => o . group_nid ':o.nid' => c . nid ':c.timestamp' =>),
-    )));
+            AND s.subscription_type = :s.subscription_type', array(':c.status' => 0 ':o.nid' => c . nid ':c.timestamp' =>));
 
   $digest_groups = array();
   while ($data = db_fetch_array($groups_with_new_comments)) {
@@ -70,46 +60,37 @@ function _og_mailinglist_send_digest_emails() {
     $digest_groups[$data['nid']] = $data['nid'];
   }
 
-  //print_r($digest_groups);
   foreach ($digest_groups as $gid) {
     $group = node_load($gid);
     // Get list of new activity -- new nodes and new comments
     $new_nids = 'SELECT o.nid
                   FROM {node} n
                   JOIN {og_ancestry} o
-                  WHERE n.nid = o.nid
-                  AND n.created > (unix_timestamp() - %d)
+                  ON n.nid = o.nid
+                  WHERE n.created > (unix_timestamp() - %d)
                   AND o.group_nid = %d';
 
     $new_comment_nids = 'SELECT c.nid, c.cid
                           FROM {comments} c
                           JOIN {og_ancestry} o
-                          WHERE c.nid = o.nid
+                          ON c.nid = o.nid
+                          WHERE c.status = 0
                           AND c.timestamp > (unix_timestamp() - %d)
                           AND o.group_nid = %d';
 
     $nids_with_new_nodes = db_query('SELECT o.nid
                   FROM {node} n
                   JOIN {og_ancestry} o
-                  WHERE n.nid = :n.nid
-                  AND n.created > :n.created - %d)
-                  AND o.group_nid = :o.group_nid', array(':n.nid' => : n . nid, ':n.created' => : n . created, ':o.group_nid' => : o . group_nid, '' => array(
-        ':n.nid' => : n . nid,
-        ':n.created' => : n . created,
-        ':o.group_nid' => : o . group_nid,
-        '' => array(':n.nid' => o . nid ':n.created' =>),
-      )));
+                  ON n.nid = o.nid
+                  WHERE n.created > :n.created - %d)
+                  AND o.group_nid = :o.group_nid', array(':n.created' =>));
     $nids_with_new_comments = db_query('SELECT c.nid, c.cid
                           FROM {comments} c
                           JOIN {og_ancestry} o
-                          WHERE c.nid = :c.nid
+                          ON c.nid = o.nid
+                          WHERE c.status = :c.status
                           AND c.timestamp > :c.timestamp - %d)
-                          AND o.group_nid = :o.group_nid', array(':c.nid' => : c . nid, ':c.timestamp' => : c . timestamp, ':o.group_nid' => : o . group_nid, '' => array(
-        ':c.nid' => : c . nid,
-        ':c.timestamp' => : c . timestamp,
-        ':o.group_nid' => : o . group_nid,
-        '' => array(':c.nid' => o . nid ':c.timestamp' =>),
-      )));
+                          AND o.group_nid = :o.group_nid', array(':c.status' => 0 ':c.timestamp' =>));
 
     $nids = array();
     while ($data = db_fetch_array($nids_with_new_comments)) {
@@ -132,13 +113,12 @@ function _og_mailinglist_send_digest_emails() {
 
     $group_email = db_query("SELECT group_email
                                         FROM {og_mailinglist}
-                                        WHERE nid = :nid", array(':nid' => : nid, '' => array(
-        ':nid' => : nid,
-        '' => array(':nid' => $gid),
-      )))->fetchField();
+                                        WHERE nid = :nid", array(':nid' => $gid))->fetchField();
 
-    $subject = "[" . $group->ogm_email . "] Digest for " . $group_email . "@" . variable_get("og_mailinglist_server_string", $_SERVER['SERVER_NAME'])
-          . " - " . $message_count . " Messages in " . count($nids) . " Discussions";
+    $subject = "[" . $group->ogm_email . "] Digest for " . $group_email . "@" .
+      variable_get("og_mailinglist_server_string", $_SERVER['SERVER_NAME'])
+      . " - " . $message_count . " " . format_plural($message_count, "Message", "Messages")
+      . " in " . count($nids) . " " . format_plural(count($nids), "Discussion", "Discussions");
 
     // Assemble message
     $body = "";
@@ -191,36 +171,30 @@ function _og_mailinglist_send_digest_emails() {
     $result = db_query("SELECT uid
                        FROM {og_mailinglist_subscription}
                        WHERE nid = :nid
-                       AND subscription_type = :subscription_type email\"", array(':nid' => : nid, ':subscription_type' => : subscription_type, '' => array(
-        ':nid' => : nid,
-        ':subscription_type' => : subscription_type,
-        '' => array(':nid' => $gid ':subscription_type' =>),
-      )));
+                       AND subscription_type = :subscription_type email\"", array(':nid' => $gid, ':subscription_type' => "digest;"));
     $uids = array();
     while ($data = db_fetch_array($result)) {
       $email = db_query("SELECT mail
                                   FROM {users}
-                                  WHERE uid = :uid", array(':uid' => : uid, '' => array(
-          ':uid' => : uid,
-          '' => array(':uid' => $data['uid']),
-        )))->fetchField();
+                                  WHERE uid = :uid", array(':uid' => $data['uid']))->fetchField();
       $uids[$data['uid']] = $email;
     }
 
     // Add a test user if any.
     if ($uid = variable_get('og_mailinglist_test_email_address', '')) {
-      $email = db_query("SELECT mail FROM {users} WHERE uid = :uid", array(':uid' => : uid, '' => array(
-          ':uid' => : uid,
-          '' => array(':uid' => $uid),
-        )))->fetchField();
+      $email = db_query("SELECT mail FROM {users} WHERE uid = :uid", array(':uid' => $uid))->fetchField();
       $uids[$uid] = $email;
     }
 
     foreach ($uids as $email) {
+      // Ensure email is valid.
+      if (!valid_email_address($email)) {
+        continue;
+      }
       $mailer = og_mailinglist_create_mailer();
       $mailer->From = $group->ogm_email . "+no-reply@" . variable_get("og_mailinglist_server_string", $_SERVER['SERVER_NAME']);
       $mailer->FromName = $group_email . "@" .
-      variable_get("og_mailinglist_server_string", $_SERVER['SERVER_NAME']);
+            variable_get("og_mailinglist_server_string", $_SERVER['SERVER_NAME']);
       $mailer->AddCustomHeader($mailer->HeaderLine("List-Id", "<" . $group->ogm_email .
             "@" . variable_get('og_mailinglist_server_string', $_SERVER['SERVER_NAME']) . ">"));
       $mailer->AddCustomHeader($mailer->HeaderLine("List-Post", "<mailto:" . $group->ogm_email .
@@ -262,9 +236,6 @@ function og_mailinglist_style_node_message($node) {
  * @see http://drupal.org/node/1354
  */
 function og_mailinglist_style_comment_message($comment) {
-  // TODO Convert "user_load" to "user_load_multiple" if "$comment->uid" is other than a uid.
-  // To return a single user object, wrap "user_load_multiple" with "array_shift" or equivalent.
-  // Example: array_shift(user_load_multiple(array(), $comment->uid))
   $user = user_load($comment->uid);
   $body = "<div style=\"" . MESSAGE_HEADER . "\"><strong>" .
     l((isset($user->realname) ? $user->realname : $user->name), "user/" . $user->uid, array('absolute' => TRUE))

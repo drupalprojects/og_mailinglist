@@ -17,14 +17,7 @@ function og_mailinglist_og_forum_og_mailinglist_save_node_alter(&$node) {
                                     JOIN {taxonomy_term_data} t
                                     ON o.tid = t.tid
                                     WHERE o.nid = :o.nid
-                                    AND t.weight <> :t.weight", array(':o.nid' => : o . nid, ':t.weight' => : t . weight, '' => array(
-        ':o.nid' => : o . nid,
-        ':t.weight' => : t . weight,
-        '' => array(
-          ':o.nid' => current($node->og_groups),
-          ':t.weight' => 0,
-        ),
-      )))->fetchField();
+                                    AND t.weight <> :t.weight", array(':o.nid' => current($node->og_groups), ':t.weight' => 0))->fetchField();
     $term = taxonomy_term_load($forum_id);
     if (empty($node->tid)) {
       $node->tid = $term->tid;

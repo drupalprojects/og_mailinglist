@@ -24,23 +24,14 @@ function og_mailinglist_send_comment_email($comment, $node) {
   // to that comment's message-id, else to the parent post's message-id.
   $comment_pid = db_query("SELECT pid
                                       FROM {comments}
-                                      WHERE cid = :cid", array(':cid' => : cid, '' => array(
-      ':cid' => : cid,
-      '' => array(':cid' => $comment->cid),
-    )))->fetchField();
+                                      WHERE cid = :cid", array(':cid' => $comment->cid))->fetchField();
   if ($comment_pid != 0) {
     $in_reply_to = db_query("SELECT message_id
                                         FROM {og_mailinglist_source}
-                                        WHERE cid = :cid", array(':cid' => : cid, '' => array(
-        ':cid' => : cid,
-        '' => array(':cid' => $comment_pid),
-      )))->fetchField();
+                                        WHERE cid = :cid", array(':cid' => $comment_pid))->fetchField();
     $references = db_query("SELECT references_header
                                       FROM {og_mailinglist_source}
-                                      WHERE cid = :cid", array(':cid' => : cid, '' => array(
-        ':cid' => : cid,
-        '' => array(':cid' => $comment_pid),
-      )))->fetchField() . " " . $in_reply_to;
+                                      WHERE cid = :cid", array(':cid' => $comment_pid))->fetchField() . " " . $in_reply_to;
   }
   else {
     $in_reply_to = $parent_message_id;
@@ -54,6 +45,20 @@ function og_mailinglist_send_comment_email($comment, $node) {
 
   // Decorate body.
   $body = og_mailinglist_prepare_web_content($comment->comment);
+
+  // Add the user's signature.
+  if (variable_get('og_mailinglist_add_signatures', 1)) {
+    // TODO Convert "user_load" to "user_load_multiple" if "$comment->uid" is other than a uid.
+    // To return a single user object, wrap "user_load_multiple" with "array_shift" or equivalent.
+    // Example: array_shift(user_load_multiple(array(), $comment->uid))
+    $account = user_load($comment->uid);
+    if (!empty($account->signature)) {
+      $signature = check_markup($account->signature, $account->signature_format);
+      $body = $body . $signature;
+    }
+  }
+
+  // Add footer
   $body = og_mailinglist_build_web_footer($node, $body);
 
   $mailer->Body = $body;
@@ -62,7 +67,7 @@ function og_mailinglist_send_comment_email($comment, $node) {
 
   //// Add attachments if any.
   //foreach ($email['attachments'] as $info) {
-  //  $mailer->AddStringAttachment($info['data'], $info['filename']);
+//  $mailer->AddStringAttachment($info['data'], $info['filename']);
   //}
 
   $mailer = _og_mailinglist_add_addresses($mailer, $node, FALSE,
@@ -113,6 +118,20 @@ function og_mailinglist_send_node_email($node) {
 
   // Decorate body.
   $body = og_mailinglist_prepare_web_content($node->body);
+
+  // Add the user's signature.
+  if (variable_get('og_mailinglist_add_signatures', 1)) {
+    // TODO Convert "user_load" to "user_load_multiple" if "$node->uid" is other than a uid.
+    // To return a single user object, wrap "user_load_multiple" with "array_shift" or equivalent.
+    // Example: array_shift(user_load_multiple(array(), $node->uid))
+    $account = user_load($node->uid);
+    if (!empty($account->signature)) {
+      $signature = check_markup($account->signature, $account->signature_format);
+      $body = $body . $signature;
+    }
+  }
+
+  // Add the footer.
   $body = og_mailinglist_build_web_footer($node, $body, 0, TRUE);
 
   // Let other modules alter outgoing node emails.
