@@ -607,7 +607,6 @@ function og_mailinglist_content_build_modes() {
 function og_mailinglist_block_info() {
   $blocks['group_actions'] = array(
     'info' => 'OG Mailinglist group actions',
-    'cache' => BLOCK_NO_CACHE,
   );
   return $blocks;
 }
