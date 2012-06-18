@@ -393,7 +393,7 @@ function og_mailinglist_node_insert($node) {
       return;
     }
 
-    // If this the Maillog module has been set to turn off emails, return.
+    // If the Maillog module has been set to turn off emails, return.
     if (!variable_get('maillog_send', TRUE)) {
       return;
     }
