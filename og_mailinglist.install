@@ -359,12 +359,12 @@ function og_mailinglist_update_6005() {
 
 function add_groups_to_og_mailinglist() {
   if (!module_exists('purl') && !module_exists('spaces_og')) {
-    $results = db_query("SELECT nid, title FROM {node} WHERE type = :type", array(':type' => 'group'));
+    $result = db_query("SELECT nid, title FROM {node} WHERE type = :type", array(':type' => 'group'));
 
     $groups = array();
 
-    while ($data = db_fetch_array($results)) {
-      $groups[$data['nid']] = $data['title'];
+    foreach($result as $row) {
+      $groups[$row->nid] = $row->title;
     }
 
     foreach ($groups as $nid => $title) {
@@ -381,13 +381,15 @@ function add_groups_to_og_mailinglist() {
   }
   // Else, just use the purl entries
   else {
-    $results = db_query("SELECT id, value
+    $result = db_query("SELECT id, value
                         FROM {purl}
                         WHERE provider = :provider", array(':provider' => 'spaces_og'));
     $groups = array();
-    while ($data = db_fetch_array($results)) {
-      $groups[$data['id']] = $data['value'];
+
+    foreach($result as $row) {
+      $groups[$row->id] = $row->value;
     }
+
     foreach ($groups as $nid => $title) {
       $data = array(
         'nid' => $nid,
