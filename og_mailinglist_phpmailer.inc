@@ -44,9 +44,6 @@ function og_mailinglist_send_comment_email($comment, $node) {
 
   // Add the user's signature.
   if (variable_get('og_mailinglist_add_signatures', 1)) {
-    // TODO Convert "user_load" to "user_load_multiple" if "$comment->uid" is other than a uid.
-    // To return a single user object, wrap "user_load_multiple" with "array_shift" or equivalent.
-    // Example: array_shift(user_load_multiple(array(), $comment->uid))
     $account = user_load($comment->uid);
     if (!empty($account->signature)) {
       $signature = check_markup($account->signature, $account->signature_format);
@@ -116,9 +113,6 @@ function og_mailinglist_send_node_email($node) {
 
   // Add the user's signature.
   if (variable_get('og_mailinglist_add_signatures', 1)) {
-    // TODO Convert "user_load" to "user_load_multiple" if "$node->uid" is other than a uid.
-    // To return a single user object, wrap "user_load_multiple" with "array_shift" or equivalent.
-    // Example: array_shift(user_load_multiple(array(), $node->uid))
     $account = user_load($node->uid);
     if (!empty($account->signature)) {
       $signature = check_markup($account->signature, $account->signature_format);
@@ -192,7 +186,7 @@ function og_mailinglist_render_node_body($node) {
   // Set the proper node part, then unset unused $node part so that a bad
   // theme can not open a security hole.
   $content = drupal_render($node->content);
-  $node->body = $content; // TODO change this to only add teaser. Add a read more link to actual node / comment
+  $node->body = $content;
   unset($node->teaser);
 
   // Allow modules to modify the fully-built node.

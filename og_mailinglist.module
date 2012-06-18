@@ -75,8 +75,8 @@ function og_mailinglist_menu() {
 function og_mailinglist_permission() {
   return array(
     'manage og_mailinglist subscriptions' => array(
-      'title' => t('manage og_mailinglist subscriptions'),
-      'description' => t('TODO Add a description for \'manage og_mailinglist subscriptions\''),
+      'title' => t('Manage og_mailinglist subscriptions'),
+      'description' => t('Gives role ability to edit anyone\'s OG Mailinglist subscriptions.'),
     ),
   );
 }
@@ -351,14 +351,18 @@ function og_mailinglist_form_alter(&$form, $form_state, $form_id) {
  * email username is valid.
  */
 function og_mailinglist_group_form_validate($element, &$form_state) {
-  $sql = "SELECT group_email FROM {og_mailinglist} WHERE group_email = '%s'";
+  // First check the email address isn't already being used.
+  $query = db_select('og_mailinglist');
+  $query->fields('group_email');
+  $query->condition('group_email', $element['#value']);
   if ($form_state['values']['nid']) {
-    $sql .= ' AND nid != ' . $form_state['values']['nid'];
+    $query->condition('nid', $form_state['values']['nid']);
   }
-  // TODO Please convert this statement to the D7 database API syntax.
-  if (db_query($sql, $element['#value'])->fetchField()) {
+  $result = $query->execute()->fetchField();
+  if ($result) {
     form_error($element, t('Someone has already choosen that group email address. Please choose another.'));
   }
+  // Then check that the email address is valid.
   else if (preg_match('!^[\.a-z0-9_-]+$!', $element['#value'])) {
     return true;
   }
@@ -383,14 +387,11 @@ function og_mailinglist_group_form_submit($form, &$form_state) {
 
 }
 
-/*
- * Implementation of hook_nodeapi().
- */
 /**
  * Implements hook_node_insert().
  */
 function og_mailinglist_node_insert($node) {
-  if (TRUE && $node->status) {
+  if ($node->status) {
     $group_node = _og_mailinglist_load_group($node);
 
     // If this node isn't part of a group, return.
@@ -419,29 +420,27 @@ function og_mailinglist_node_insert($node) {
 }
 
 /**
- * @todo Please document this function.
- * @see http://drupal.org/node/1354
+ * Implements hook_node_load().
  */
-function og_mailinglist_nodeapi_OLD(&$node, $op, $a3 = NULL, $a4 = NULL) {
-  // TODO Remaining code in this function needs to be moved to the appropriate new hook function.
-  // Node is a group
-  if (og_is_group_type($node->type)) {
-    switch ($op) {
-      case 'load':
+function og_mailinglist_node_load(&$nodes, $types) {
+  // Check first that at least one of the nodes is a group type.
+  $group_types = false;
+  foreach($types as $type) {
+    if (og_is_group_type($type)) {
+      $group_types = true;
+    }
+  }
+  if ($group_types) {
+    foreach($nodes as $node) {
+      if (og_is_group_type($node->type)) {
         // Load the group's email username.
         if (isset($node->nid)) {
           $ogm_email = db_query("SELECT group_email
-                                       FROM {og_mailinglist}
-                                       WHERE nid = :nid", array(':nid' => $node->nid))->fetchField();
+                                 FROM {og_mailinglist}
+                                 WHERE nid = :nid", array(':nid' => $node->nid))->fetchField();
           $node->ogm_email = $ogm_email;
         }
-        break;
-      case 'insert':
-      case 'update':
-      case 'delete':
-        // Disabling this for now. Spaces deletes and recreates a group when you switch presets.
-//        og_mailinglist_delete_group($node->nid);
-        break;
+      }
     }
   }
 }
@@ -469,15 +468,6 @@ function og_mailinglist_comment_publish($comment) {
       og_mailinglist_send_comment_email($comment, $node);
     }
   }
-}
-
-/**
- * Implmentation of hook_comment().
- */
-function og_mailinglist_comment_OLD($comment, $op) {
-  // TODO Remaining code in this function needs to be moved to the appropriate new hook function.
-  // $comment can be an object or an array.
-  $comment = (object) $comment;
 }
 
 /**

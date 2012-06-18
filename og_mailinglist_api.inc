@@ -99,10 +99,11 @@ function og_mailinglist_save_thread_subscriptions($nid, $uids) {
     $saved[] = $nid . "_" . $uid;
 
     if ($uid != 0) { // Ignore anonymous users.
-      // TODO Please convert this statement to the D7 database API syntax.
-      /* db_query("INSERT INTO {og_mailinglist_thread}
-       VALUES (%d, %d)", $nid, $uid) */
-      $result = NULL;
+      $data = array(
+        "nid" => $nid,
+        "uid" => $uid,
+      );
+      $result = drupal_write_record('og_mailinglist_thread', $data);
       if ($result) {
         // Invoke hook
         module_invoke_all('og_mailinglist_save_thread_subscription', $nid, $uid);
@@ -114,7 +115,6 @@ function og_mailinglist_save_thread_subscriptions($nid, $uids) {
 /*
  * @return subscription type for the given group and user.
  */
-/**
 function og_mailinglist_get_group_subscription_type($gid, $uid) {
   return db_query("SELECT subscription_type
                             FROM {og_mailinglist_subscription}
@@ -126,11 +126,6 @@ function og_mailinglist_get_group_subscription_type($gid, $uid) {
  * Update a user's subscription type for one of their groups.
  */
 function og_mailinglist_update_group_subcription_type($gid, $uid, $subscription_type) {
-  // TODO Please review the conversion of this statement to the D7 database API syntax.
-  /* db_query("UPDATE {og_mailinglist_subscription}
-   SET subscription_type = '%s'
-   WHERE uid = %d
-   AND nid = %d", $subscription_type, $uid, $gid) */
   db_update('og_mailinglist_subscription')
   ->fields(array(
     'subscription_type' => $subscription_type,
@@ -146,10 +141,12 @@ function og_mailinglist_update_group_subcription_type($gid, $uid, $subscription_
  */
 function og_mailinglist_save_group_subscriptions($gid, $uids) {
   foreach ($uids as $uid) {
-    // TODO Please convert this statement to the D7 database API syntax.
-    /* db_query("INSERT INTO {og_mailinglist_subscription}
-     VALUES (%d, %d, '%s')", $gid, $uid, variable_get('og_mailinglist_default_group_subscription_type', 'email')) */
-    NULL;
+    $data = array(
+      "gid" => $gid,
+      "uid" => $uid,
+      "subscription_type" => variable_get('og_mailinglist_default_group_subscription_type', 'email'),
+    );
+    drupal_write_record("og_mailinglist_subscription", $data);
   }
 }
 
@@ -160,14 +157,10 @@ function og_mailinglist_save_group_subscriptions($gid, $uids) {
 function og_mailinglist_delete_group_subscriptions($gid, $uids) {
   foreach ($uids as $uid) {
     // Delete subscription.
-    // TODO Please review the conversion of this statement to the D7 database API syntax.
-    /* db_query("DELETE FROM {og_mailinglist_subscription}
-     WHERE nid = %d
-     AND uid = %d", $gid, $uid) */
     db_delete('og_mailinglist_subscription')
-  ->condition('nid', $gid)
-  ->condition('uid', $uid)
-  ->execute();
+      ->condition('nid', $gid)
+      ->condition('uid', $uid)
+      ->execute();
 
     og_mailinglist_delete_group_threads($gid, $uid);
   }
@@ -196,25 +189,14 @@ function og_mailinglist_subscribe_group_threads($gid, $uid) {
  **/
 function og_mailinglist_delete_group_threads($gid, $uid) {
   // Delete threads.  See http://drupal.org/node/1079620
-  global $db_type;
-  if ($db_type == 'pgsql') {
-    // TODO Please convert this statement to the D7 database API syntax.
-    /* db_query("DELETE FROM {og_mailinglist_thread} AS m
-     USING {og_ancestry} AS o
-     WHERE (o.nid = m.nid)
-     AND m.uid = %d
-     AND o.group_nid = %d", $uid, $gid) */
-    NULL;
-  }
-  else {
-    // TODO Please convert this statement to the D7 database API syntax.
-    /* db_query("DELETE FROM m
-     USING {og_mailinglist_thread} AS m, {og_ancestry} AS o
-     WHERE (o.nid = m.nid)
-     AND m.uid = %d
-     AND o.group_nid = %d", $uid, $gid) */
-    NULL;
-  }
+  $subquery = db_select('og_ancestry');
+  $subquery->addField('nid');
+  $subquery->condition('group_nid', $gid);
+
+  return db_delete('og_mailinglist_thread')
+    ->condition('uid', $uid)
+    ->condition('nid', $subquery, 'IN')
+    ->execute();
 }
 
 /**
@@ -228,14 +210,10 @@ function og_mailinglist_delete_thread_subscription($nid, $uid) {
   }
   $deleted[] = $nid . "_" . $uid;
 
-  // TODO Please review the conversion of this statement to the D7 database API syntax.
-  /* db_query("DELETE FROM {og_mailinglist_thread}
-   WHERE nid = %d
-   AND uid = %d", $nid, $uid) */
   $result = db_delete('og_mailinglist_thread')
-  ->condition('nid', $nid)
-  ->condition('uid', $uid)
-  ->execute();
+    ->condition('nid', $nid)
+    ->condition('uid', $uid)
+    ->execute();
 
   if ($result) {
     // Invoke hook
@@ -249,11 +227,18 @@ function og_mailinglist_delete_thread_subscription($nid, $uid) {
  * Log successful sent email.
  */
 function og_mailinglist_log_email_sent($source, $nid, $cid = 0, $message_id = 0, $in_reply_to = 0, $references = 0, $parent_message_id = 0) {
-  // TODO Please convert this statement to the D7 database API syntax.
-  /* db_query("INSERT INTO {og_mailinglist_source}
-   VALUES (%d, %d, '%s', '%s', '%s', '%s', '%s')", $nid, $cid, $source, $message_id, $in_reply_to, $references, $parent_message_id) */
-  return NULL;
+  $data = array(
+    'nid' => $nid,
+    'cid' => $cid,
+    'source' => $source,
+    'message_id' => $message_id,
+    'in_reply_to' => $in_reply_to,
+    'references_header' => $references,
+    'parent_message_id' => $parent_message_id,
+  );
+  return drupal_write_record('og_mailinglist_source', $data);
 }
+
 /*
  * @return PHPMailer object.
  */
@@ -292,20 +277,14 @@ function og_mailinglist_save_group($nid, $group_email) {
  */
 function og_mailinglist_delete_group($nid) {
   // Delete information from og_mailinglist.
-  // TODO Please review the conversion of this statement to the D7 database API syntax.
-  /* db_query("DELETE FROM {og_mailinglist}
-   WHERE nid = %d", $nid) */
   db_delete('og_mailinglist')
-  ->condition('nid', $nid)
-  ->execute();
+    ->condition('nid', $nid)
+    ->execute();
 
   // Delete group subscriptions from og_mailinglist_subscriptions.
-  // TODO Please review the conversion of this statement to the D7 database API syntax.
-  /* db_query("DELETE FROM {og_mailinglist_subscription}
-   WHERE nid = %d", $nid) */
   db_delete('og_mailinglist_subscription')
-  ->condition('nid', $nid)
-  ->execute();
+    ->condition('nid', $nid)
+    ->execute();
 }
 
 // References are apparently a more reliable header than in-reply-to

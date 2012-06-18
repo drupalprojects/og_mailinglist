@@ -402,9 +402,6 @@ function og_mailinglist_save_node($email) {
   // Send off email.
   _og_mailinglist_email_node_email($email, $node);
 
-  // TODO Convert "user_load" to "user_load_multiple" if "$email['userid']" is other than a uid.
-  // To return a single user object, wrap "user_load_multiple" with "array_shift" or equivalent.
-  // Example: array_shift(user_load_multiple(array(), $email['userid']))
   $sender = user_load($email['userid']);
   $group_node = node_load($email['groupid']);
   // Report activity to watchdog.
@@ -562,7 +559,6 @@ function _og_mailinglist_save_files(&$node) {
   }
 
   // If user doesn't have upload permission then don't bother processing
-  // TODO check comment upload permissions.
   if (!(user_access('upload files'))) {
     //echo "didn't have permissions?\n\n";
     return;
@@ -1004,12 +1000,11 @@ function _og_mailinglist_nid_of_subject($subject) {
   preg_match("/[Rr][Ee]:\s\[.*?\]\s(.+)/s", $subject, $matches);
   $title = $matches[1];
   if ($title) {
-    // TODO Please convert this statement to the D7 database API syntax.
     $nid = db_query("SELECT nid
-                               FROM {node}
-                               WHERE title like '%%s%'
-                               ORDER BY created desc
-                               LIMIT 1", $title)->fetchField();
+                       FROM {node}
+                       WHERE title like :title
+                       ORDER BY created desc
+                       LIMIT 1", array(':title' => '%' . $title . '%'))->fetchField();
   }
   return $nid;
 }

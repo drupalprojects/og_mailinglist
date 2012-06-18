@@ -6,9 +6,6 @@
  * Flag the node for the user when they subscribe to a node.
  **/
 function og_mailinglist_flag_og_mailinglist_save_thread_subscription($nid, $uid) {
-  // TODO Convert "user_load" to "user_load_multiple" if "$uid" is other than a uid.
-  // To return a single user object, wrap "user_load_multiple" with "array_shift" or equivalent.
-  // Example: array_shift(user_load_multiple(array(), $uid))
   $account = user_load($uid);
   flag('flag', 'follow_node', $nid, $account);
 }
@@ -19,9 +16,6 @@ function og_mailinglist_flag_og_mailinglist_save_thread_subscription($nid, $uid)
  * When a thread subscription is deleted, unflag the node as well.
  **/
 function og_mailinglist_flag_og_mailinglist_delete_thread_subscription($nid, $uid) {
-  // TODO Convert "user_load" to "user_load_multiple" if "$uid" is other than a uid.
-  // To return a single user object, wrap "user_load_multiple" with "array_shift" or equivalent.
-  // Example: array_shift(user_load_multiple(array(), $uid))
   $account = user_load($uid);
   flag('unflag', 'follow_node', $nid, $account);
 }
