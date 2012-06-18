@@ -250,8 +250,7 @@ function _og_mailinglist_process_email($raw_email, $group_name = NULL) {
 }
 
 /**
- * @todo Please document this function.
- * @see http://drupal.org/node/1354
+ * Save new comment that came through email.
  */
 function og_mailinglist_save_comment($email) {
   $nid = $email['nid'];
@@ -339,8 +338,7 @@ function og_mailinglist_save_comment($email) {
 }
 
 /**
- * @todo Please document this function.
- * @see http://drupal.org/node/1354
+ * Save new nodes that came through email.
  */
 function og_mailinglist_save_node($email) {
 
@@ -982,10 +980,6 @@ function _og_mailinglist_send_email($headers, $body, $node, $comment = null, $se
 
 /*
  * Try to parse nid from the email.
- */
-/**
- * @todo Please document this function.
- * @see http://drupal.org/node/1354
  */
 function og_mailinglist_parse_nid($email, $headers) {
   $nid = "";

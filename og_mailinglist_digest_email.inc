@@ -213,8 +213,7 @@ function _og_mailinglist_send_digest_emails() {
 }
 
 /**
- * @todo Please document this function.
- * @see http://drupal.org/node/1354
+ * Wrap node body for including in the digest.
  */
 function og_mailinglist_style_node_message($node) {
   $user = user_load($node->uid);
@@ -232,8 +231,7 @@ function og_mailinglist_style_node_message($node) {
 }
 
 /**
- * @todo Please document this function.
- * @see http://drupal.org/node/1354
+ * Wrap comment body for including in the digest.
  */
 function og_mailinglist_style_comment_message($comment) {
   $user = user_load($comment->uid);
@@ -251,8 +249,7 @@ function og_mailinglist_style_comment_message($comment) {
 }
 
 /**
- * @todo Please document this function.
- * @see http://drupal.org/node/1354
+ * Count total new messages for a node since the previous digest.
  */
 function og_mailinglist_count_new_messages($message) {
   $count = 0;

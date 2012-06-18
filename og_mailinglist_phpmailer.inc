@@ -4,10 +4,6 @@
 require_once DRUPAL_ROOT . '/' . 'og_mailinglist_utilities.inc';
 require_once DRUPAL_ROOT . '/' . 'og_mailinglist_api.inc';
 
-/**
- * @todo Please document this function.
- * @see http://drupal.org/node/1354
- */
 function og_mailinglist_send_comment_email($comment, $node) {
   // Check if comment arrived via email so already sent.
   if (_og_mailinglist_email_already_sent($comment->nid, $comment->cid)) {
@@ -38,7 +34,7 @@ function og_mailinglist_send_comment_email($comment, $node) {
     $references = $parent_message_id; // TODO, this should really also reference each message-id that came before it in order. Easy enough to do w/ a query.
   }
 
-  $mailer = og_mailinglist_add_web_headers($mailer, $node, $comment, $in_reply_to, $references);
+  $mailer = og_mailinglist_add_email_headers($mailer, $node, $comment, $in_reply_to, $references);
 
   // Decorate subject.
   $mailer->Subject = "Re: [" . $group_node->ogm_email . "] " . $node->title;
@@ -87,8 +83,7 @@ function og_mailinglist_send_comment_email($comment, $node) {
 }
 
 /**
- * @todo Please document this function.
- * @see http://drupal.org/node/1354
+ * Master function for sending an email for a new node.
  */
 function og_mailinglist_send_node_email($node) {
   // Check if node arrived via email so already sent.
@@ -108,7 +103,7 @@ function og_mailinglist_send_node_email($node) {
   $mailer = og_mailinglist_create_mailer();
 
   // Add custom headers.
-  $mailer = og_mailinglist_add_web_headers($mailer, $node);
+  $mailer = og_mailinglist_add_email_headers($mailer, $node);
 
   // Decorate subject.
   $subject = "[" . $group_node->ogm_email . "] " . $node->title;
@@ -189,10 +184,6 @@ function og_mailinglist_send_node_email($node) {
  * @return
  *  Node with rendered body.
  */
-/**
- * @todo Please document this function.
- * @see http://drupal.org/node/1354
- */
 function og_mailinglist_render_node_body($node) {
   $node = (object) $node;
   $node->build_mode = OG_MAILINGLIST_BUILD_FULL;
@@ -211,10 +202,9 @@ function og_mailinglist_render_node_body($node) {
 }
 
 /**
- * @todo Please document this function.
- * @see http://drupal.org/node/1354
+ * Add needed email headers.
  */
-function og_mailinglist_add_web_headers($mailer, $node, $comment = 0, $in_reply_to = 0, $references = 0) {
+function og_mailinglist_add_email_headers($mailer, $node, $comment = 0, $in_reply_to = 0, $references = 0) {
   $group_node = _og_mailinglist_load_group($node);
   global $base_url;
 

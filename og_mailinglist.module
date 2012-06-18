@@ -72,10 +72,6 @@ function og_mailinglist_menu() {
 /*
  * Implementation of hook_perm().
  */
-/**
- * @todo Please document this function.
- * @see http://drupal.org/node/1354
- */
 function og_mailinglist_permission() {
   return array(
     'manage og_mailinglist subscriptions' => array(
@@ -87,10 +83,6 @@ function og_mailinglist_permission() {
 
 /*
  * Implementation of hook_init().
- */
-/**
- * @todo Please document this function.
- * @see http://drupal.org/node/1354
  */
 function og_mailinglist_init() {
   drupal_add_css(drupal_get_path('module', 'og_mailinglist') . "/og_mailinglist.css");
@@ -192,8 +184,7 @@ function og_mailinglist_admin_settings($form, &$form_state) {
 }
 
 /**
- * @todo Please document this function.
- * @see http://drupal.org/node/1354
+ * Build subscription admin for for each user.
  */
 function og_mailinglist_subscriptions_settings_form($form, $account) {
   global $user;
@@ -253,8 +244,7 @@ function og_mailinglist_subscriptions_settings_form($form, $account) {
 }
 
 /**
- * @todo Please document this function.
- * @see http://drupal.org/node/1354
+ * Form submit handler.
  */
 function og_mailinglist_subscriptions_settings_form_submit($form, &$form_state) {
   $uid = $form_state['values']['uid'];
@@ -280,8 +270,7 @@ function og_mailinglist_subscriptions_settings_form_submit($form, &$form_state) 
 }
 
 /**
- * @todo Please document this function.
- * @see http://drupal.org/node/1354
+ * Callback function for unsubscribing from a thread.
  */
 function og_mailinglist_unsubscribe_thread($node) {
   global $user;
@@ -299,8 +288,7 @@ function og_mailinglist_unsubscribe_thread($node) {
 }
 
 /**
- * @todo Please document this function.
- * @see http://drupal.org/node/1354
+ * Callback function for subscribing to a thread.
  */
 function og_mailinglist_subscribe_thread($node) {
   global $user;
@@ -314,10 +302,6 @@ function og_mailinglist_subscribe_thread($node) {
 
 /*
  * Implementation of hook_form_alter().
- */
-/**
- * @todo Please document this function.
- * @see http://drupal.org/node/1354
  */
 function og_mailinglist_form_alter(&$form, $form_state, $form_id) {
   if ($form['#id'] == 'node-form' && (arg(0) . '/' . arg(1) != 'admin/content')) {
@@ -385,10 +369,6 @@ function og_mailinglist_group_form_validate($element, &$form_state) {
 
 /*
  * Submit handler for og_mailinglist_group_form.
- */
-/**
- * @todo Please document this function.
- * @see http://drupal.org/node/1354
  */
 function og_mailinglist_group_form_submit($form, &$form_state) {
   $group_email = "";
@@ -587,10 +567,6 @@ function _og_mailinglist_remove_quotes($text) {
 /*
  * Implementation of hook_cron().
  */
-/**
- * @todo Please document this function.
- * @see http://drupal.org/node/1354
- */
 function og_mailinglist_cron() {
   // On first run, set digest to run today.
   $next_digest_runtime = variable_get('og_mailinglist_digest_runtime',
@@ -657,14 +633,7 @@ function og_mailinglist_block_view($delta) {
 }
 
 /**
- * @todo Please document this function.
- * @see http://drupal.org/node/1354
- */
-function og_mailinglist_block_OLD($op = 'list', $delta = 0, $edit = array()) { }
-
-/**
- * @todo Please document this function.
- * @see http://drupal.org/node/1354
+ * Generate block html.
  */
 function og_mailinglist_get_block() {
   global $user;
@@ -681,10 +650,6 @@ function og_mailinglist_get_block() {
   return $output;
 }
 
-/**
- * @todo Please document this function.
- * @see http://drupal.org/node/1354
- */
 function og_mailinglist_subscription_settings_form($form, &$form_state, $group_node) {
   global $user;
 

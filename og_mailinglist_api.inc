@@ -52,10 +52,6 @@ function og_mailinglist_get_group_subscriptions($gid) {
  * @return array of UIDs and email addresses that are subscribed to this thread.
  *  Format = key (UID) => value (email address)
  */
-/**
- * @todo Please document this function.
- * @see http://drupal.org/node/1354
- */
 function og_mailinglist_get_thread_subscriptions($nid) {
   $result = db_query("SELECT uid
                      FROM {og_mailinglist_thread}
@@ -80,10 +76,6 @@ function og_mailinglist_get_thread_subscriptions($nid) {
 /*
  * Check if a user is subscribed to a thread.
  */
-/**
- * @todo Please document this function.
- * @see http://drupal.org/node/1354
- */
 function og_mailinglist_check_user_subscribed_to_thread($nid, $uid) {
   return db_query("SELECT uid
           FROM {og_mailinglist_thread
@@ -96,10 +88,6 @@ function og_mailinglist_check_user_subscribed_to_thread($nid, $uid) {
  * @param array $uids array of User IDs that are subscribed to this thread.
  *
  * @return null.
- */
-/**
- * @todo Please document this function.
- * @see http://drupal.org/node/1354
  */
 function og_mailinglist_save_thread_subscriptions($nid, $uids) {
   static $saved = array();
@@ -127,9 +115,6 @@ function og_mailinglist_save_thread_subscriptions($nid, $uids) {
  * @return subscription type for the given group and user.
  */
 /**
- * @todo Please document this function.
- * @see http://drupal.org/node/1354
- */
 function og_mailinglist_get_group_subscription_type($gid, $uid) {
   return db_query("SELECT subscription_type
                             FROM {og_mailinglist_subscription}
@@ -139,10 +124,6 @@ function og_mailinglist_get_group_subscription_type($gid, $uid) {
 
 /*
  * Update a user's subscription type for one of their groups.
- */
-/**
- * @todo Please document this function.
- * @see http://drupal.org/node/1354
  */
 function og_mailinglist_update_group_subcription_type($gid, $uid, $subscription_type) {
   // TODO Please review the conversion of this statement to the D7 database API syntax.
@@ -163,10 +144,6 @@ function og_mailinglist_update_group_subcription_type($gid, $uid, $subscription_
  * @param int $gid Group id.
  * @param array $uids array of User IDs to add group subscriptions.
  */
-/**
- * @todo Please document this function.
- * @see http://drupal.org/node/1354
- */
 function og_mailinglist_save_group_subscriptions($gid, $uids) {
   foreach ($uids as $uid) {
     // TODO Please convert this statement to the D7 database API syntax.
@@ -179,10 +156,6 @@ function og_mailinglist_save_group_subscriptions($gid, $uids) {
 /*
  * @param int $gid Group id.
  * @param array $uids array of User IDs to add group subscriptions.
- */
-/**
- * @todo Please document this function.
- * @see http://drupal.org/node/1354
  */
 function og_mailinglist_delete_group_subscriptions($gid, $uids) {
   foreach ($uids as $uid) {
@@ -202,10 +175,6 @@ function og_mailinglist_delete_group_subscriptions($gid, $uids) {
 
 /*
  * Adds person to 15 latest threads in a group.
- */
-/**
- * @todo Please document this function.
- * @see http://drupal.org/node/1354
  */
 function og_mailinglist_subscribe_group_threads($gid, $uid) {
   // Select threads created in the past month.
@@ -279,10 +248,6 @@ function og_mailinglist_delete_thread_subscription($nid, $uid) {
 /*
  * Log successful sent email.
  */
-/**
- * @todo Please document this function.
- * @see http://drupal.org/node/1354
- */
 function og_mailinglist_log_email_sent($source, $nid, $cid = 0, $message_id = 0, $in_reply_to = 0, $references = 0, $parent_message_id = 0) {
   // TODO Please convert this statement to the D7 database API syntax.
   /* db_query("INSERT INTO {og_mailinglist_source}
@@ -291,10 +256,6 @@ function og_mailinglist_log_email_sent($source, $nid, $cid = 0, $message_id = 0,
 }
 /*
  * @return PHPMailer object.
- */
-/**
- * @todo Please document this function.
- * @see http://drupal.org/node/1354
  */
 function og_mailinglist_create_mailer() {
   og_mailinglist_phpmailer_load_library();
@@ -308,10 +269,6 @@ function og_mailinglist_create_mailer() {
 
 /*
  * Save group information upon group creation and update.
- */
-/**
- * @todo Please document this function.
- * @see http://drupal.org/node/1354
  */
 function og_mailinglist_save_group($nid, $group_email) {
   $update = db_query("SELECT nid
@@ -332,10 +289,6 @@ function og_mailinglist_save_group($nid, $group_email) {
 
 /*
  * Delete group information.
- */
-/**
- * @todo Please document this function.
- * @see http://drupal.org/node/1354
  */
 function og_mailinglist_delete_group($nid) {
   // Delete information from og_mailinglist.

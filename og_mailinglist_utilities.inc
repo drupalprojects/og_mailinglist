@@ -40,8 +40,7 @@ Stop emails for this post: " . url("og_mailinglist/unsubscribe/" . $node->nid, a
 }
 
 /**
- * @todo Please document this function.
- * @see http://drupal.org/node/1354
+ * Build HTML using default input filter.
  */
 function og_mailinglist_prepare_web_content($text) {
   return check_markup($text);
@@ -56,8 +55,7 @@ function _og_mailinglist_email_already_sent($nid, $cid = 0) {
 
 
 /**
- * @todo Please document this function.
- * @see http://drupal.org/node/1354
+ * Render HTML for the email footer.
  */
 function og_mailinglist_build_web_footer($node, $body, $cid = 0) {
   $footer = _og_mailinglist_build_footer($node);
@@ -222,8 +220,7 @@ function og_mailinglist_get_phpmailer_plugin_dir() {
 }
 
 /**
- * @todo Please document this function.
- * @see http://drupal.org/node/1354
+ * Load the mimeDecode library.
  */
 function og_mailinglist_mimeDecode_load_library() {
   if (!class_exists('Mail_mimeDecode')) {

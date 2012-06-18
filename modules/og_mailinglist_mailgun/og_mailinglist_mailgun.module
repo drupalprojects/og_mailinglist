@@ -1,9 +1,9 @@
 <?php
 
 // Set options on a new PHPMailer object so it sends email via Mailgun's servers.
+
 /**
- * @todo Please document this function.
- * @see http://drupal.org/node/1354
+ * Override PHPMailer settings so email is sent through Mailgun.
  */
 function og_mailinglist_mailgun_og_mailinglist_new_phpmailer_alter(&$mailer) {
   // Check if a login/password is set for Mailgun.
@@ -72,8 +72,7 @@ function og_mailinglist_mailgun_admin_settings($form, &$form_state) {
 }
 
 /**
- * @todo Please document this function.
- * @see http://drupal.org/node/1354
+ * Mailgun callback. New emails from Mailgun are directed here.
  */
 function og_mailinglist_mailgun_new_email() {
   $raw_email = $_POST['body-mime'];
