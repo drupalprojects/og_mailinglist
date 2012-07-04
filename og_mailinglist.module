@@ -271,13 +271,16 @@ function og_mailinglist_unsubscribe_thread($node) {
   $success = og_mailinglist_delete_thread_subscription($node->nid, $user->uid);
 
   if ($success) {
-    return "<div class='messages success'>You were successfully unsubscribed from
-    the post <em>" . l($node->title, "node/" . $node->nid) . " </em>&nbsp;&nbsp;
-     " . l("Undo", "og_mailinglist/subscribe/" . $node->nid, array("attributes" => array("id" => "og_mailinglist_undo")))
-           . "</div>";
+    return '<div class="messages success">'
+      . t('You were successfully unsubscribed from the post @link.',
+          array('@link' => '<em>' . l($node->title, "node/" . $node->nid) . '</em>'))
+      . '&nbsp;&nbsp;'
+      . l(t('Undo'), 'og_mailinglist/subscribe/' . $node->nid,
+          array('attributes' => array('id' => 'og_mailinglist_undo')))
+      . '</div>';
   }
   else {
-    return "Something unexpected happened and we weren't able to unsubscribe you from this post. Please contact your site administrator.";
+    return t('Something unexpected happened and we were not able to unsubscribe you from this post. Please contact your site administrator.');
   }
 }
 
@@ -288,10 +291,13 @@ function og_mailinglist_subscribe_thread($node) {
   global $user;
   og_mailinglist_save_thread_subscriptions($node->nid, array($user->uid));
 
-  return "<div class='messages success'>You were successfully subscribed to
-    the post <em>" . l($node->title, "node/" . $node->nid) . " </em>&nbsp;&nbsp;
-     " . l("Undo", "og_mailinglist/unsubscribe/" . $node->nid, array("attributes" => array("id" => "og_mailinglist_undo")))
-           . "</div>";
+  return '<div class="messages success">'
+    . t('You were successfully subscribed to the post @link.',
+        array('@link' => '<em>' . l($node->title, "node/" . $node->nid) . '</em>'))
+    . '&nbsp;&nbsp;'
+    . l(t('Undo'), 'og_mailinglist/unsubscribe/' . $node->nid,
+        array('attributes' => array('id' => 'og_mailinglist_undo')))
+    . '</div>';
 }
 
 /*
@@ -506,9 +512,8 @@ function og_mailinglist_filter_XXX($op, $delta = 0, $format = -1, $text = "") {
 function _og_mailinglist_build_quotes_toggle($text) {
   module_load_include('inc', 'og_mailinglist', 'og_mailinglist_filter');
 
-  $text = str_replace("\r", "\n", $text);
-  $text = str_replace("\r\n", "\n", $text);
 
+  $text = str_replace(array('\r\n', '\r'), array('\n', '\n'), $text);
   $quotes = _og_mailinglist_find_quoted_sections($text);
 
   if (!empty($quotes)) {
@@ -517,7 +522,10 @@ function _og_mailinglist_build_quotes_toggle($text) {
       // Otherwise the HTML Converter input filter will bork the HTML. This *could* be a
       // potential problem if someone doesn't want the Line Break filter run.
       $filtered_quote = _filter_autop($quote);
-      $replace = '<br /><span class="toggle-quoted-text">- Show quoted text -</span><div class="quoted-text">' . $filtered_quote . '</div>';
+      $replace = '<br /><span class="toggle-quoted-text">- '
+        . t('Show quoted text')
+        . ' -</span><div class="quoted-text">'
+        . $filtered_quote . '</div>';
       $text = str_replace($quote, $replace, $text);
 
       // Remove email addresses. Regex borrowed from valid_email_adddress().
@@ -535,10 +543,7 @@ function _og_mailinglist_build_quotes_toggle($text) {
 
 function _og_mailinglist_remove_quotes($text) {
   module_load_include('inc', 'og_mailinglist', 'og_mailinglist_filter');
-
-  $text = str_replace("\r", "\n", $text);
-  $text = str_replace("\r\n", "\n", $text);
-
+  $text = str_replace(array('\r\n', '\r'), array('\n', '\n'), $text);
   $quotes = _og_mailinglist_find_quoted_sections($text);
   if (!empty($quotes)) {
     foreach ($quotes as $quote) {

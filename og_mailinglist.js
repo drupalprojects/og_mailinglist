@@ -3,10 +3,10 @@ if (Drupal.jsEnabled) {
     $(".toggle-quoted-text").click( function() {
       $(this).parent().next().toggle();
       if ($(this).parent().next().css('display') == "block") {
-        $(this).text('-Hide quoted text-');
+        $(this).text(Drupal.t('-Hide quoted text-'));
       }
       else {
-        $(this).text('-Show quoted text-');
+        $(this).text(Drupal.t('-Show quoted text-'));
       }
     });
   });

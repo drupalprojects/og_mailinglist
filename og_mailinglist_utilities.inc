@@ -31,11 +31,16 @@ function array_to_comma_delimited_string($array) {
 }
 
 function _og_mailinglist_build_footer($node) {
-  $footer = "--
-Full post: " .  url("node/" . $node->nid, array('absolute' => TRUE))   . "
-Manage my subscriptions: " . url("og_mailinglist/subscriptions", array('absolute' => TRUE)) . "
-Stop emails for this post: " . url("og_mailinglist/unsubscribe/" . $node->nid, array("absolute" => TRUE));
-
+  $absolute = array('absolute' => TRUE);
+  $full = url("node/" . $node->nid, $absolute);
+  $subscriptions = url("og_mailinglist/subscriptions", $absolute);
+  $unsubscribe = url("og_mailinglist/unsubscribe/" . $node->nid, $absolute);
+  $footer = "--\n"
+    . t('Full post: @link', array('@link' => $full))
+    . "\n"
+    . t('Manage my subscriptions: @link', array('@link' => $subscriptions))
+    . "\n"
+    . t('Stop emails for this post: @link', array('@link' => $unsubscribe));
   return $footer;
 }
 
