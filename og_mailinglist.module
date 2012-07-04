@@ -99,10 +99,10 @@ function og_mailinglist_menu() {
 function og_mailinglist_permission() {
   return array(
     'manage og_mailinglist subscriptions' => array(
-      'title' => t('Manage og_mailinglist subscriptions'),
-      'description' => t('Gives role ability to edit anyone\'s OG Mailinglist subscriptions.'),
     ),
   );
+      'title' => t('Manage mailinglist subscriptions'),
+      'description' => t('Subscribe or unsubscribe other people to/from a group.'),
 }
 
 /**
@@ -170,9 +170,9 @@ function og_mailinglist_admin_settings($form, &$form_state) {
     '#type' => 'select',
     '#default_value' => variable_get('og_mailinglist_default_group_subscription_type', 'email'),
     '#options' => array(
-      'email' => 'email',
-      'no email' => 'no email',
-      'digest email' => 'digest email',
+      'email' => t('Email'),
+      'no email' => t('No email'),
+      'digest email' => t('Digest email'),
     ),
     '#description' => t('Choose the default email subscription for users joining a new group. "Email" means the user will receive an email for each new post. "No email" means the user will recieve no emails except for discussion threads they participate in. "Digest" is the same as "no email" except the user will also receive digest emails. (Users can change this later at http://example.org/user/%user/og_mailinglist)'),
   );
@@ -235,13 +235,14 @@ function og_mailinglist_subscriptions_settings_form($form, $account) {
     );
     $form[$data['gid']]['subscription-type'] = array(
       '#type' => 'select',
-      '#title' => "Email Settings",
       '#default_value' => $data['subscription_type'],
+      '#title' => t("Email Settings"),
       '#options' => $subscription_options,
     );
     $form[$data['gid']]["leave-group"] = array(
       '#type' => 'checkbox',
-      '#title' => "Leave the " . t($data['title']) . " group",
+      '#title' => t("Leave the @name group",
+        array('@name' => t($group->title))),
       '#suffix' => "<hr />",
     );
   }
@@ -272,11 +273,16 @@ function og_mailinglist_subscriptions_settings_form_submit($form, &$form_state) 
       if ($settings['leave-group']) {
         og_delete_subscription($gid, $uid);
         $group_name = db_query("SELECT title FROM {node} WHERE nid = :nid", array(':nid' => $gid))->fetchField();
-        drupal_set_message(t("You are no longer in the <a href='@gid'>@group_name</a> group", array("@gid" => url("node/" . $gid), "@group_name" => $group_name)));
+        drupal_set_message(
+          t("You are no longer in the <a href='@gid'>@group_name</a> group.",
+          array(
+            "@gid" => url("node/" . $gid),
+            "@group_name" => $group_name,
+          )));
       }
     }
   }
-  drupal_set_message("Your group subscriptions were updated.");
+  drupal_set_message(t('Your group subscriptions were updated.'));
 }
 
 /**
