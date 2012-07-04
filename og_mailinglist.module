@@ -412,7 +412,7 @@ function og_mailinglist_group_form_submit($form, &$form_state) {
  */
 function og_mailinglist_node_insert($node) {
   if ($node->status) {
-    $group_node = _og_mailinglist_load_group($node);
+    $group_node = _og_mailinglist_load_group(array($node->nid));
 
     // If this node isn't part of a group, return.
     if (empty($group_node)) {
@@ -443,24 +443,14 @@ function og_mailinglist_node_insert($node) {
  * Implements hook_node_load().
  */
 function og_mailinglist_node_load(&$nodes, $types) {
-  // Check first that at least one of the nodes is a group type.
-  $group_types = false;
-  foreach($types as $type) {
-    if (og_is_group_type($type, 'node')) {
-      $group_types = true;
-    }
-  }
-  if ($group_types) {
-    foreach($nodes as $node) {
-      if (og_is_group_type($node->type)) {
-        // Load the group's email username.
-        if (isset($node->nid)) {
-          $ogm_email = db_query("SELECT group_email
-                                 FROM {og_mailinglist}
-                                 WHERE nid = :nid", array(':nid' => $node->nid))->fetchField();
-          $node->ogm_email = $ogm_email;
-        }
-      }
+  foreach ($nodes as $node) {
+    if (og_is_group_type('node', $node->type) && isset($node->nid)) {
+      // Load the group's email.
+      $ogm_email = db_query("SELECT group_email
+        FROM {og_mailinglist}
+        WHERE nid = :nid",
+        array(':nid' => $node->nid))->fetchField();
+      $node->ogm_email = $ogm_email;
     }
   }
 }
@@ -477,7 +467,7 @@ function og_mailinglist_comment_publish($comment) {
 
     // Check that the node is published.
     $node = node_load($comment->nid);
-    $group_node = _og_mailinglist_load_group($node);
+    $group_node = _og_mailinglist_load_group(array($node->nid));
     if ($node->status && is_object($group_node)) {
       // User might not be subscribed to thread. Subscribe them now if not
       // already subscribed.
@@ -491,48 +481,97 @@ function og_mailinglist_comment_publish($comment) {
 }
 
 /**
- * Implements hook_og().
+ * Implements hook_og_membership_insert().
  *
- * Add a og_mailinglist subscription when a user joins a group
- * and delete should they leave.
+ * Add a og_mailinglist subscription when a user joins a group.
  */
-function og_mailinglist_og($op, $gid, $uid, $args) {
-  switch ($op) {
-    case 'user insert':
-      og_mailinglist_save_group_subscriptions($gid, array($uid));
-      break;
+function og_mailinglist_og_membership_insert($membership) {
+  global $user;
+  og_mailinglist_save_group_subscriptions($membership->gid,
+    array($user->uid));
+}
 
-    case 'user delete':
-      og_mailinglist_delete_group_subscriptions($gid, array($uid));
-      break;
+/**
+ * Implements hook_og_membership_delete().
+ *
+ * Remove a og_mailinglist subscription when a user leaves a group.
+ */
+function og_mailinglist_og_membership_delete($membership) {
+  global $user;
+  og_mailinglist_delete_group_subscriptions($membership->gid,
+    array($user->uid));
+}
+
+/**
+ * Implements hook_filter_info().
+ */
+function og_mailinglist_filter_info() {
+  $filters['filter_email_quote_hider'] = array(
+    'title' => t('Hide quotations in emails'),
+    'description' => t('Finds quoted text from comments created via email and adds Show / Hide link.'),
+    'process callback' => '_og_mailinglist_build_quotes_toggle',
+    'tips callback' => '_og_mailinglist_filter_tips',
+    'settings callback' => '_og_mailinglist_filter_settings',
+    'default settings' => array(
+      'og_mailinglist_filter_quotations' => 'hidden',
+      'og_mailinglist_filter_email' => 1,
+    ),
+  );
+  return $filters;
+}
+
+function _og_mailinglist_filter_settings($form, &$form_state, $filter, $format, $defaults) {
+  $filter->settings += $defaults;
+  
+  $settings['og_mailinglist_filter_quotations'] = array(
+    '#title' => t('Quotations style'),
+    '#type' => 'radios',
+    '#options' => array(
+      'hidden' => t('Quotations will be hidden with a JavaScript "Show" link. (default)'),
+      'removed' => t('Quotations will be removed altogether.'),
+    ),
+    '#default_value' => $filter->settings['og_mailinglist_filter_quotations'],
+    '#description' => t('E-mail style quotations are lines starting with ">" marks.'),
+  );
+  $settings['og_mailinglist_filter_email'] = array(
+    '#title' => t('Hide email addresses.'),
+    '#type' => 'checkbox',
+    '#default_value' => $filter->settings['og_mailinglist_filter_email'],
+    '#description' => t('If checked, email addresses will be replaced with ***@***.*** (enabled by default)'),
+  );
+  return $settings;
+}
+
+function _og_mailinglist_filter_tips($filter, $format, $long = FALSE) {
+  if ($long){
+    $output = t('Email quotation hider hides all quotations by default and provides a link to show quoted text. <br>');
+    $output .= t('It also replaces all e-mail addresses with ***@***.***');
+    return $output;
+  }
+  else {
+    return t('Email quotation hider makes quotations in emails hidden by default and replaces all email addresses with ***@***.***');
   }
 }
 
 /**
- * Implements hook_filter().
+ * Surround quotes within an email text to make the text hidden by default.
+ *
+ * @param string $text
+ *  Text where to hide quotes.
+ *
+ * @param $filter
+ *  Filter passes on e.g settings.
+ *
+ * @return
+ *  Text with hidden quotes, contains HTML.
  */
-function og_mailinglist_filter_XXX($op, $delta = 0, $format = -1, $text = "") {
-  switch ($op) {
-    case 'list':
-      return array(
-        0 => t('Hide quoted text from comments created via email'),
-      );
-
-    case 'description':
-      return t('Finds quoted text from comments created via email and hides them.');
-
-    case 'prepare':
-      return $text;
-
-    case 'process':
-      return _og_mailinglist_build_quotes_toggle($text);
-  }
-}
-
-function _og_mailinglist_build_quotes_toggle($text) {
+function _og_mailinglist_build_quotes_toggle($text, $filter) {
   module_load_include('inc', 'og_mailinglist', 'og_mailinglist_filter');
 
-
+  if ($filter->settings['og_mailinglist_filter_quotations'] == 'removed') {
+    # Remove all quoted text instead.
+    return _og_mailinglist_remove_quotes($text);
+  }
   $text = str_replace(array('\r\n', '\r'), array('\n', '\n'), $text);
   $quotes = _og_mailinglist_find_quoted_sections($text);
 
@@ -547,14 +586,16 @@ function _og_mailinglist_build_quotes_toggle($text) {
         . ' -</span><div class="quoted-text">'
         . $filtered_quote . '</div>';
       $text = str_replace($quote, $replace, $text);
-
-      // Remove email addresses. Regex borrowed from valid_email_adddress().
+      
+    if ($filter->settings['og_mailinglist_filter_email'] == 1) {
+      // Remove email addresses. Regex borrowed from valid_email_address().
       $regex = "([a-zA-Z0-9_\-\.\+\^!#\$%&*+\/\=\?\`\|\{\}~\']+@(?:(?:[a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.?)+)";
       preg_match_all($regex, $quote, $matches);
 
       foreach ($matches[0] as $email) {
         $text = str_replace($email, "***@***.***", $text);
       }
+    }
     }
   }
 

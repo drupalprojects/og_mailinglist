@@ -140,7 +140,7 @@ function array_copy($aSource) {
 /**
  * Load the parent group node of a node.
  *
- * @param $node
+ * @param $nid
  *  The nid of the group to load.
  */
 function _og_mailinglist_load_group($nid) {
