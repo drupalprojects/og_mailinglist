@@ -4,3 +4,5 @@ dependencies[] = og_mailinglist
 dependencies[] = og_forum
 package = "Organic groups"
 core = 7.x
+
+files[] = og_mailinglist_og_forum.module

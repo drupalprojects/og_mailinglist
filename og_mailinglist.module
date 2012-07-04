@@ -102,14 +102,6 @@ function og_mailinglist_permission() {
   );
 }
 
-/*
- * Implementation of hook_init().
- */
-function og_mailinglist_init() {
-  drupal_add_css(drupal_get_path('module', 'og_mailinglist') . "/og_mailinglist.css");
-  drupal_add_js(drupal_get_path('module', 'og_mailinglist') . "/og_mailinglist.js");
-}
-
 /**
  * Admin settings form
  */

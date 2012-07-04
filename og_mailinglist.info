@@ -4,6 +4,10 @@ description = "Allows email submissions of new posts and comments for organic gr
 dependencies[] = og
 package = "Organic groups"
 core = 7.x
+version = "7.x-1.0"
 
-version = "6.x-1.0"
-core = 7.x
+configure = admin/config/group/mailinglist
+dependencies[] = og
+
+stylesheets[all][] = og_mailinglist.css
+scripts[] = og_mailinglist.js
