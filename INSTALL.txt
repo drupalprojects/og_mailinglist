@@ -59,11 +59,12 @@ Drupal installation.
 *
 * You can also download the library directly from:
 *   http://pear.php.net/package/Mail_mimeDecode
-* and place the library (mimeDecode.php) either in a subdirectory to og_mailinglist
-* (path_to_modules/og_mailinglist/mimeDecode) or to the libraries folder. Note that
-* this installation step is only necessary if you want members of your site to be
-* able to send email to the site to start or respond to posts. If all posting will
-* happen directly on the site, installing mimeDecode is unnecessary.
+* and place the library (mimeDecode.php) either in a subdirectory to
+* og_mailinglist (path_to_modules/og_mailinglist/mimeDecode) or to the libraries
+* folder. Note that this installation step is only necessary if you want members
+* of your site to be able to send email to the site to start or respond to
+* posts. If all posting will happen directly on the site, installing mimeDecode
+* is unnecessary.
 
 * Install the PHP library Curl (if it's not already installed. Many setups come
 * preinstalled with Curl support.). Use the command listed below for your OS:
@@ -75,9 +76,9 @@ Drupal installation.
 * saving, navigate to /admin/config/group/mailinglist and configure per your
 * server setup.
 
-* If you're not using Mailgun, to setup og_mailinglist for incoming email, follow
-* the installation instructions for your Mail Transfer Agent in the INSTALL.txt file
-* found in its subdirectory (e.g. exim_og_mailinglist).
+* If you're not using Mailgun, to setup og_mailinglist for incoming email,
+* follow the installation instructions for your Mail Transfer Agent in the
+* INSTALL.txt file found in its subdirectory (e.g. exim_og_mailinglist).
 
 * To hide quoted parts of email messages, enable the provided input filter "Hide
 * quoted text from comments created via email" at /admin/config/content/formats

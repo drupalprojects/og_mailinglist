@@ -1,14 +1,18 @@
-Here's a first draft on documenting the APIs that have been added into OG Mailinglist to this point. Refinements to the text + additional examples are welcome:
+Here's a first draft on documenting the APIs that have been added into
+OG Mailinglist to this point. Refinements to the text + additional examples
+are welcome:
 
-Hook signiture, short description of what it can be used for, modules using it, example code.
+Hook signiture, short description of what it can be used for, modules using it,
+example code.
 
 
 hook_og_mailinglist_new_email_comment_alter($email)
 ===================================================
 
 Lets other modules alter the new comment or delay posting for a time
-(e.g. a moderation module might want to delay posting until a human moderator has had a chance to ok it
-or until the email can be run through a spam checker such as Mollem).
+(e.g. a moderation module might want to delay posting until a human moderator
+has had a chance to ok it or until the email can be run through a spam checker
+such as Mollem).
 
 Modules using this hook:
 https://github.com/KyleAMathews/familyletter
@@ -29,7 +33,8 @@ function example_og_mailinglist_new_email_comment_alter(&$email) {
     $email['example_processed'] = TRUE;
     example_store_email($email);
 
-    // Set the email array to false so OG Mailinglist will know not to save or send out again the email.
+    // Set the email array to false so OG Mailinglist will know not to save or
+    // send out again the email.
     $email = FALSE;
   }
 }
@@ -38,7 +43,8 @@ function example_og_mailinglist_new_email_comment_alter(&$email) {
 hook_og_mailinglist_new_email_node_alter(&$email)
 =================================================
 Lets other modules alter a new node from email or delay posting for a time.
-This hook can be used in very similar ways to hook_og_mailinglist_new_email_comment_alter()
+This hook can be used in very similar ways to
+hook_og_mailinglist_new_email_comment_alter()
 and any moderation module will almost certainly need to implement both hooks.
 
 Modules using this hook:
@@ -60,7 +66,8 @@ function example_og_mailinglist_new_email_node_alter(&$email) {
     $email['example_processed'] = TRUE;
     example_store_email($email);
 
-    // Set the email array to false so OG Mailinglist will know not to save or send out again the email.
+    // Set the email array to false so OG Mailinglist will know not to save or
+    // send out again the email.
     $email = FALSE;
   }
 }
@@ -92,20 +99,22 @@ og_mailinglist_og_forum - included with OG Mailinglist
 
 Example code:
 
-// Code taken from og_mailinglist_og_forum which provides integration between og_forum and og_mailinglist
+// Code taken from og_mailinglist_og_forum which provides integration between
+// og_forum and og_mailinglist.
 // This code finds the default forum for the group the email is sent to
-// and adds the necessary information to the node object for it to be saved correctly
-// into that forum.
+// and adds the necessary information to the node object for it to be saved
+// correctly into that forum.
 function og_mailinglist_og_forum_og_mailinglist_save_node_alter(&$node) {
-  // If this is a forum post and the og_forum module is enabled, find this group's
-  // default forum container and add that to the node object.
+  // If this is a forum post and the og_forum module is enabled, find this
+  // group's default forum container and add that to the node object.
   if ($node->type == "forum" && module_exists('og_forum')) {
     $forum_id = db_result(db_query("SELECT o.tid
                                     FROM {og_term} o
                                     JOIN {term_data} t
                                     ON o.tid = t.tid
                                     WHERE o.nid = %d
-                                    AND t.weight <> 0", current($node->og_groups)));
+                                    AND t.weight <> 0",
+                                    current($node->og_groups)));
     $term = taxonomy_get_term($forum_id);
     if(empty($node->tid)) {
       $node->tid = $term->tid;
@@ -122,7 +131,8 @@ function og_mailinglist_og_forum_og_mailinglist_save_node_alter(&$node) {
 hook_og_mailinglist_new_node_alter(&$data)
 ==========================================
 
-Lets other modules alter the subject and body of a node created on the website before it's sent.
+Lets other modules alter the subject and body of a node created on the website
+before it's sent.
 
 Modules using this hook
 Etherpad - https://github.com/KyleAMathews/drupal-etherpad
