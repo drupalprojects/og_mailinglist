@@ -22,7 +22,7 @@ function og_mailinglist_post() {
 
   $hash = md5(variable_get('og_mailinglist_incoming_key', '**') . $message);
   if ($hash != $token) {
-    watchdog('access denied', 'Authentication error for POST e-mail. Check that you\'ve set the validation string in /admin/settings/og_mailinglist and in site_info.php', NULL, WATCHDOG_WARNING);
+    watchdog('access denied', 'Authentication error for POST e-mail. Check that you\'ve set the validation string in /admin/config/group/mailinglist and in site_info.php', NULL, WATCHDOG_WARNING);
     return drupal_access_denied();
   }
   // If this the Maillog module has been set to turn off emails, return.

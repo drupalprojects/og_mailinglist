@@ -26,9 +26,10 @@ function og_mailinglist_mailgun_og_mailinglist_new_phpmailer_alter(&$mailer) {
  */
 function og_mailinglist_mailgun_menu() {
   # Administration
-  $items['admin/og/og_mailinglist/mailgun'] = array(
-    'title' => 'OG Mailinglist/Mailgun Settings',
+  $items['admin/config/group/mailinglist/mailgun'] = array(
+    'title' => 'Mailgun',
     'description' => t('Manage Mailgun/OG Mailinglist integration settings'),
+    'type' => MENU_LOCAL_TASK,
     'page callback' => 'drupal_get_form',
     'page arguments' => array('og_mailinglist_mailgun_admin_settings'),
     'access arguments' => array('access administration pages'),
@@ -87,7 +88,7 @@ function og_mailinglist_mailgun_new_email() {
 
   // If the signature's don't match, set watchdog entry and return.
   if ($signature != $my_signature) {
-    watchdog('access denied', 'Authentication error for e-mail sent to the OG Mailinglist Mailgun webhook. Check that you\'ve set your API key from Mailgun in /admin/settings/og_mailinglist/mailgun', NULL, WATCHDOG_WARNING);
+    watchdog('access denied', 'Authentication error for e-mail sent to the OG Mailinglist Mailgun webhook. Check that you\'ve set your API key from Mailgun in /admin/config/group/mailinglist/mailgun', NULL, WATCHDOG_WARNING);
     return;
   }
   // The email is legit, pass it on.

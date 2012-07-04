@@ -34,7 +34,7 @@ The script which does this work also needs to be supplied with configuration
 info - the URL to which it should post and the unique validation string
 that authenticates the script, in order to stop this URL from being abused.
 This validation string can be set on your website, via the path
-http://example.com/admin/og/og_mailinglist. site_info.php should be
+http://example.com/admin/config/group/mailinglist. site_info.php should be
 placed in the same directory in which the script was located (above). It
 may also need to have ownership and permissions modified to ensure the
 script can use it.

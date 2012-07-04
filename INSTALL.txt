@@ -72,17 +72,17 @@ Drupal installation.
 *   Fedora/RHEL/CentOS:      yum -y install php-pear-Net-Curl
 
 * Go to the Modules page in Drupal and enable the module (like normal).  After
-* saving, navigate to admin/og/og_mailinglist and configure per your server
-* setup.
+* saving, navigate to /admin/config/group/mailinglist and configure per your
+* server setup.
 
 * If you're not using Mailgun, to setup og_mailinglist for incoming email, follow
 * the installation instructions for your Mail Transfer Agent in the INSTALL.txt file
 * found in its subdirectory (e.g. exim_og_mailinglist).
 
 * To hide quoted parts of email messages, enable the provided input filter "Hide
-* quoted text from comments created via email" at admin/settings/filter and
-* rearrange the filters to set this one first. Note, that for this to work, your
-* input filter(s) will need to allow both the <span> and <div> HTML tags.
+* quoted text from comments created via email" at /admin/config/content/formats
+* and rearrange the filters to set this one first. Note, that for this to work,
+* your input filter(s) will need to allow both the <span> and <div> HTML tags.
 
 * Congratulations.  You're running og_mailinglist!
 

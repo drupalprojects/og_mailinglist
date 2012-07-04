@@ -25,28 +25,48 @@ og_mailinglist_phpmailer_load_library();
  * Implements hook_menu().
  */
 function og_mailinglist_menu() {
-  # Administration
-  $items['admin/og/og_mailinglist'] = array(
-    'title' => 'OG Mailinglist',
+  # The following item is copied from og.module, otherwise it would be
+  # necessary to enable og_ui before og_mailinglist just for config menu.
+  $items['admin/config/group'] = array(
+    'title' => 'Organic groups',
+    'description' => 'Administer the suite of Organic groups modules.',
+    'position' => 'right',
+    'weight' => -5,
+    'page callback' => 'system_admin_menu_block_page',
+    'access arguments' => array('administer group'),
+    'file' => 'system.admin.inc',
+    'file path' => drupal_get_path('module', 'system'),
+  );
+  $items['admin/config/group/mailinglist'] = array(
+    'title' => 'Organic groups mailinglist',
     'description' => t('Configure posts/comments generated from email'),
+    'type' => MENU_NORMAL_ITEM,
     'page callback' => 'drupal_get_form',
     'page arguments' => array('og_mailinglist_admin_settings'),
     'access arguments' => array('access administration pages'),
   );
-  $items['user/%user/og_mailinglist'] =
-  $items['og_mailinglist/subscriptions'] = array(
-    'title' => t('Manage Group Subscriptions'),
+  $items['admin/config/group/mailinglist/config'] = array(
+    'title' => 'Configuration',
+    'description' => t('Configure posts/comments generated from email'),
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+  );
+  $items['og_mailinglist/subscriptions'] =
+  $items['user/%user/og_mailinglist'] = array(
+    'title' => t('Group subscriptions'),
     'description' => t('Allows users to manage their group subscriptions'),
+    'type' => MENU_LOCAL_TASK,
     'page callback' => 'drupal_get_form',
     'page arguments' => array('og_mailinglist_subscriptions_settings_form', 1),
     'access arguments' => array('manage og_mailinglist subscriptions'),
   );
-  $items['user/%user/og_mailinglist']['type'] = MENU_LOCAL_TASK;
+  $items['og_mailinglist/subscriptions']['type'] = MENU_CALLBACK;
+  $items['og_mailinglist/subscriptions']['title'] = t('OG Mailinglist subscriptions');
 
   $items['og_mailinglist/unsubscribe/%node'] = array(
     'title' => t('Unsubscribe from post'),
     'description' => t('Users who hit this page will not get more emails for
                        comments on the node.'),
+    'type' => MENU_CALLBACK,
     'page callback' => 'og_mailinglist_unsubscribe_thread',
     'page arguments' => array(2),
     'access arguments' => array('manage og_mailinglist subscriptions'),
@@ -55,6 +75,7 @@ function og_mailinglist_menu() {
     'title' => t('Subscribe to post'),
     'description' => t('Users who hit this page will not get more emails for
                        comments on the node.'),
+    'type' => MENU_CALLBACK,
     'page callback' => 'og_mailinglist_subscribe_thread',
     'page arguments' => array(2),
     'access arguments' => array('manage og_mailinglist subscriptions'),
@@ -158,7 +179,7 @@ function og_mailinglist_admin_settings($form, &$form_state) {
       'no email' => 'no email',
       'digest email' => 'digest email',
     ),
-    '#description' => t('Choose the default email subscription for users joining a new group. "Email" means the user will receive an email for each new post. "No email" means the user will recieve no emails except for discussion threads they participate in. "Digest" is the same as "no email" except the user will also receive digest emails. (Users can change this later at http://yoursite.com/og_mailinglist/subscriptions)'),
+    '#description' => t('Choose the default email subscription for users joining a new group. "Email" means the user will receive an email for each new post. "No email" means the user will recieve no emails except for discussion threads they participate in. "Digest" is the same as "no email" except the user will also receive digest emails. (Users can change this later at http://example.org/user/%user/og_mailinglist)'),
   );
 
   // Save an incoming key by default.
