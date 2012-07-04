@@ -70,11 +70,8 @@ function og_mailinglist_build_web_footer($node, $body, $cid = 0) {
 
 function dd_log($data, $label = "") {
   $my_file = "/tmp/drupal_log";
-  $fh = fopen($my_file, 'a') or ("can't open file");
-  ob_start();
-  print_r($data);
-  $string_data = ob_get_clean();
-
+  $fh = fopen($my_file, 'a') or die("can't open file");
+  $string_data = print_r($data, TRUE);
   if (!empty($label)) {
     $string_data = $label . ": " . $string_data;
   }
@@ -85,11 +82,8 @@ function dd_log($data, $label = "") {
 
 function write_string_to_file($data, $name = "lsjdf") {
   $myFile = "/tmp/" . $name;
-  $fh = fopen($myFile, 'w') or ("can't open file");
-  ob_start();
-  print_r($data);
-  $stringData = ob_get_clean();
-
+  $fh = fopen($myFile, 'w') or die("can't open file");
+  $string_data = print_r($data, TRUE);
   fwrite($fh, $stringData . "\n");
   fclose($fh);
 }
