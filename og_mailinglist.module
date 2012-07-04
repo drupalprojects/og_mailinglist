@@ -99,10 +99,10 @@ function og_mailinglist_menu() {
 function og_mailinglist_permission() {
   return array(
     'manage og_mailinglist subscriptions' => array(
-    ),
-  );
       'title' => t('Manage mailinglist subscriptions'),
       'description' => t('Subscribe or unsubscribe other people to/from a group.'),
+    ),
+  );
 }
 
 /**
