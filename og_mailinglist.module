@@ -1,16 +1,19 @@
 <?php
-// TODO -- rewrite this header part according to the normal Drupal style
-// TODO write docs for functions.
-###############################################################################
-###   This module allows users to email a Drupal installation running the
-###   Exim email server to create discussions and respond to comments.
-###   Because it is tied directly to Exim, email is processed immediately
-###   upon receipt in the mail server.  Mails should be sent to group_prefix@server.com
-###   rather than to a single email address.
-###
-###   Original version written by Conan Albrecht   March 2009
-###   Maintained since by Kyle Mathews
-###
+/**
+ * @file
+ * OG Mailinglist core and administration.
+ *
+ * This module allows users to email a Drupal installation running the Exim
+ * email server to create discussions and respond to comments. Because it is
+ * tied directly to Exim, Postfix, Qmail or Mailgun, email is processed
+ * immediately upon receipt in the mail server.  Mails should be sent to
+ * group_prefix@server.com rather than to a single email address.
+ *
+ * Original version written by Conan Albrecht, March 2009.
+ * Maintained since by Kyle Mathews.
+ * Upgrade to Drupal 7 started by clee_uftwf, continued by sethfisher, then
+ * by mahfiaz and it's still going on.
+ */
 
 /**
  * @name OG Mailinglist build modes.
@@ -90,8 +93,8 @@ function og_mailinglist_menu() {
   return $items;
 }
 
-/*
- * Implementation of hook_perm().
+/**
+ * Implements hook_permission().
  */
 function og_mailinglist_permission() {
   return array(
@@ -313,8 +316,8 @@ function og_mailinglist_subscribe_thread($node) {
     . '</div>';
 }
 
-/*
- * Implementation of hook_form_alter().
+/**
+ * Implements hook_form_alter().
  */
 function og_mailinglist_form_alter(&$form, $form_state, $form_id) {
   if ($form['#id'] == 'node-form' && (arg(0) . '/' . arg(1) != 'admin/content')) {
@@ -554,6 +557,15 @@ function _og_mailinglist_build_quotes_toggle($text) {
   return $text;
 }
 
+/**
+ * Remove quotes from e-mail text entirely.
+ *
+ * @param string $text
+ *  Text to remove quotes from.
+ *
+ * @return
+ *  Text with quotes removed.
+ */
 function _og_mailinglist_remove_quotes($text) {
   module_load_include('inc', 'og_mailinglist', 'og_mailinglist_filter');
   $text = str_replace(array('\r\n', '\r'), array('\n', '\n'), $text);
@@ -566,8 +578,8 @@ function _og_mailinglist_remove_quotes($text) {
   return $text;
 }
 
-/*
- * Implementation of hook_cron().
+/**
+ * Implements hook_cron().
  */
 function og_mailinglist_cron() {
   // On first run, set digest to run today.

@@ -1,6 +1,19 @@
 <?php
-// $Id$
+/**
+ * $file
+ * OG Mailinglist utilities.
+ */
 
+/**
+ * Gets all subscribers of node.
+ *
+ * @param $node
+ *  Node object.
+ *
+ * @param boolean $new_node
+ *  If TRUE, then new node's subscribtions are saved to og_mailinglist_thread.
+ *  If FALSE, it just loads subscriptions.
+ */
 function _og_mailinglist_get_subscribers($node, $new_node = FALSE) {
   $group_node = _og_mailinglist_load_group($node);
   // If new node, save subscriptions for new node to og_mailinglist_thread.
@@ -132,8 +145,11 @@ function array_copy($aSource) {
   return $aRetAr;
 }
 
-/*
+/**
  * Load the parent group node of a node.
+ *
+ * @param $node
+ *  The nid of the group to load.
  */
 function _og_mailinglist_load_group($node) {
   $group = og_get_group('node', $node->nid);

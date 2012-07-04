@@ -1,19 +1,21 @@
 <?php
+/**
+ * @file
+ *  Sends and receives emails.
+ */
 
-// TODO rewrite header info here.
 require_once 'og_mailinglist_utilities.inc';
 require_once 'og_mailinglist_api.inc';
 og_mailinglist_mimeDecode_load_library();
 og_mailinglist_phpmailer_load_library();
 
-###############################################################################
-###   Original version written by Conan Albrecht   March 2009
 /**
  * Receive messages POSTed from an external source.
  *
  * This function enables messages to be sent to a Drupal site via POST or some other RFC822
  * source input (e.g. directly from a mail server).
  *
+ * Original version written by Conan Albrecht  March 2009.
  */
 function og_mailinglist_post() {
   $message = $_POST['message'];
@@ -979,8 +981,14 @@ function _og_mailinglist_send_email($headers, $body, $node, $comment = null, $se
 
 }
 
-/*
+/**
  * Try to parse nid from the email.
+ *
+ * @param $email
+ *  Email address. Not used right now.
+ *
+ * @param $headers
+ *  Headers of the email to be parsed.
  */
 function og_mailinglist_parse_nid($email, $headers) {
   $nid = "";

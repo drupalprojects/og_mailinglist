@@ -1,9 +1,21 @@
 <?php
-// $Id$
+/**
+ * @file
+ *  Sending mail using PHPMailer class.
+ */
 
 require_once 'og_mailinglist_utilities.inc';
 require_once 'og_mailinglist_api.inc';
 
+/**
+ * Sends emails for comments.
+ *
+ * @param $comment
+ *  Comment object, for which to send the email.
+ *
+ * @param $node
+ *  Node of the comment.
+ */
 function og_mailinglist_send_comment_email($comment, $node) {
   // Check if comment arrived via email so already sent.
   if (_og_mailinglist_email_already_sent($comment->nid, $comment->cid)) {
