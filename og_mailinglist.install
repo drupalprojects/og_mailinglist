@@ -51,6 +51,7 @@ function og_mailinglist_uninstall() {
  * Implmentation of hook_requirements().
  */
 function og_mailinglist_requirements($phase) {
+  $requirements = array();
   if ($phase == "runtime") {
     og_mailinglist_phpmailer_load_library();
     $requirements['og_mailinglist_phpmailer']['title'] = t('PHPMailer');

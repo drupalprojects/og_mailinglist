@@ -18,9 +18,9 @@ og_mailinglist_phpmailer_load_library();
  * Original version written by Conan Albrecht  March 2009.
  */
 function og_mailinglist_post() {
-  $message = $_POST['message'];
-  $token = $_POST['token'];
-  $group_name = $_POST['group_name'];
+  $message = (isset($_POST['message'])) ? $_POST['message'] : '';
+  $token = (isset($_POST['token'])) ? $_POST['token'] : '';
+  $group_name = (isset($_POST['group_name'])) ? $_POST['group_name'] : '';
 
   $hash = md5(variable_get('og_mailinglist_incoming_key', '**') . $message);
   if ($hash != $token) {
