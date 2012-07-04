@@ -94,10 +94,11 @@ function _og_mailinglist_process_email($raw_email, $group_name = NULL) {
                                       WHERE status = :status
                                       AND mail = :mail", array(':status' => 1, ':mail' => $mailfrom))->fetchField()) {
       // If not posting from their normal email account, let's try their mail alias.
-      $email['userid'] = db_query("SELECT uid
-                                            FROM {users}
-                                            WHERE status = :status
-                                            AND data LIKE '%%%s%%'", array(':status' => 1, '' => $mailfrom))->fetchField();
+      $email['userid'] = db_query('users')
+        ->fields('uid')
+        ->condition('status', 1)
+        ->condition('data', '%' . $mailfrom . '%', 'LIKE')
+        ->execute()->fetchField();
     }
 
     // If site is using multiple_email, check for alternative emails.
@@ -145,10 +146,14 @@ function _og_mailinglist_process_email($raw_email, $group_name = NULL) {
     $results = db_query("SELECT og.nid, n.title
                         FROM {og_uid} og JOIN {node} n
                         JOIN {og} o
-                        WHERE og.uid = :og.uid AND
-                        og.nid = :og.nid AND
-                        og.nid = :og.nid AND
-                        o.nid = :o.nid", array(':og.uid' => $email['userid'], ':og.nid' => $email['groupid'], ':og.nid' => n . nid, ':o.nid' => og . nid));
+                        WHERE og.uid = :uid
+                        AND og.nid = :gid
+                        AND og.nid = n.nid
+                        AND o.nid = og.nid",
+                        array(
+                          ':uid' => $email['userid'],
+                          ':gid' => $email['groupid'],
+                        ));
     if (!$results->fetchField()) { // TODO also check if person is subscribed to this thread -- if they are, let them comment by email.
       throw new Exception(t("You (email: !mailfrom, account page: !account_page) are not a member of this group.  Please join the group via the web site before posting.",
                                array('!mailfrom' => $mailfrom, '!account_page' => url("user/" . $email['userid'], array('absolute' => TRUE)))));
