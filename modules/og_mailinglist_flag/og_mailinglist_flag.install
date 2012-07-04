@@ -21,7 +21,7 @@ function og_mailinglist_flag_add_flags() {
   $result = db_query("SELECT DISTINCT uid FROM {og_mailinglist_thread}");
 
   $uids = array();
-  while ($info = db_fetch_array($result)) {
+  foreach ($result as $info) {
     $uids[] = $info['uid'];
   }
 
@@ -36,7 +36,7 @@ function og_mailinglist_flag_add_flags() {
                          WHERE o.uid = :o.uid", array(':o.uid' => $account->uid));
 
     $nids = array();
-    while ($info = db_fetch_array($result)) {
+    foreach ($result as $info) {
       $nids[] = $info['nid'];
     }
     foreach ($nids as $nid) {

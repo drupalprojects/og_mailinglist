@@ -1002,7 +1002,7 @@ function _og_mailinglist_nid_of_subject($subject) {
   if ($title) {
     $nid = db_query("SELECT nid
                        FROM {node}
-                       WHERE title like :title
+                       WHERE title LIKE :title
                        ORDER BY created desc
                        LIMIT 1", array(':title' => '%' . $title . '%'))->fetchField();
   }

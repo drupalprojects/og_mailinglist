@@ -33,10 +33,13 @@ error_reporting(E_ALL);
 
 $results = db_query("SELECT nid, uid FROM {og_uid}");
 
-while ($data = db_fetch_array($results)) {
+foreach ($results as $data) {
   //print_r($data);
-  echo db_query("INSERT INTO {og_mailinglist_subscription}
-           VALUES (%d, 'og', %d, 'email')", $data['nid'], $data['uid']);
+  $data = array(
+      ':nid' => $data['nid'],
+      ':uid' => $data['uid'],
+    );
+  drupal_write_record('og_mailinglist_subscription', $data)
 }
 
 // The query to pull on current subscriptions SELECT n.uid as uid, f.value as gid, n.send_interval as send_interval FROM notifications n join notifications_fields f on n.sid = f.sid where n.type = "grouptype" and f.field = "group" group by uid, gid order by n.uid
@@ -50,19 +53,27 @@ $sql = "SELECT n.uid AS uid, f.value AS gid, n.send_interval AS send_interval
 
 $results = db_query($sql);
 
-while ($data = db_fetch_array($results)) {
+foreach ($results as $data) {
   echo "uid: " . $data['uid'] . " gid: " . $data['gid'] . " interval: " . $data['send_interval'] . "\n";
   if ($data['send_interval'] == -1) {
     echo db_query("UPDATE {og_mailinglist_subscription}
          SET subscription_type = 'no email'
-         WHERE sid = %d
-         AND uid = %d", $data['gid'], $data['uid']);
+         WHERE sid = :sid
+         AND uid = :uid",
+         array(
+           ':sid' => $data['gid'],
+           ':uid' => $data['uid'],
+         ));
   }
   else {
     echo db_query("UPDATE {og_mailinglist_subscription}
          SET subscription_type = 'digest email'
-         WHERE sid = %d
-         AND uid = %d", $data['gid'], $data['uid']);
+         WHERE sid = :sid
+         AND uid = :uid",
+         array(
+           ':sid' => $data['gid'],
+           ':uid' => $data['uid'],
+         ));
   }
 }
 

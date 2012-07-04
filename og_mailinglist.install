@@ -5,8 +5,9 @@
  *
  */
 
-// $Id$
-include_once drupal_get_path('module', 'og_mailinglist') . '/og_mailinglist_utilities.inc'; //Load our utilities so the hook_requirements can call those functions.
+// Load our utilities so the hook_requirements can call those functions.
+include_once 'og_mailinglist_utilities.inc';
+
 /**
  * Implements hook_install().
  */
@@ -411,30 +412,27 @@ function og_mailinglist_create_subscriptions_for_last_month($gid) {
   module_load_include('inc', 'og_mailinglist', 'og_mailinglist_api');
 
   // Create email subscriptions to group for all group members.
-  $results = db_query("SELECT uid
-                       FROM {og_uid}
-                       WHERE nid = :nid", array(':nid' => $gid));
+  $results = db_query("SELECT uid FROM {og_uid} WHERE nid = :nid",
+    array(':nid' => $gid));
   $uids = array();
-  while ($data = db_fetch_array($results)) {
+  foreach ($results as $data) {
     $uids[] = $data['uid'];
   }
   og_mailinglist_save_group_subscriptions($gid, $uids);
-
-  $sql = "SELECT n.nid
-          FROM {og_ancestry} o
-          JOIN {node} n
-          ON o.nid = n.nid
-          WHERE o.group_nid = %d
-          AND n.created > (unix_timestamp() - 2592000)";
 
   $results = db_query("SELECT n.nid
           FROM {og_ancestry} o
           JOIN {node} n
           ON o.nid = n.nid
-          WHERE o.group_nid = :o.group_nid
-          AND n.created > n.created - 2592000)", array(':o.group_nid' => $gid));
+          WHERE o.group_nid = :gid
+          AND n.created > :monthago",
+          array(
+            ':gid' => $gid,
+            // 2592000 seconds is 30 days
+            ':monthago' => time() - 2592000,
+          ));
 
-  while ($data = db_fetch_array($results)) {
+  foreach ($results as $data) {
     og_mailinglist_save_group_thread_subscriptions($gid, $data['nid']);
   }
 }

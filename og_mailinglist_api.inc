@@ -33,7 +33,7 @@ function og_mailinglist_get_group_subscriptions($gid) {
                      AND subscription_type = :subscription_type", array(':nid' => $gid, ':subscription_type' => 'email'));
 
   $uids = array();
-  while ($data = db_fetch_array($result)) {
+  foreach ($result as $data) {
     $uids[] = $data['uid'];
   }
 
@@ -58,7 +58,7 @@ function og_mailinglist_get_thread_subscriptions($nid) {
                      WHERE nid = :nid", array(':nid' => $nid));
 
   $uids = array();
-  while ($data = db_fetch_array($result)) {
+  foreach ($result as $data) {
     $uids[] = $data['uid'];
   }
 
@@ -179,7 +179,7 @@ function og_mailinglist_subscribe_group_threads($gid, $uid) {
                       ORDER BY created DESC
                       LIMIT 15", array(':o.group_nid' => $gid));
 
-  while ($data = db_fetch_array($results)) {
+  foreach ($results as $data) {
     og_mailinglist_save_thread_subscriptions($data['nid'], array($uid));
   }
 }
