@@ -35,14 +35,6 @@ function _og_mailinglist_get_subscribers($node, $new_node = FALSE) {
   return $subscribers;
 }
 
-function array_to_comma_delimited_string($array) {
-  foreach ($array as $data) {
-    $string .= $data . ",";
-  }
-  $string = trim($string, ",");
-  return $string;
-}
-
 function _og_mailinglist_build_footer($node) {
   $absolute = array('absolute' => TRUE);
   $full = url("node/" . $node->nid, $absolute);
