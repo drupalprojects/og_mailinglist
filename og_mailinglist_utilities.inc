@@ -143,10 +143,11 @@ function array_copy($aSource) {
  * @param $node
  *  The nid of the group to load.
  */
-function _og_mailinglist_load_group($node) {
-  $group = og_get_group('node', $node->nid);
-  if (!empty($group)) {
-    return $group;
+function _og_mailinglist_load_group($nid) {
+  $groups = og_get_group_ids('group', $nid, array(OG_STATE_ACTIVE));
+  if (!empty($groups)) {
+    $keys = array_keys($groups);
+    return node_load(array_pop($keys));
   }
   else {
     return null;

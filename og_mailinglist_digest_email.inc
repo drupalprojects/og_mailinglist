@@ -224,7 +224,7 @@ function _og_mailinglist_send_digest_emails() {
  * Wrap node body for including in the digest.
  */
 function og_mailinglist_style_node_message($node) {
-  $user = user_load($node->uid);
+  $user = user_load(array('uid' => $node->uid));
   $body .= "<div style=\"" . MESSAGE_HEADER . "\"><strong>" .
     l((isset($user->realname) ? $user->realname : $user->name), "user/" . $user->uid, array('absolute' => TRUE))
     . "</strong> " . $user->mail . " " .
@@ -242,7 +242,7 @@ function og_mailinglist_style_node_message($node) {
  * Wrap comment body for including in the digest.
  */
 function og_mailinglist_style_comment_message($comment) {
-  $user = user_load($comment->uid);
+  $user = user_load(array('uid' => $comment->uid));
   $body = "<div style=\"" . MESSAGE_HEADER . "\"><strong>" .
     l((isset($user->realname) ? $user->realname : $user->name), "user/" . $user->uid, array('absolute' => TRUE))
     . "</strong> " . $user->mail . " " .
