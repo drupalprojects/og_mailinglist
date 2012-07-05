@@ -42,7 +42,6 @@ function og_mailinglist_uninstall() {
   $result = db_query("SELECT name FROM {variable} WHERE name LIKE :string", array(':string' => 'og_mailinglist_%'));
   foreach($result as $record) {
     variable_del($record->name);
-  drupal_uninstall_schema('og_mailinglist');
   }
 
   drupal_set_message(t('OG Mailinglist has been uninstalled.'));
