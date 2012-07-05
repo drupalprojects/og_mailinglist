@@ -291,8 +291,7 @@ function og_mailinglist_delete_group($nid) {
 // http://cr.yp.to/immhf/thread.html
 function _og_mailinglist_get_thread_parent_messageid($in_reply_to_message_id, $references = "") {
   // Try to get the parent message-id from one of the message-ids in the references header.
-  $references = str_replace("\r\n", "", $references);
-  $refs = str_replace("\n", "", $references);
+  $refs = str_replace(array("\r\n", "\n"), "", $references);
   $refs_array = explode(" ", $refs);
 
   foreach ($refs_array as $reference) {
