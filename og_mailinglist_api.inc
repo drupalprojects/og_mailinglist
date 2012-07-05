@@ -140,13 +140,15 @@ function og_mailinglist_update_group_subcription_type($gid, $uid, $subscription_
  * @param array $uids array of User IDs to add group subscriptions.
  */
 function og_mailinglist_save_group_subscriptions($gid, $uids) {
+  $subscription_type = variable_get('og_mailinglist_default_group_subscription_type', 'email');
   foreach ($uids as $uid) {
-    $data = array(
-      "gid" => $gid,
-      "uid" => $uid,
-      "subscription_type" => variable_get('og_mailinglist_default_group_subscription_type', 'email'),
-    );
-    drupal_write_record("og_mailinglist_subscription", $data);
+    db_update('og_mailinglist_subscription')
+    ->fields(array(
+      'subscription_type' => $subscription_type,
+    ))
+    ->condition('uid', $uid)
+    ->condition('nid', $gid)
+    ->execute();
   }
 }
 
@@ -172,12 +174,13 @@ function og_mailinglist_delete_group_subscriptions($gid, $uids) {
 function og_mailinglist_subscribe_group_threads($gid, $uid) {
   // Select threads created in the past month.
   $results = db_query("SELECT o.nid
-                      FROM {og_ancestry} o
+                      FROM {og} o
                       INNER JOIN {node} n
                       ON n.nid = o.nid
-                      WHERE o.group_nid = :o.group_nid
+                      WHERE o.gid = :gid
+                      AND o.entity_type = :type
                       ORDER BY created DESC
-                      LIMIT 15", array(':o.group_nid' => $gid));
+                      LIMIT 15", array(':gid' => $gid, ':type' => 'node'));
 
   foreach ($results as $data) {
     og_mailinglist_save_thread_subscriptions($data['nid'], array($uid));
@@ -189,9 +192,10 @@ function og_mailinglist_subscribe_group_threads($gid, $uid) {
  **/
 function og_mailinglist_delete_group_threads($gid, $uid) {
   // Delete threads.  See http://drupal.org/node/1079620
-  $subquery = db_select('og_ancestry');
-  $subquery->addField('nid');
-  $subquery->condition('group_nid', $gid);
+  $subquery = db_select('og');
+  $subquery->addField('etid');
+  $subquery->condition('entity_type', 'node');
+  $subquery->condition('gid', $gid);
 
   return db_delete('og_mailinglist_thread')
     ->condition('uid', $uid)

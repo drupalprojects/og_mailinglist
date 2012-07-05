@@ -413,28 +413,33 @@ function og_mailinglist_create_subscriptions_for_last_month($gid) {
   module_load_include('inc', 'og_mailinglist', 'og_mailinglist_api');
 
   // Create email subscriptions to group for all group members.
-  $results = db_query("SELECT uid FROM {og_uid} WHERE nid = :nid",
-    array(':nid' => $gid));
+  $results = db_query("SELECT etid AS uid FROM {og_membership}
+                      WHERE entity_type = :type
+                      AND gid = :gid",
+                      array(
+                        ':type' => 'user',
+                        ':gid' => $gid,
+                      ));
   $uids = array();
   foreach ($results as $data) {
-    $uids[] = $data['uid'];
+    $uids[] = $data->uid;
   }
   og_mailinglist_save_group_subscriptions($gid, $uids);
 
-  $results = db_query("SELECT n.nid
-          FROM {og_ancestry} o
-          JOIN {node} n
-          ON o.nid = n.nid
-          WHERE o.group_nid = :gid
-          AND n.created > :monthago",
+  $results = db_query("SELECT etid AS nid
+          FROM {og_membership}
+          WHERE gid = :gid
+          AND entity_type = :type
+          AND created > :monthago",
           array(
             ':gid' => $gid,
+            ':type' => 'node',
             // 2592000 seconds is 30 days
             ':monthago' => time() - 2592000,
           ));
 
   foreach ($results as $data) {
-    og_mailinglist_save_group_thread_subscriptions($gid, $data['nid']);
+    og_mailinglist_save_group_thread_subscriptions($gid, $data->nid);
   }
 }
 

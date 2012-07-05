@@ -144,16 +144,15 @@ function _og_mailinglist_process_email($raw_email, $group_name = NULL) {
       throw new Exception(t("Could not locate group named !group_name", array('!group_name' => $group_name)));
     }
 
-    // Check the this user is a member of this group (for security).
-    $results = db_query("SELECT og.nid, n.title
-                        FROM {og_uid} og JOIN {node} n
-                        JOIN {og} o
-                        WHERE og.uid = :uid
-                        AND og.nid = :gid
-                        AND og.nid = n.nid
-                        AND o.nid = og.nid",
+    // Check if this user is a member of this group (for security).
+    $results = db_query("SELECT etid
+                        FROM {og_membership}
+                        WHERE etid = :uid
+                        AND entity_type = :type
+                        AND gid = :gid",
                         array(
                           ':uid' => $email['userid'],
+                          ':type' => 'user',
                           ':gid' => $email['groupid'],
                         ));
     if (!$results->fetchField()) { // TODO also check if person is subscribed to this thread -- if they are, let them comment by email.
@@ -176,9 +175,14 @@ function _og_mailinglist_process_email($raw_email, $group_name = NULL) {
        */
 
 //  Does the detected nid belong to the same group as the email was forwarded to?
-      $nid_groupid = db_query("SELECT group_nid
-                                        FROM {og_ancestry}
-                                        WHERE nid = :nid", array(':nid' => $email['nid']))->fetchField();
+      $nid_groupid = db_query("SELECT gid
+                              FROM {og}
+                              WHERE etid = :nid
+                              AND entity_type = :type",
+                              array(
+                                ':nid' => $email['nid'],
+                                ':type' => 'node',
+                              ))->fetchField();
 
       if ($nid_groupid != $email['groupid']) {
         og_mailinglist_save_node($email);
