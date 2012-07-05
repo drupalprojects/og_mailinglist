@@ -648,8 +648,8 @@ function og_mailinglist_cron() {
 function og_mailinglist_help($path, $args) {
   switch ($path) {
     case 'admin/help#og_mailinglist':
-      // Return a line-break version of the module README
-      return filter_filter('process', 1, NULL, file_get_contents( dirname(__FILE__) . "/README.txt"));
+      $text = file_get_contents( dirname(__FILE__) . "/README.txt");
+      return check_markup($text, 'plain_text');
   }
 }
 
