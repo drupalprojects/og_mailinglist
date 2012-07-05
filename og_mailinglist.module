@@ -372,8 +372,8 @@ function og_mailinglist_form_node_form_alter(&$form, $form_state, $form_id) {
  */
 function og_mailinglist_group_form_validate($element, &$form_state) {
   // First check the email address isn't already being used.
-  $query = db_select('og_mailinglist');
-  $query->fields('group_email');
+  $query = db_select('og_mailinglist', 'ogm');
+  $query->fields('ogm', array('group_email'));
   $query->condition('group_email', $element['#value']);
   if ($form_state['values']['nid']) {
     $query->condition('nid', $form_state['values']['nid']);
@@ -442,7 +442,7 @@ function og_mailinglist_node_insert($node) {
 /**
  * Implements hook_node_load().
  */
-function og_mailinglist_node_load(&$nodes, $types) {
+function og_mailinglist_node_load($nodes, $types) {
   foreach ($nodes as $node) {
     if (og_is_group_type('node', $node->type) && isset($node->nid)) {
       // Load the group's email.
