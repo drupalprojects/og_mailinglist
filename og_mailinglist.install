@@ -353,47 +353,42 @@ function og_mailinglist_update_6005() {
 }
 
 function add_groups_to_og_mailinglist() {
-  if (!module_exists('purl') && !module_exists('spaces_og')) {
-    $result = db_query("SELECT nid, title FROM {node} WHERE type = :type", array(':type' => 'group'));
+  if (!(module_exists('purl') && module_exists('spaces_og'))) {
+    $query = db_select('og', 'o');
+    $query->join('node', 'n', 'o.etid = n.nid');
+    $query->condition('o.entity_type', 'node');
+    $query->groupBy('n.nid');
+    $query->fields('n', array('nid', 'title'));
+    $result = $query->execute();
 
-    $groups = array();
-
-    foreach($result as $row) {
-      $groups[$row->nid] = $row->title;
-    }
-
-    foreach ($groups as $nid => $title) {
-      $title = string_to_machine_readable($title);
+    foreach ($result as $group) {
       $data = array(
-        'nid' => $nid,
-        'title' => $title,
+        'nid' => $group->nid,
+        'group_email' => string_to_machine_readable($group->title),
       );
       drupal_write_record('og_mailinglist', $data);
 
       // Subscribe group members to active threads.
-      og_mailinglist_create_subscriptions_for_last_month($nid);
+      og_mailinglist_create_subscriptions_for_last_month($group->nid);
     }
   }
   // Else, just use the purl entries
   else {
-    $result = db_query("SELECT id, value
-                        FROM {purl}
-                        WHERE provider = :provider", array(':provider' => 'spaces_og'));
-    $groups = array();
+    $query = db_select('purl', 'p');
+    $query->condition('p.provider', 'spaces_og');
+    $query->groupBy('p.id');
+    $query->fields('p', array('id', 'value'));
+    $result = $query->execute();
 
-    foreach($result as $row) {
-      $groups[$row->id] = $row->value;
-    }
-
-    foreach ($groups as $nid => $title) {
+    foreach ($result as $group) {
       $data = array(
-        'nid' => $nid,
-        'title' => $title,
+        'nid' => $group->id,
+        'group_email' => $group->value,
       );
       drupal_write_record('og_mailinglist', $data);
 
       // Subscribe group members to active threads.
-      og_mailinglist_create_subscriptions_for_last_month($nid);
+      og_mailinglist_create_subscriptions_for_last_month($group->id);
     }
   }
 }
