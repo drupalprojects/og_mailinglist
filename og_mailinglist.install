@@ -434,8 +434,7 @@ function og_mailinglist_create_subscriptions_for_last_month($gid) {
 function string_to_machine_readable($str) {
   $str = strtolower($str);
   $str = str_replace("-", "", $str);
-  $str = preg_replace('/[^a-z0-9]/', "-", $str);
-  $str = str_replace("--", "-", $str);
+  $str = preg_replace('/[^a-z0-9]+/', "-", $str);
   $str = trim($str, " -");
   return $str;
 }
