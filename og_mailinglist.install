@@ -15,20 +15,15 @@ function og_mailinglist_install() {
   // Add any previously created groups to og_mailinglist.
   add_groups_to_og_mailinglist();
 
-  if ($success) {
-    drupal_set_message(st('OG Mailinglist module installed tables successfully.'));
-  }
-  else {
-    drupal_set_message(st('The installation of the OG Mailinglist tables failed.'), 'error');
-  }
-
   // Set OGM's system weight to be after Pathauto so our email footers always use the correct path.
-  $weight = db_query("SELECT weight FROM {system} WHERE type = :type AND name = :name", array(':type' => 'module', ':name' => 'pathauto'))->fetchField();
+  $weight = db_select('system', 's')
+    ->fields('s', array('weight'))
+    ->condition('name', 'pathauto')
+    ->execute()
+    ->fetchField();
   if (!empty($weight)) {
     db_update('system')
-    ->fields(array(
-        'weight' => $weight + 1,
-      ))
+    ->fields(array('weight' => $weight + 1))
     ->condition('type', 'module')
     ->condition('name', 'og_mailinglist')
     ->execute();
@@ -39,12 +34,10 @@ function og_mailinglist_install() {
  * Implements hook_uninstall().
  */
 function og_mailinglist_uninstall() {
-  $result = db_query("SELECT name FROM {variable} WHERE name LIKE :string", array(':string' => 'og_mailinglist_%'));
-  foreach($result as $record) {
-    variable_del($record->name);
-  }
-
-  drupal_set_message(t('OG Mailinglist has been uninstalled.'));
+  # http://api.drupal.org/api/drupal/includes!bootstrap.inc/function/variable_del/7
+  db_delete('variable')
+    ->condition('name', 'og_mailinglist_%', 'LIKE')
+    ->execute();
 }
 
 /**
