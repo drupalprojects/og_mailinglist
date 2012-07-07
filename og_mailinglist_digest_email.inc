@@ -187,7 +187,6 @@ function _og_mailinglist_send_digest_emails() {
 
     // Add a test user if any.
     if ($uid = variable_get('og_mailinglist_test_email_address', '')) {
-      if (
       $email = db_query("SELECT mail FROM {users} WHERE uid = :uid",
         array(':uid' => $uid))->fetchField();
       if (!in_array($email, $emails)) {
@@ -201,7 +200,7 @@ function _og_mailinglist_send_digest_emails() {
         continue;
       }
       $mailer = og_mailinglist_create_mailer();
-      $mailer->From = $group->ogm_email . "+no-reply@" . $server_name);
+      $mailer->From = $group->ogm_email . "+no-reply@" . $server_name;
       $mailer->FromName = $group_email . "@" . $server_name;
       $mailer->AddCustomHeader($mailer->HeaderLine("List-Id", "<" . $group->ogm_email .
             "@" . $server_name . ">"));
