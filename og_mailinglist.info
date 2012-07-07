@@ -2,6 +2,7 @@
 name = OG Mailinglist
 description = "Allows email submissions of new posts and comments for organic groups."
 dependencies[] = og
+dependencies[] = og_context
 package = "Organic groups"
 core = 7.x
 version = "7.x-1.0"

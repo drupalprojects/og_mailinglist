@@ -697,8 +697,7 @@ function og_mailinglist_get_block() {
   global $user;
 
   // Only display group details if we have a group context and we are subscribed.
-  if (($group_node = og_get_group_context()) && node_access('view',
-    $group_node)) {
+  if (($group_node = og_context()) && node_access('view', $group_node)) {
     list($txt, $subscription) = og_subscriber_count_link($group_node);
     if ($subscription == 'active') {
       $output .=
