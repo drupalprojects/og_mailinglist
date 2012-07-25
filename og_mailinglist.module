@@ -585,15 +585,11 @@ function _og_mailinglist_build_quotes_toggle($text, $filter) {
         . $filtered_quote . '</div>';
       $text = str_replace($quote, $replace, $text);
       
-    if ($filter->settings['og_mailinglist_filter_email'] == 1) {
-      // Remove email addresses. Regex borrowed from valid_email_address().
-      $regex = "([a-zA-Z0-9_\-\.\+\^!#\$%&*+\/\=\?\`\|\{\}~\']+@(?:(?:[a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.?)+)";
-      preg_match_all($regex, $quote, $matches);
-
-      foreach ($matches[0] as $email) {
-        $text = str_replace($email, "***@***.***", $text);
+      if ($filter->settings['og_mailinglist_filter_email'] == 1) {
+        // Remove email addresses. Regex borrowed from valid_email_address().
+        $regex = "([a-zA-Z0-9_\-\.\+\^!#\$%&*+\/\=\?\`\|\{\}~\']+@(?:(?:[a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.?)+)";
+        $text = preg_replace($regex, '***@***.***', $text);
       }
-    }
     }
   }
 
