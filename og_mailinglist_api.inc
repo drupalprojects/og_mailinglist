@@ -179,8 +179,8 @@ function og_mailinglist_subscribe_group_threads($gid, $uid) {
  **/
 function og_mailinglist_delete_group_threads($gid, $uid) {
   // Delete threads.  See http://drupal.org/node/1079620
-  $subquery = db_select('og');
-  $subquery->addField('etid');
+  $subquery = db_select('og_membership', 'o');
+  $subquery->addField('o', 'etid');
   $subquery->condition('entity_type', 'node');
   $subquery->condition('gid', $gid);
 
@@ -235,7 +235,8 @@ function og_mailinglist_log_email_sent($source, $nid, $cid = 0, $message_id = 0,
  */
 function og_mailinglist_create_mailer() {
   og_mailinglist_phpmailer_load_library();
-  $mailer = new PHPMailer(TRUE); // The TRUE param means it will throw exceptions on errors, which we need to catch.
+  // The TRUE param makes it throw exceptions on errors, which we need to catch.
+  $mailer = new PHPMailer(TRUE);
   $mailer->PluginDir = og_mailinglist_get_phpmailer_plugin_dir();
   $mailer->CharSet = 'UTF-8';
   drupal_alter('og_mailinglist_new_phpmailer', $mailer);
