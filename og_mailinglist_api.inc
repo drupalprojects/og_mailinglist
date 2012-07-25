@@ -15,7 +15,7 @@ function og_mailinglist_save_group_thread_subscriptions($gid, $nid) {
       unset($subscribers[$uid]);
     }
   }
-  // Save users to og_mailinglist_thread
+  // Save users to og_mailinglist_thread_subscription
   og_mailinglist_save_thread_subscriptions($nid, array_keys($subscribers));
 }
 /**
@@ -77,10 +77,11 @@ function og_mailinglist_get_thread_subscriptions($nid) {
  * Check if a user is subscribed to a thread.
  */
 function og_mailinglist_check_user_subscribed_to_thread($nid, $uid) {
-  return db_query("SELECT uid
-          FROM {og_mailinglist_thread
-          WHERE nid = :nid
-          AND uid = :uid", array(':nid' => $nid, ':uid' => $uid))->fetchField();
+  $query = db_select('og_mailinglist_thread_subscription', 'ogmt');
+  $query->condition('ogmt.nid', $nid);
+  $query->condition('ogmt.uid', $uid);
+  $query->countQuery();
+  return $query->execute()->fetchField();
 }
 
 /*
@@ -116,23 +117,22 @@ function og_mailinglist_save_thread_subscriptions($nid, $uids) {
  * @return subscription type for the given group and user.
  */
 function og_mailinglist_get_group_subscription_type($gid, $uid) {
-  return db_query("SELECT subscription_type
-                            FROM {og_mailinglist_subscription}
-                            WHERE nid = :nid
-                            AND uid = :uid", array(':nid' => $gid, ':uid' => $uid))->fetchField();
+  $query = db_select('og_mailinglist_group_subscription', 'ogms');
+  $query->fields('ogms', array('subscription_type'));
+  $query->condition('ogms.nid', $gid);
+  $query->condition('ogms.uid', $uid);
+  return $query->execute()->fetchField();
 }
 
 /*
  * Update a user's subscription type for one of their groups.
  */
 function og_mailinglist_update_group_subcription_type($gid, $uid, $subscription_type) {
-  db_update('og_mailinglist_subscription')
-  ->fields(array(
-    'subscription_type' => $subscription_type,
-  ))
-  ->condition('uid', $uid)
-  ->condition('nid', $gid)
-  ->execute();
+  db_update('og_mailinglist_group_subscription')
+    ->fields(array('subscription_type' => $subscription_type))
+    ->condition('uid', $uid)
+    ->condition('nid', $gid)
+    ->execute();
 }
 
 /*
@@ -153,17 +153,17 @@ function og_mailinglist_save_group_subscriptions($gid, $uids) {
 }
 
 /*
+ * Delete group subscription for all user IDs in $uids.
+ *
  * @param int $gid Group id.
  * @param array $uids array of User IDs to add group subscriptions.
  */
 function og_mailinglist_delete_group_subscriptions($gid, $uids) {
+  db_delete('og_mailinglist_group_subscription')
+    ->condition('nid', $gid)
+    ->condition('uid', $uids, 'IN')
+    ->execute();
   foreach ($uids as $uid) {
-    // Delete subscription.
-    db_delete('og_mailinglist_subscription')
-      ->condition('nid', $gid)
-      ->condition('uid', $uid)
-      ->execute();
-
     og_mailinglist_delete_group_threads($gid, $uid);
   }
 }
@@ -197,7 +197,7 @@ function og_mailinglist_delete_group_threads($gid, $uid) {
   $subquery->condition('entity_type', 'node');
   $subquery->condition('gid', $gid);
 
-  return db_delete('og_mailinglist_thread')
+  return db_delete('og_mailinglist_thread_subscription')
     ->condition('uid', $uid)
     ->condition('nid', $subquery, 'IN')
     ->execute();
@@ -214,7 +214,7 @@ function og_mailinglist_delete_thread_subscription($nid, $uid) {
   }
   $deleted[] = $nid . "_" . $uid;
 
-  $result = db_delete('og_mailinglist_thread')
+  $result = db_delete('og_mailinglist_thread_subscription')
     ->condition('nid', $nid)
     ->condition('uid', $uid)
     ->execute();
@@ -285,8 +285,8 @@ function og_mailinglist_delete_group($nid) {
     ->condition('nid', $nid)
     ->execute();
 
-  // Delete group subscriptions from og_mailinglist_subscriptions.
-  db_delete('og_mailinglist_subscription')
+  // Delete group subscriptions from og_mailinglist_group_subscription.
+  db_delete('og_mailinglist_group_subscription')
     ->condition('nid', $nid)
     ->execute();
 }

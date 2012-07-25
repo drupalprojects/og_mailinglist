@@ -16,7 +16,7 @@ function _og_mailinglist_send_digest_emails() {
   // and which had a new post or comment in the last 24 hours.
 
   $groups_with_new_nodes = db_query('SELECT DISTINCT s.nid
-            FROM {og_mailinglist_subscription} s
+            FROM {og_mailinglist_group_subscription} s
             JOIN {og} o
             JOIN {node} n
             ON s.nid = o.group_nid
@@ -30,7 +30,7 @@ function _og_mailinglist_send_digest_emails() {
             ));
 
   $groups_with_new_comments = db_query('SELECT DISTINCT s.nid
-            FROM {og_mailinglist_subscription} s
+            FROM {og_mailinglist_group_subscription} s
             JOIN {og} o
             JOIN {comments} c
             ON s.nid = o.etid
@@ -178,7 +178,7 @@ function _og_mailinglist_send_digest_emails() {
       . "<br />";
 
     // For each person, send out an email.
-    $emails = db_select('og_mailinglist_subscription', 'og')
+    $emails = db_select('og_mailinglist_group_subscription', 'og')
       ->join('users', 'u', 'og.uid = u.uid')
       ->groupBy('u.uid') // this line might be unnecessary
       ->fields('u.mail')

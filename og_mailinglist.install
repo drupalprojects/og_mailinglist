@@ -168,7 +168,7 @@ function og_mailinglist_schema() {
     ),
   );
 
-  $schema['og_mailinglist_thread'] = array(
+  $schema['og_mailinglist_thread_subscription'] = array(
     'fields' => array(
       'nid' => array(
         'description' => 'The nid of the thread.',
@@ -192,7 +192,7 @@ function og_mailinglist_schema() {
     ),
   );
 
-  $schema['og_mailinglist_subscription'] = array(
+  $schema['og_mailinglist_group_subscription'] = array(
     'fields' => array(
       'nid' => array(
         'description' => 'The nid of the Group.',

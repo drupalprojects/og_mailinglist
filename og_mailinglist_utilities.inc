@@ -11,12 +11,12 @@
  *  Node object.
  *
  * @param boolean $new_node
- *  If TRUE, then new node's subscribtions are saved to og_mailinglist_thread.
+ *  If TRUE, then new node's subscribtions are saved to og_mailinglist_thread_subscription.
  *  If FALSE, it just loads subscriptions.
  */
 function _og_mailinglist_get_subscribers($node, $new_node = FALSE) {
   $group_node = _og_mailinglist_load_group($node);
-  // If new node, save subscriptions for new node to og_mailinglist_thread.
+  // If new node, save subscriptions for new node to og_mailinglist_thread_subscription.
   // If new comment, just load subscriptions.
   if ($new_node) {
     og_mailinglist_save_group_thread_subscriptions($group_node->nid, $node->nid);

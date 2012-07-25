@@ -18,7 +18,7 @@ function og_mailinglist_flag_install() {
  **/
 function og_mailinglist_flag_add_flags() {
   // Get all users who have a ogm subscription.
-  $result = db_query("SELECT DISTINCT uid FROM {og_mailinglist_thread}");
+  $result = db_query("SELECT DISTINCT uid FROM {og_mailinglist_thread_subscription}");
 
   $uids = array();
   foreach ($result as $info) {
@@ -31,7 +31,7 @@ function og_mailinglist_flag_add_flags() {
   foreach ($users as $account) {
     $result = db_query("SELECT o.nid
                          FROM {node} n
-                         INNER JOIN {og_mailinglist_thread} o
+                         INNER JOIN {og_mailinglist_thread_subscription} o
                          ON n.nid = o.nid
                          WHERE o.uid = :o.uid", array(':o.uid' => $account->uid));
 

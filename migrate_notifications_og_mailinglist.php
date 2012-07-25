@@ -30,7 +30,7 @@ drupal_bootstrap(DRUPAL_BOOTSTRAP_FULL);
 # restore error reporting to its normal setting
 error_reporting(E_ALL);
 
-// Push all subsriptions in og_uid to og_mailinglist_subscriptions.
+// Push all subsriptions in og_uid to og_mailinglist_group_subscription.
 // Then update for no email and digest email from notifications.
 // Using just data from notifications seemed to miss people somehow.
 
@@ -42,7 +42,7 @@ foreach ($results as $data) {
       ':nid' => $data['nid'],
       ':uid' => $data['uid'],
     );
-  drupal_write_record('og_mailinglist_subscription', $data)
+  drupal_write_record('og_mailinglist_group_subscription', $data)
 }
 
 // The query to pull on current subscriptions SELECT n.uid as uid, f.value as gid, n.send_interval as send_interval FROM notifications n join notifications_fields f on n.sid = f.sid where n.type = "grouptype" and f.field = "group" group by uid, gid order by n.uid
@@ -59,7 +59,7 @@ $results = db_query($sql);
 foreach ($results as $data) {
   echo "uid: " . $data['uid'] . " gid: " . $data['gid'] . " interval: " . $data['send_interval'] . "\n";
   if ($data['send_interval'] == -1) {
-    echo db_query("UPDATE {og_mailinglist_subscription}
+    echo db_query("UPDATE {og_mailinglist_group_subscription}
          SET subscription_type = 'no email'
          WHERE sid = :sid
          AND uid = :uid",
@@ -69,7 +69,7 @@ foreach ($results as $data) {
          ));
   }
   else {
-    echo db_query("UPDATE {og_mailinglist_subscription}
+    echo db_query("UPDATE {og_mailinglist_group_subscription}
          SET subscription_type = 'digest email'
          WHERE sid = :sid
          AND uid = :uid",
@@ -80,7 +80,7 @@ foreach ($results as $data) {
   }
 }
 
-//echo "=== Inserting data into og_mailinglist_thread for past month of conversations ==";
+//echo "=== Inserting data into og_mailinglist_thread_subscription for past month of conversations ==";
 //// Get list of nodes created in past month
 //$results = db_query("SELECT nid
 //                    FROM {node}

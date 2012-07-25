@@ -210,7 +210,7 @@ function og_mailinglist_subscriptions_settings_form($form, $account) {
   }
 
   $result = db_query('SELECT m.nid as gid, m.subscription_type, n.title
-          FROM {og_mailinglist_subscription} m, {node} n
+          FROM {og_mailinglist_group_subscription} m, {node} n
           WHERE m.nid = n.nid
           AND m.uid = :uid
           ORDER BY n.title', array(':uid' => $uid));
@@ -710,19 +710,12 @@ function og_mailinglist_get_block() {
 function og_mailinglist_subscription_settings_form($form, &$form_state, $group_node) {
   global $user;
 
-  $sql = 'SELECT m.nid as gid, m.subscription_type, n.title
-          FROM {og_mailinglist_subscription} m, {node} n
-          WHERE m.nid = n.nid
-          AND m.uid = %d
-          AND m.nid = %d
-          ORDER BY n.title';
-
-  $data = db_fetch_array(db_query('SELECT m.nid as gid, m.subscription_type, n.title
-          FROM {og_mailinglist_subscription} m, {node} n
-          WHERE m.nid = :m.nid
-          AND m.uid = :m.uid
-          AND m.nid = :m.nid
-          ORDER BY n.title', array(':m.nid' => n . nid, ':m.uid' => $user->uid, ':m.nid' => $group_node->nid)));
+  $subscription_type = db_select('og_mailinglist_group_subscription', 's')
+    ->fields('s', array('subscription_type'))
+    ->condition('s.uid', $user->uid)
+    ->condition('s.nid', $nid)
+    ->execute()
+    ->fetchField();
 
   $subscription_options = array(
     'email' => t('Email'),
