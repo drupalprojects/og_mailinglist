@@ -27,24 +27,13 @@ function og_mailinglist_save_group_thread_subscriptions($gid, $nid) {
  *  Format = key (UID) => value (email address)
  */
 function og_mailinglist_get_group_subscriptions($gid) {
-  $result = db_query("SELECT uid
-                     FROM {og_mailinglist_subscription}
-                     WHERE nid = :nid
-                     AND subscription_type = :subscription_type", array(':nid' => $gid, ':subscription_type' => 'email'));
-
-  $uids = array();
-  foreach ($result as $data) {
-    $uids[] = $data['uid'];
-  }
-
-  $emails = array();
-  foreach ($uids as $uid) {
-    $emails[$uid] = db_query("SELECT mail
-                                   FROM {users}
-                                   WHERE status = :status
-                                   AND uid = :uid", array(':status' => 1, ':uid' => $uid))->fetchField();
-  }
-
+  $query = db_select('og_mailinglist_group_subscription', 's');
+  $query->join('users', 'u', 's.uid = u.uid');
+  $query->condition('s.nid', $gid);
+  $query->condition('s.subscription_type', 'email');
+  $query->fields('u', array('uid', 'mail'));
+  $emails = $query->execute()->fetchAllKeyed();
+  
   return $emails;
 }
 
@@ -53,21 +42,16 @@ function og_mailinglist_get_group_subscriptions($gid) {
  *  Format = key (UID) => value (email address)
  */
 function og_mailinglist_get_thread_subscriptions($nid) {
-  $result = db_query("SELECT uid
-                     FROM {og_mailinglist_thread}
-                     WHERE nid = :nid", array(':nid' => $nid));
-
-  $uids = array();
-  foreach ($result as $data) {
-    $uids[] = $data['uid'];
-  }
-
+  $query = db_select('og_mailinglist_thread_subscription', 'ogmt');
+  $query->join('users', 'u', 'ogmt.uid = u.uid');
+  $query->condition('ogmt.nid', $nid);
+  $query->condition('u.status', 1);
+  $query->fields('u', array('uid', 'mail'));
+  $result = $query->execute();
+  
   $emails = array();
-  foreach ($uids as $uid) {
-    $emails[$uid] = db_query("SELECT mail
-                                   FROM {users}
-                                   WHERE status = :status
-                                   AND uid = :uid", array(':status' => 1, ':uid' => $uid))->fetchField();
+  foreach ($result as $user) {
+    $emails[$user->uid] = $user->mail;
   }
 
   return $emails;
