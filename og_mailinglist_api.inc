@@ -155,25 +155,6 @@ function og_mailinglist_delete_group_subscriptions($gid, $uids) {
   }
 }
 
-/*
- * Adds person to 15 latest threads in a group.
- */
-function og_mailinglist_subscribe_group_threads($gid, $uid) {
-  // Select threads created in the past month.
-  $results = db_query("SELECT o.nid
-                      FROM {og} o
-                      INNER JOIN {node} n
-                      ON n.nid = o.nid
-                      WHERE o.gid = :gid
-                      AND o.entity_type = :type
-                      ORDER BY created DESC
-                      LIMIT 15", array(':gid' => $gid, ':type' => 'node'));
-
-  foreach ($results as $data) {
-    og_mailinglist_save_thread_subscriptions($data['nid'], array($uid));
-  }
-}
-
 /**
  * Unsubscribe a user from all group threads when they leave that group.
  **/
