@@ -67,8 +67,7 @@ function og_mailinglist_menu() {
 
   $items['og_mailinglist/unsubscribe/%node'] = array(
     'title' => t('Unsubscribe from post'),
-    'description' => t('Users who hit this page will not get more emails for
-                       comments on the node.'),
+    'description' => t('Users who hit this page will not get more emails for comments on the node.'),
     'type' => MENU_CALLBACK,
     'page callback' => 'og_mailinglist_unsubscribe_thread',
     'page arguments' => array(2),
@@ -76,8 +75,7 @@ function og_mailinglist_menu() {
   );
   $items['og_mailinglist/subscribe/%node'] = array(
     'title' => t('Subscribe to post'),
-    'description' => t('Users who hit this page will not get more emails for
-                       comments on the node.'),
+    'description' => t('Users who hit this page will get emails for comments on the node.'),
     'type' => MENU_CALLBACK,
     'page callback' => 'og_mailinglist_subscribe_thread',
     'page arguments' => array(2),
