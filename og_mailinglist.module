@@ -321,91 +321,6 @@ function og_mailinglist_subscribe_thread($node) {
 }
 
 /**
- * Implements hook_form_alter().
- */
-function og_mailinglist_form_node_form_alter(&$form, $form_state, $form_id) {
-    if (og_is_group_type('node', $form['#node']->type)) {
-      if (!module_exists('purl') && !module_exists('spaces_og')) {
-        $group_email = "";
-        if (isset($form['nid']['#value'])) {
-          $group_email = db_query("SELECT group_email
-                                             FROM {og_mailinglist}
-                                             WHERE nid = :nid", array(':nid' => $form['nid']['#value']))->fetchField();
-        }
-        // Add our form, compatible with purl's form.
-        $form['og_mailinglist'] = array(
-          '#title' => t('Group Email Address'),
-          '#type' => 'textfield',
-          '#description' => t('Choose an email address prefix for your group. May contain only lowercase letters, numbers, dashes and underscores. e.g. "my-group".'),
-          '#field_suffix' => '@' . variable_get('og_mailinglist_server_string', $_SERVER['SERVER_NAME']),
-          '#size' => 20,
-          '#default_value' => $group_email,
-          '#weight' => -1,
-          '#maxlength' => 255,
-          '#required' => TRUE,
-          '#tree' => TRUE,
-          '#element_validate' => array('og_mailinglist_group_form_validate'),
-        );
-        // Make sure our submit function is second after node_form_submit.
-        $first = array_shift($form['actions']['submit']['#submit']);
-        array_unshift($form['actions']['submit']['#submit'], $first, "og_mailinglist_group_form_submit");
-      }
-      // If Spaces OG is already using purl to get a shortcode, we'll use that
-      // shortcode instead of collecting another one.
-      else {
-        // Modify the title and description to match our custom form.
-        $form['purl']['value']['#title'] = t('Group Email Address Prefix');
-        $form['purl']['value']['#description'] = t('Choose an email address prefix for your group. May contain only lowercase letters, numbers, dashes and underscores. e.g. "my-group".');
-
-        // Make sure our submit function is second after node_form_submit.
-        $first = array_shift($form['actions']['submit']['#submit']);
-        array_unshift($form['actions']['submit']['#submit'], $first, "og_mailinglist_group_form_submit");
-      }
-    }
-}
-
-/**
- * Validation handler for og_mailinglist_group_form. Check that submitted
- * email username is valid.
- */
-function og_mailinglist_group_form_validate($element, &$form_state) {
-  // First check the email address isn't already being used.
-  $query = db_select('og_mailinglist', 'ogm');
-  $query->fields('ogm', array('group_email'));
-  $query->condition('group_email', $element['#value']);
-  if ($form_state['values']['nid']) {
-    $query->condition('nid', $form_state['values']['nid']);
-  }
-  $result = $query->execute()->fetchField();
-  if ($result) {
-    form_error($element, t('Someone has already choosen that group email address. Please choose another.'));
-  }
-  // Then check that the email address is valid.
-  else if (preg_match('!^[\.a-z0-9_-]+$!', $element['#value'])) {
-    return true;
-  }
-  else {
-    form_error($element, t('Your group email address may contain only lowercase letters, numbers, dashes and underscores. e.g. "my-group'));
-  }
-}
-
-/*
- * Submit handler for og_mailinglist_group_form.
- */
-function og_mailinglist_group_form_submit($form, &$form_state) {
-  $group_email = "";
-  if (isset($form_state['values']['purl']['value'])) {
-    $group_email = $form_state['values']['purl']['value'];
-  }
-  else {
-    $group_email = $form_state['values']['og_mailinglist'];
-  }
-
-  og_mailinglist_save_group($form_state['nid'], $group_email);
-
-}
-
-/**
  * Implements hook_node_insert().
  */
 function og_mailinglist_node_insert($node) {
@@ -434,22 +349,6 @@ function og_mailinglist_node_insert($node) {
     }
     // Send emails
     og_mailinglist_send_node_email($node);
-  }
-}
-
-/**
- * Implements hook_node_load().
- */
-function og_mailinglist_node_load($nodes, $types) {
-  foreach ($nodes as $node) {
-    if (og_is_group_type('node', $node->type) && isset($node->nid)) {
-      // Load the group's email.
-      $ogm_email = db_query("SELECT group_email
-        FROM {og_mailinglist}
-        WHERE nid = :nid",
-        array(':nid' => $node->nid))->fetchField();
-      $node->ogm_email = $ogm_email;
-    }
   }
 }
 
