@@ -88,7 +88,11 @@ function og_mailinglist_save_thread_subscriptions($nid, $uids) {
         "nid" => $nid,
         "uid" => $uid,
       );
-      $result = drupal_write_record('og_mailinglist_thread', $data);
+
+      $result = db_merge('og_mailinglist_thread_subscription')
+        ->key(array('nid' => $nid, 'uid' => $uid))
+        ->execute();
+
       if ($result) {
         // Invoke hook
         module_invoke_all('og_mailinglist_save_thread_subscription', $nid, $uid);
@@ -126,13 +130,12 @@ function og_mailinglist_update_group_subcription_type($gid, $uid, $subscription_
 function og_mailinglist_save_group_subscriptions($gid, $uids) {
   $subscription_type = variable_get('og_mailinglist_default_group_subscription_type', 'email');
   foreach ($uids as $uid) {
-    db_update('og_mailinglist_subscription')
-    ->fields(array(
-      'subscription_type' => $subscription_type,
-    ))
-    ->condition('uid', $uid)
-    ->condition('nid', $gid)
-    ->execute();
+    db_merge('og_mailinglist_group_subscription')
+      ->key(array('nid' => $gid, 'uid' => $uid))
+      ->fields(array(
+          'subscription_type' => $subscription_type,
+      ))
+      ->execute();
   }
 }
 
