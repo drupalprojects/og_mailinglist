@@ -169,8 +169,8 @@ function og_mailinglist_admin_settings() {
     '#default_value' => variable_get('og_mailinglist_default_group_subscription_type', 'email'),
     '#options' => array(
       'email' => t('Email'),
-      'no email' => t('No email'),
       'digest email' => t('Digest email'),
+      'no email' => t('No email'),
     ),
     '#description' => t('Choose the default email subscription for users joining a new group. "Email" means the user will receive an email for each new post. "No email" means the user will recieve no emails except for discussion threads they participate in. "Digest" is the same as "no email" except the user will also receive digest emails. (Users can change this later at http://example.org/user/%user/og_mailinglist)'),
   );
@@ -215,8 +215,8 @@ function og_mailinglist_subscriptions_settings_form($form, $account) {
 
   $subscription_options = array(
     'email' => t('Email'),
-    'no email' => t('No email'),
     'digest email' => t('Digest email'),
+    'no email' => t('No email'),
   );
   $form = array();
 
@@ -717,8 +717,8 @@ function og_mailinglist_subscription_settings_form($form, &$form_state, $group_n
 
   $subscription_options = array(
     'email' => t('Email'),
-    'no email' => t('No email'),
     'digest email' => t('Digest email'),
+    'no email' => t('No email'),
   );
   $form = array();
 
