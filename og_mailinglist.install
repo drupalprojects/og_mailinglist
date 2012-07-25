@@ -12,22 +12,26 @@ include_once 'og_mailinglist_utilities.inc';
  * Implements hook_install().
  */
 function og_mailinglist_install() {
-  // Add any previously created groups to og_mailinglist.
-  add_groups_to_og_mailinglist();
-
   // Set OGM's system weight to be after Pathauto so our email footers always use the correct path.
   $weight = db_select('system', 's')
     ->fields('s', array('weight'))
+    ->condition('type', 'module')
     ->condition('name', 'pathauto')
     ->execute()
     ->fetchField();
   if (!empty($weight)) {
     db_update('system')
-    ->fields(array('weight' => $weight + 1))
-    ->condition('type', 'module')
-    ->condition('name', 'og_mailinglist')
-    ->execute();
+      ->fields(array('weight' => $weight + 1))
+      ->condition('type', 'module')
+      ->condition('name', 'og_mailinglist')
+      ->execute();
   }
+
+  // Add email fields to all group types.
+  add_email_field_to_groups();
+
+  // Add any previously created groups to og_mailinglist.
+  add_groups_to_og_mailinglist();
 }
 
 /**
@@ -349,21 +353,43 @@ function og_mailinglist_update_6005() {
   }
 }
 
+/*
+ * Add the email field to all og groups.
+ */
+function add_email_field_to_groups() {
+  // Get all group node types and add group_email field.
+  $types = array();
+  foreach (node_type_get_types('types') as $type => $name) {
+    if (og_is_group_type('node', $type)) {
+      og_create_field(OG_MAILINGLIST_EMAIL_FIELD, 'node', $type);
+      $types[] = $type;
+    }
+  }
+  if (!empty($types)) {
+    drupal_set_message(
+      t('Added @email field to the following group node types (if field was not present before): @types',
+        array(
+          '@email' => OG_MAILINGLIST_EMAIL_FIELD,
+          '@types' => implode(', ', $types),
+    )));
+  }
+}
+
+/*
+ * Fill email fields for groups and add groups subscriptions.
+ */
 function add_groups_to_og_mailinglist() {
   if (!(module_exists('purl') && module_exists('spaces_og'))) {
-    $query = db_select('og', 'o');
-    $query->join('node', 'n', 'o.etid = n.nid');
-    $query->condition('o.entity_type', 'node');
-    $query->groupBy('n.nid');
-    $query->fields('n', array('nid', 'title'));
-    $result = $query->execute();
+    $gids = og_get_all_group();
+    $groups = node_load_multiple($gids);
 
-    foreach ($result as $group) {
-      $data = array(
-        'nid' => $group->nid,
-        'group_email' => string_to_machine_readable($group->title),
-      );
-      drupal_write_record('og_mailinglist', $data);
+    foreach ($groups as $group) {
+      if (empty($group->group_email)) {
+        $email = string_to_machine_readable($group->title);
+        $lang = $group->language;
+        $group->group_email[$lang][0]['value'] = $email;
+        node_save($group);
+      }
 
       // Subscribe group members to active threads.
       og_mailinglist_create_subscriptions_for_last_month($group->nid);
@@ -377,15 +403,17 @@ function add_groups_to_og_mailinglist() {
     $query->fields('p', array('id', 'value'));
     $result = $query->execute();
 
-    foreach ($result as $group) {
-      $data = array(
-        'nid' => $group->id,
-        'group_email' => $group->value,
-      );
-      drupal_write_record('og_mailinglist', $data);
+    foreach ($result as $item) {
+      $group = node_load($item->id);
+      if (empty($group->group_email)) {
+        $email = string_to_machine_readable($item->value);
+        $lang = $group->group_email['language'];
+        $group->group_email[$lang][0]['value'] = $email;
+        node_save($group);
+      }
 
       // Subscribe group members to active threads.
-      og_mailinglist_create_subscriptions_for_last_month($group->id);
+      og_mailinglist_create_subscriptions_for_last_month($group->nid);
     }
   }
 }
@@ -395,36 +423,33 @@ function add_groups_to_og_mailinglist() {
  * works out of the box for previously created threads.
  */
 function og_mailinglist_create_subscriptions_for_last_month($gid) {
-  module_load_include('inc', 'og_mailinglist', 'og_mailinglist_api');
-
   // Create email subscriptions to group for all group members.
-  $results = db_query("SELECT etid AS uid FROM {og_membership}
-                      WHERE entity_type = :type
-                      AND gid = :gid",
-                      array(
-                        ':type' => 'user',
-                        ':gid' => $gid,
-                      ));
+  $query = db_select('og_membership', 'ogm');
+  $query->condition('ogm.entity_type', 'user');
+  $query->condition('ogm.gid', $gid);
+  $query->condition('ogm.group_type', 'node');
+  $query->fields('ogm', array('etid'));
+  $result = $query->execute();
+
   $uids = array();
-  foreach ($results as $data) {
-    $uids[] = $data->uid;
+  foreach ($result as $item) {
+    $uids[] = $item->etid;
   }
-  og_mailinglist_save_group_subscriptions($gid, $uids);
+  if (count($uids) > 0) {
+    og_mailinglist_save_group_subscriptions($gid, $uids);
+  }
 
-  $results = db_query("SELECT etid AS nid
-          FROM {og_membership}
-          WHERE gid = :gid
-          AND entity_type = :type
-          AND created > :monthago",
-          array(
-            ':gid' => $gid,
-            ':type' => 'node',
-            // 2592000 seconds is 30 days
-            ':monthago' => time() - 2592000,
-          ));
+  // Create email subscriptions to last month threads to all members.
+  $query = db_select('og_membership', 'ogm');
+  $query->condition('ogm.gid', $gid);
+  $query->condition('ogm.entity_type', 'node');
+  // 2592000 seconds is 30 days
+  $query->condition('ogm.created', time() - 2592000, '>');
+  $query->fields('ogm', array('etid'));
+  $result = $query->execute();
 
-  foreach ($results as $data) {
-    og_mailinglist_save_group_thread_subscriptions($gid, $data->nid);
+  foreach ($result as $data) {
+    og_mailinglist_save_group_thread_subscriptions($gid, $data->etid);
   }
 }
 
