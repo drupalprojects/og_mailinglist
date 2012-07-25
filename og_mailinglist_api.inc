@@ -244,34 +244,9 @@ function og_mailinglist_create_mailer() {
 }
 
 /*
- * Save group information upon group creation and update.
- */
-function og_mailinglist_save_group($nid, $group_email) {
-  $update = db_query("SELECT nid
-                                FROM {og_mailinglist}
-                                WHERE nid = :nid", array(':nid' => $nid))->fetchField();
-  $data = array(
-    'nid' => $nid,
-    'group_email' => $group_email,
-  );
-
-  if ($update) {
-    drupal_write_record('og_mailinglist', $data, 'nid');
-  }
-  else {
-    drupal_write_record('og_mailinglist', $data);
-  }
-}
-
-/*
  * Delete group information.
  */
 function og_mailinglist_delete_group($nid) {
-  // Delete information from og_mailinglist.
-  db_delete('og_mailinglist')
-    ->condition('nid', $nid)
-    ->execute();
-
   // Delete group subscriptions from og_mailinglist_group_subscription.
   db_delete('og_mailinglist_group_subscription')
     ->condition('nid', $nid)
