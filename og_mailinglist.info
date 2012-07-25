@@ -1,6 +1,7 @@
 ; $Id: og_mailinglist.info,v 1.0 2009-03-16 $
 name = OG Mailinglist
 description = "Allows email submissions of new posts and comments for organic groups."
+dependencies[] = field
 dependencies[] = og
 dependencies[] = og_context
 package = "Organic groups"
@@ -8,7 +9,6 @@ core = 7.x
 version = "7.x-1.0"
 
 configure = admin/config/group/mailinglist
-dependencies[] = og
 
 stylesheets[all][] = og_mailinglist.css
 scripts[] = og_mailinglist.js

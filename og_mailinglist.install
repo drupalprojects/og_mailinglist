@@ -79,6 +79,23 @@ function og_mailinglist_requirements($phase) {
 }
 
 /**
+ * Implements hook_field_schema().
+ */
+function og_mailinglist_field_schema($field) {
+  if ($field['type'] == 'group_email') {
+    return array(
+      'columns' => array(
+        'value' => array(
+          'type' => 'text',
+          'size' => 'tiny',
+          'not null' => FALSE,
+        ),
+      ),
+  );
+  }
+}
+
+/**
  * Implements hook_schema().
  */
 function og_mailinglist_schema() {
