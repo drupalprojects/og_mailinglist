@@ -49,7 +49,7 @@ function og_mailinglist_send_comment_email($comment, $node) {
   $mailer = og_mailinglist_add_email_headers($mailer, $node, $comment, $in_reply_to, $references);
 
   // Decorate subject.
-  $mailer->Subject = "Re: [" . $group_node->ogm_email . "] " . $node->title;
+  $mailer->Subject = "Re: [" . $group_node->group_email . "] " . $node->title;
 
   // Decorate body.
   $body = og_mailinglist_prepare_web_content($comment->comment);
@@ -272,7 +272,7 @@ function _og_mailinglist_add_addresses($mailer, $node, $new_node = FALSE,
   try {
     $mailer->From = $author->mail;
     $mailer->FromName = $author_name;
-    $mailer->AddAddress($group_node->ogm_email . "@" .
+    $mailer->AddAddress($group_node->group_email . "@" .
             variable_get('og_mailinglist_server_string', $_SERVER['SERVER_NAME']), $group_node->title);
 
     // Add emails to BCC

@@ -781,27 +781,27 @@ function _og_mailinglist_rewrite_headers($email, $node, $new_node = FALSE, $comm
   $new_headers['mime-version'] = $headers['mime-version'];
   $new_headers['date'] = $headers['date'];
   if ($new_node) {
-    $new_headers['subject'] = "[" . $group_node->ogm_email . "] " . $node->title;
+    $new_headers['subject'] = "[" . $group_node->group_email . "] " . $node->title;
   }
   else {
     $new_headers['subject'] = $headers['subject'];
   }
 
   $new_headers['from'] = $headers['from'];
-  $new_headers['to'] = $group_node->ogm_email . "@" . variable_get('og_mailinglist_server_string', $_SERVER['SERVER_NAME']);
-  $new_headers['bcc'] = _og_mailinglist_get_subscribers($node, $new_node);
+  $new_headers['to'] = $group_node->group_email . "@" . variable_get('og_mailinglist_server_string', $_SERVER['SERVER_NAME']);
+  $new_headers['bcc'] = _og_mailinglist_get_subscribers($node, $group_node, $new_node);
   $new_headers['content-type'] = $headers['content-type'];
   $new_headers['content-transfer-encoding'] =  $headers['content-transfer-encoding'];
 
   // Add a reply-to header directed to the group if enabled.
   if (variable_get('og_mailinglist_reply_to_group', FALSE)) {
-    $new_headers['reply-to'] = $group_node->ogm_email . "@" . variable_get('og_mailinglist_server_string', $_SERVER['SERVER_NAME']);
+    $new_headers['reply-to'] = $group_node->group_email . "@" . variable_get('og_mailinglist_server_string', $_SERVER['SERVER_NAME']);
   }
 
   // Add list headers.
-  $new_headers['List-Id'] = "<" . $group_node->ogm_email . "@" .
+  $new_headers['List-Id'] = "<" . $group_node->group_email . "@" .
                 variable_get('og_mailinglist_server_string', $_SERVER['SERVER_NAME']) . ">";
-  $new_headers['List-Post'] = "<mailto:" . $group_node->ogm_email . "@" .
+  $new_headers['List-Post'] = "<mailto:" . $group_node->group_email . "@" .
                 variable_get('og_mailinglist_server_string', $_SERVER['SERVER_NAME']) . ">";
   $new_headers['List-Archive'] = url("node/" . $group_node->nid, array('absolute' => TRUE));
 
@@ -810,7 +810,7 @@ function _og_mailinglist_rewrite_headers($email, $node, $new_node = FALSE, $comm
   $new_headers['X-Thread-Url'] = $base_url . "/node/" . $node->nid;
 
   // Set x-BeenThere header
-  $new_headers['X-BeenThere'] = $group_node->ogm_email . "@" .
+  $new_headers['X-BeenThere'] = $group_node->group_email . "@" .
                 variable_get('og_mailinglist_server_string', $_SERVER['SERVER_NAME']);
 
   // Set Message-Id

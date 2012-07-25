@@ -106,7 +106,7 @@ function _og_mailinglist_send_digest_emails() {
     $discussions = format_plural(count($nids), '1 discussion', '@count discussions');
     $subject = t('[@ogmemail] Digest for @groupemail - @messages in @discussions',
       array(
-        '@ogmemail' => $group->ogm_email,
+        '@ogmemail' => $group->group_email,
         '@groupemail' => $group_email . "@" .$server_name,
         '@messages' => $messages,
         '@discussions' => $discussions,
@@ -200,11 +200,11 @@ function _og_mailinglist_send_digest_emails() {
         continue;
       }
       $mailer = og_mailinglist_create_mailer();
-      $mailer->From = $group->ogm_email . "+no-reply@" . $server_name;
+      $mailer->From = $group->group_email . "+no-reply@" . $server_name;
       $mailer->FromName = $group_email . "@" . $server_name;
-      $mailer->AddCustomHeader($mailer->HeaderLine("List-Id", "<" . $group->ogm_email .
+      $mailer->AddCustomHeader($mailer->HeaderLine("List-Id", "<" . $group->group_email .
             "@" . $server_name . ">"));
-      $mailer->AddCustomHeader($mailer->HeaderLine("List-Post", "<mailto:" . $group->ogm_email .
+      $mailer->AddCustomHeader($mailer->HeaderLine("List-Post", "<mailto:" . $group->group_email .
             "@" . $server_name . ">"));
       $mailer->AddCustomHeader($mailer->HeaderLine("List-Archive", url("node/" .
             $group->nid, array('absolute' => TRUE))));

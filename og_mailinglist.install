@@ -101,26 +101,6 @@ function og_mailinglist_field_schema($field) {
 function og_mailinglist_schema() {
   $schema = array();
 
-  $schema['og_mailinglist'] = array(
-    'fields' => array(
-      'nid' => array(
-        'description' => 'The nid for the new posting.',
-        'type' => 'int',
-        'unsigned' => TRUE,
-        'not null' => TRUE,
-        'default' => 0,
-      ),
-      'group_email' => array(
-        'description' => 'The machine/email readable version of the group. Uses purl shortcode if available.',
-        'type' => 'varchar',
-        'length' => '255',
-        'not null' => TRUE,
-        'default' => '',
-      ),
-    ),
-    'primary key' => array('nid'),
-  );
-
   $schema['og_mailinglist_source'] = array(
     'fields' => array(
       'nid' => array(
