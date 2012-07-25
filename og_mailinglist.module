@@ -360,12 +360,31 @@ function og_mailinglist_og_fields_info() {
  * Implements hook_node_insert().
  */
 function og_mailinglist_node_insert($node) {
-  if ($node->status) {
-    $group_node = _og_mailinglist_load_group(array($node->nid));
+  $is_group = !empty($node->group_group);
+  $is_group_content = !empty($node->group_audience);
 
-    // If this node isn't part of a group, return.
-    if (empty($group_node)) {
-      return;
+  if ($node->status and ($is_group or $is_group_content)) {
+    // First we prepare gids list.
+    $gids = array();
+    if ($is_group_content) {
+      foreach ($node->group_audience[LANGUAGE_NONE] as $group) {
+        $gids[] = $group['gid'];
+      }
+    }
+    else {
+      $gids = array($node->nid);
+    }
+
+    // User might not be automatically subscribed to new threads.
+    // Subscribe now if they aren't signed up to get emails normally.
+    // @TODO: need to ensure if subscribing still works in the new
+    // multiple-groups case. It might be easier to simply register to all threads.
+    if (og_mailinglist_get_group_subscription_type(array_pop($gids), $node->uid) != "email") {
+      og_mailinglist_save_thread_subscriptions($node->nid, array($node->uid));
+    }
+    // @TODO: This might need checking as well.
+    if ($is_group) {
+      og_mailinglist_save_group_subscriptions($node->nid, array($node->uid));
     }
 
     // If the Maillog module has been set to turn off emails, return.
@@ -379,12 +398,10 @@ function og_mailinglist_node_insert($node) {
       return;
     }
 
-    // User might not be automatically subscribed to new threads. Subscribe now if they aren't signed up to get emails normally.
-    if (og_mailinglist_get_group_subscription_type($group_node->nid, $node->uid) != "email") {
-      og_mailinglist_save_thread_subscriptions($node->nid, array($node->uid));
-    }
     // Send emails
-    og_mailinglist_send_node_email($node);
+    // This email either starts a new thread or starts a new group,
+    // therefore it goes only to the creator.
+    og_mailinglist_send_node_email($node, $gids);
   }
 }
 
@@ -400,7 +417,7 @@ function og_mailinglist_comment_publish($comment) {
 
     // Check that the node is published.
     $node = node_load($comment->nid);
-    $group_node = _og_mailinglist_load_group(array($node->nid));
+    $group_node = _og_mailinglist_load_group($node->nid);
     if ($node->status && is_object($group_node)) {
       // User might not be subscribed to thread. Subscribe them now if not
       // already subscribed.
