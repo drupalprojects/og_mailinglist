@@ -49,15 +49,32 @@ function og_mailinglist_menu() {
   $items['admin/config/group/mailinglist'] = array(
     'title' => 'OG mailinglist',
     'description' => t('Configure posts/comments generated from email'),
-    'type' => MENU_NORMAL_ITEM,
     'page callback' => 'drupal_get_form',
-    'page arguments' => array('og_mailinglist_admin_settings'),
+    'page arguments' => array('og_mailinglist_email_settings'),
+    'access arguments' => array('access administration pages'),
+  );
+  $items['admin/config/group/mailinglist/emails'] = array(
+    'title' => 'Emails',
+    'description' => t('Email settings of OG Mailinglist'),
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+    'weight' => -1,
+  );
+  $items['admin/config/group/mailinglist/content_types'] = array(
+    'title' => 'Content types',
+    'description' => t('Configure content types used by OG Mailinglist'),
+    'type' => MENU_LOCAL_TASK,
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('og_mailinglist_content_types_settings'),
     'access arguments' => array('access administration pages'),
   );
   $items['admin/config/group/mailinglist/config'] = array(
     'title' => 'Configuration',
-    'description' => t('Configure posts/comments generated from email'),
-    'type' => MENU_DEFAULT_LOCAL_TASK,
+    'description' => t('Domain and debugging settings'),
+    'type' => MENU_LOCAL_TASK,
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('og_mailinglist_config_settings'),
+    'access arguments' => array('access administration pages'),
+    'weight' => 1,
   );
   $items['og_mailinglist/subscriptions'] =
   $items['user/%user/og_mailinglist'] = array(
@@ -110,15 +127,9 @@ function og_mailinglist_permission() {
 }
 
 /**
- * Admin settings form
+ * Admin settings form for email settings
  */
-function og_mailinglist_admin_settings() {
-  $form['og_mailinglist_server_string'] = array(
-    '#title' => t('Domain name'),
-    '#type' => 'textfield',
-    '#default_value' => variable_get('og_mailinglist_server_string', $_SERVER['SERVER_NAME']),
-    '#description' => t('Domain name for outgoing/incoming emails, e.g. example.com.'),
-  );
+function og_mailinglist_email_settings() {
   $form['og_mailinglist_max_message_size'] = array(
     '#title' => t('Maximum message body size (excluding attachments) (in Kb)'),
     '#type' => 'textfield',
@@ -149,6 +160,13 @@ function og_mailinglist_admin_settings() {
     '#default_value' => variable_get('og_mailinglist_add_signatures', '1'),
     '#description' => t('Add a user\'s signature if they have one.'),
   );
+  return system_settings_form($form);
+}
+
+/**
+ * Admin settings form for OGM content types
+ */
+function og_mailinglist_content_types_settings() {
   $node_types = _node_types_build()->types;
   $n_types = array();
   foreach ($node_types as $type) {
@@ -180,12 +198,24 @@ function og_mailinglist_admin_settings() {
     ),
     '#description' => t('Choose the default email subscription for users joining a new group. "Email" means the user will receive an email for each new post. "No email" means the user will recieve no emails except for discussion threads they participate in. "Digest" is the same as "no email" except the user will also receive digest emails. (Users can change this later at http://example.org/user/%user/og_mailinglist)'),
   );
+  return system_settings_form($form);
+}
 
+
+/**
+ * Admin settings form for configuration
+ */
+function og_mailinglist_config_settings() {
+  $form['og_mailinglist_server_string'] = array(
+    '#title' => t('Domain name'),
+    '#type' => 'textfield',
+    '#default_value' => variable_get('og_mailinglist_server_string', $_SERVER['SERVER_NAME']),
+    '#description' => t('Domain name for outgoing/incoming emails, e.g. example.com.'),
+  );
   // Save an incoming key by default.
   if ((variable_get('og_mailinglist_incoming_key', '')) == '') {
     variable_set('og_mailinglist_incoming_key',   md5(rand()));
   }
-
   $form['og_mailinglist_incoming_key'] = array(
     '#type' => 'textfield',
     '#title' => t('Message validation string'),
@@ -199,7 +229,6 @@ function og_mailinglist_admin_settings() {
     '#default_value' => variable_get('og_mailinglist_test_email_address', ''),
     '#description' => t('For testing / monitoring purposes, you can set one user account to receive all emails sent by OG Mailinglist. Enter the User ID of the user who should receive all emails.'),
   );
-
   return system_settings_form($form);
 }
 
