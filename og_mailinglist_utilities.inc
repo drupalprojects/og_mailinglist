@@ -155,11 +155,26 @@ function array_copy($aSource) {
 /**
  * Load the parent group node of a node.
  *
- * @param $nid
- *  The nid of the node to load group ids for.
+ * @param $node
+ *  The node or nid of the node to load group ids for.
  */
-function _og_mailinglist_load_group($nid) {
-  $groups = og_get_entity_groups('node', $nid);
+function og_mailinglist_get_groups($node) {
+  // If node is already loaded, it contains group information.
+  if (is_object($node)) {
+    $groups = array();
+    if (isset($node->og_group_ref[LANGUAGE_NONE])) {
+      foreach ($node->og_group_ref[LANGUAGE_NONE] as $item) {
+        $groups[] = $item['target_id'];
+      }
+    }
+    // If node is group itself, we add it's id as well.
+    if (isset($node->group_group)) {
+      $groups[] = $node->nid;
+    }
+    return $groups;
+  }
+  // $node is probably a nid, let's use og's fancy function, it uses caching.
+  $groups = og_get_entity_groups('node', $node);
   if (!empty($groups['node'])) {
     return $groups['node'];
   }
