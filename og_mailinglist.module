@@ -452,6 +452,7 @@ function og_mailinglist_og_fields_info() {
       'property_type' => 'group',
       'default_formatter' => 'group_email',
       'default_widget' => 'group_email',
+      'description' => t('Group email address prefix. This field is required on group nodes for OG Mailinglist.'),
       'field' => array(
         'field_name' => OG_MAILINGLIST_EMAIL_FIELD,
         'type' => 'group_email',
