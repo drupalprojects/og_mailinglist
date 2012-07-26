@@ -344,7 +344,7 @@ function og_mailinglist_subscriptions_settings_form($form, $account) {
     $form[$group->gid]["leave-group"] = array(
       '#type' => 'checkbox',
       '#title' => t("Leave the @name group",
-        array('@name' => '<i>' . t($group->title) . '</i>')),
+        array('@name' => t($group->title))),
       '#suffix' => "<hr />",
     );
   }
