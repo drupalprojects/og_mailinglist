@@ -48,10 +48,10 @@ function _og_mailinglist_send_digest_emails() {
 
   $digest_groups = array();
   foreach ($groups_with_new_comments as $data) {
-    $digest_groups[$data['nid']] = $data['nid'];
+    $digest_groups[$data->nid] = $data->nid;
   }
   foreach ($groups_with_new_nodes as $data) {
-    $digest_groups[$data['nid']] = $data['nid'];
+    $digest_groups[$data->nid] = $data->nid;
   }
 
   foreach ($digest_groups as $gid) {
@@ -84,13 +84,15 @@ function _og_mailinglist_send_digest_emails() {
 
     $nids = array();
     foreach ($nids_with_new_comments as $data) {
-      $nids[$data['nid']]['status'] = "old";
-      $nids[$data['nid']]['node_obj'] = node_load(array("nid" => $data['nid']));
-      $nids[$data['nid']][$data['cid']] = _comment_load($data['cid']);
+      $nid = $data->nid;
+      $nids[$nid]['status'] = "old";
+      $nids[$nid]['node_obj'] = node_load($nid);
+      $nids[$nid][$data->cid] = _comment_load($data->cid);
     }
     foreach ($nids_with_new_nodes as $data) {
-      $nids[$data['nid']]['status'] = "new";
-      $nids[$data['nid']]['node_obj'] = node_load(array("nid" => $data['nid']));
+      $nid = $data->nid;
+      $nids[$nid]['status'] = "new";
+      $nids[$nid]['node_obj'] = node_load($nid);
     }
 
     // Count # of messages.
