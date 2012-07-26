@@ -235,8 +235,7 @@ function og_mailinglist_digest_settings() {
     '#maxlength' => 2,
     '#required' => TRUE,
     '#default_value' => $digest_hour,
-    '#description' => t('After which hour the digest will be sent. Defaults to 17. Please keep in mind, that this depends on when and how often the cron runs. Next digest is scheduled to @datestring.',
-      array('@datestring' => format_date($next_digest))),
+    '#description' => t('The digest email will be sent after this hour. Defaults to 17.'),
   );
   $form['og_mailinglist_digest_next'] = array(
     '#title' => t('Next digest run'),
