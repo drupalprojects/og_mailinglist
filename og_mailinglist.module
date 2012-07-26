@@ -295,16 +295,22 @@ function og_mailinglist_unsubscribe_thread($node) {
   $success = og_mailinglist_delete_thread_subscription($node->nid, $user->uid);
 
   if ($success) {
-    return '<div class="messages success">'
-      . t('You were successfully unsubscribed from the post @link.',
-          array('@link' => '<em>' . l($node->title, "node/" . $node->nid) . '</em>'))
+    drupal_set_message(
+      t('You were successfully unsubscribed from the post @link.',
+      array('@link' => l($node->title, "node/" . $node->nid)))
       . '&nbsp;&nbsp;'
       . l(t('Undo'), 'og_mailinglist/subscribe/' . $node->nid,
           array('attributes' => array('id' => 'og_mailinglist_undo')))
-      . '</div>';
+      );
   }
   else {
-    return t('Something unexpected happened and we were not able to unsubscribe you from this post. Please contact your site administrator.');
+    drupal_set_message(
+      t('You probably were already unsubscribed from the post @link.',
+      array('@link' => l($node->title, "node/" . $node->nid)))
+      . '&nbsp;&nbsp;'
+      . l(t('Subscribe'), 'og_mailinglist/subscribe/' . $node->nid,
+          array('attributes' => array('id' => 'og_mailinglist_undo')))
+      );
   }
 }
 
