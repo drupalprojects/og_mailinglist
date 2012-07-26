@@ -222,6 +222,11 @@ function og_mailinglist_create_mailer() {
   $mailer->CharSet = 'UTF-8';
   drupal_alter('og_mailinglist_new_phpmailer', $mailer);
 
+  if (!$mailer) {
+    drupal_set_message(t('E-mail cannot be sent. PHPMailer library is missing.'
+      . ' See <a href=@link>status report</a> for more information.',
+      array('@link' => '"/admin/reports/status"')), 'error');
+  }
   return $mailer;
 }
 

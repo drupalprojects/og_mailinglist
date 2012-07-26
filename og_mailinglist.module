@@ -20,9 +20,14 @@
  */
 define('OG_MAILINGLIST_BUILD_FULL', 'og_mailinglist_full');
 
+/**
+ * Group email field.
+ */
+define('OG_MAILINGLIST_EMAIL_FIELD', 'group_email');
+
+require_once "og_mailinglist_utilities.inc";
 require_once "og_mailinglist_phpmailer.inc";
 require_once "og_mailinglist_api.inc";
-og_mailinglist_phpmailer_load_library();
 
 /**
  * Implements hook_menu().
