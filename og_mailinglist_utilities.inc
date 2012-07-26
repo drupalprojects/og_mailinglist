@@ -14,25 +14,40 @@
  *  If TRUE, then new node's subscribtions are saved to og_mailinglist_thread_subscription.
  *  If FALSE, it just loads subscriptions.
  */
-function _og_mailinglist_get_subscribers($node, $new_node = FALSE) {
-  $group_node = _og_mailinglist_load_group($node);
+function _og_mailinglist_get_subscribers($node, $group_nodes, $new_node = FALSE) {
   // If new node, save subscriptions for new node to og_mailinglist_thread_subscription.
   // If new comment, just load subscriptions.
   if ($new_node) {
     og_mailinglist_save_group_thread_subscriptions($group_node->nid, $node->nid);
-    $subscribers = og_mailinglist_get_thread_subscriptions($node->nid);
   }
-  else { // this is a new comment.
-    $subscribers = og_mailinglist_get_thread_subscriptions($node->nid);
-  }
+  $subscribers = og_mailinglist_get_thread_subscriptions($node->nid);
 
   if (is_numeric(variable_get('og_mailinglist_test_email_address', ''))) {
     $uid = variable_get('og_mailinglist_test_email_address', '');
     $email = db_query("SELECT mail FROM {users} WHERE uid = :uid", array(':uid' => $uid))->fetchField();
-    $uids[$uid] = $email;
+    $subscribers[$uid] = $email;
   }
 
   return $subscribers;
+}
+
+function og_mailinglist_build_subject($group_nodes) {
+  $title_groups = '';
+  foreach ($group_nodes as $group) {
+    $email_prefix = $group->group_email[LANGUAGE_NONE][0]['value'];
+    $title_groups .= '[' . $email_prefix . ']';
+  }
+  return $title_groups;
+}
+
+function og_mailinglist_build_user_signature($uid) {
+  if (variable_get('og_mailinglist_add_signatures', 1)) {
+    $account = user_load($uid);
+    if (!empty($account->signature)) {
+      return check_markup($account->signature, $account->signature_format);
+    }
+  }
+  return '';
 }
 
 function _og_mailinglist_build_footer($node) {
@@ -67,7 +82,7 @@ function _og_mailinglist_email_already_sent($nid, $cid = 0) {
 /**
  * Render HTML for the email footer.
  */
-function og_mailinglist_build_web_footer($node, $body, $cid = 0) {
+function og_mailinglist_build_web_footer($node, $cid = 0) {
   $footer = _og_mailinglist_build_footer($node);
   $footer = og_mailinglist_prepare_web_content($footer);
 
@@ -75,7 +90,7 @@ function og_mailinglist_build_web_footer($node, $body, $cid = 0) {
   preg_match("/<p>(.+)<\/p>/s", $footer, $match);
   $footer = $match[1] . "<br />";
 
-  return $body . "\n" . $footer;
+  return "\n" . $footer;
 }
 
 function dd_log($data, $label = "") {
