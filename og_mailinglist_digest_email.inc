@@ -8,10 +8,12 @@ define("DISCUSSION_HEADER", 'background-color: #D1DCFF; font-family: helvetica;
        font-size: 140%; border-top: 1px solid #262c40; padding: 2px');
 define("MESSAGE_HEADER", 'background-color: #E6ECFF; font-family: helvetica;
        border-top: 1px solid #262c40; padding: 2px');
-define("DIGEST_TIME_PERIOD", 86400); // One day currently.
 // TODO -- make email from list address
 
 function _og_mailinglist_send_digest_emails() {
+  $digest_days = variable_get('og_mailinglist_digest_interval_days', 1);
+  $digest_start = time() - $digest_days * 86400;
+
   // Get list of groups where at least one person has subscribed to a digest node
   // and which had a new post or comment in the last 24 hours.
 
@@ -25,7 +27,7 @@ function _og_mailinglist_send_digest_emails() {
             AND n.created > :digest_time
             AND s.subscription_type = "digest email"',
             array(
-              ':digest_time' => time() - DIGEST_TIME_PERIOD,
+              ':digest_time' => $digest_start,
               ':subscription_type' => 'digest email',
             ));
 
@@ -40,7 +42,7 @@ function _og_mailinglist_send_digest_emails() {
             AND c.timestamp > :digest_time
             AND s.subscription_type = :subscription_type',
             array(
-              ':digest_time' => time() - DIGEST_TIME_PERIOD,
+              ':digest_time' => $digest_start,
               ':subscription_type' => 'digest email',
             ));
 
@@ -63,7 +65,7 @@ function _og_mailinglist_send_digest_emails() {
       AND n.created > :digest_time
       AND o.group_nid = :gid',
       array(
-        ':digest_time' => time() - DIGEST_TIME_PERIOD,
+        ':digest_time' => $digest_start,
         ':gid' => $gid,
       ));
 
@@ -76,7 +78,7 @@ function _og_mailinglist_send_digest_emails() {
       AND c.timestamp > :digest_time
       AND o.group_nid = :gid',
       array(
-        ':digest_time' => DIGEST_TIME_PERIOD,
+        ':digest_time' => $digest_start,
         ':gid' => $gid,
       ));
 

@@ -67,6 +67,14 @@ function og_mailinglist_menu() {
     'page arguments' => array('og_mailinglist_content_types_settings'),
     'access arguments' => array('access administration pages'),
   );
+  $items['admin/config/group/mailinglist/digest'] = array(
+    'title' => 'Digest',
+    'description' => t('Digest email options'),
+    'type' => MENU_LOCAL_TASK,
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('og_mailinglist_digest_settings'),
+    'access arguments' => array('access administration pages'),
+  );
   $items['admin/config/group/mailinglist/config'] = array(
     'title' => 'Configuration',
     'description' => t('Domain and debugging settings'),
@@ -201,6 +209,68 @@ function og_mailinglist_content_types_settings() {
   return system_settings_form($form);
 }
 
+/**
+ * Admin settings form for digest emails.
+ */
+function og_mailinglist_digest_settings() {
+  $digest_days = variable_get('og_mailinglist_digest_interval_days', 1);
+  $digest_hour = variable_get('og_mailinglist_digest_hour', 17);
+  $next_digest = variable_get('og_mailinglist_digest_runtime',
+    mktime($digest_hour, 0, 0));
+  variable_set('og_mailinglist_digest_runtime', $next_digest);
+
+  $form['og_mailinglist_digest_interval_days'] = array(
+    '#title' => t('Digest interval'),
+    '#type' => 'textfield',
+    '#default_value' => $digest_days,
+    '#size' => 5,
+    '#maxlength' => 3,
+    '#required' => TRUE,
+    '#description' => t('Choose how often the digest will be sent. Value is in days. Defaults to 1.'),
+  );
+  $form['og_mailinglist_digest_hour'] = array(
+    '#title' => t('Digest hour'),
+    '#type' => 'textfield',
+    '#size' => 5,
+    '#maxlength' => 2,
+    '#required' => TRUE,
+    '#default_value' => $digest_hour,
+    '#description' => t('After which hour the digest will be sent. Defaults to 17. Please keep in mind, that this depends on when and how often the cron runs. Next digest is scheduled to @datestring.',
+      array('@datestring' => format_date($next_digest))),
+  );
+  $form['og_mailinglist_digest_next'] = array(
+    '#title' => t('Next digest run'),
+    '#type' => 'item',
+    '#description' => t('Next digest is scheduled to @datestring. Please keep in mind that the digest mail will be sent on the next cron run after this date, so it depends on cron settings.',
+      array('@datestring' => format_date($next_digest))),
+  );
+  return system_settings_form($form);
+}
+
+/**
+ * Validate admin digest emails settings form.
+ */
+function og_mailinglist_digest_settings_validate($form, &$form_state) {
+  $days = $form_state['values']['og_mailinglist_digest_interval_days'];
+  if (!is_numeric($days)) {
+    form_set_error('og_mailinglist_digest_interval_days',
+      t('Digest interval must be a number.'));
+  }
+  elseif ($days <= 0) {
+    form_set_error('og_mailinglist_digest_interval_days',
+      t('Digest interval be a positive integer.'));
+  }
+  
+  $hour = $form_state['values']['og_mailinglist_digest_hour'];
+  if (!is_numeric($hour)) {
+    form_set_error('og_mailinglist_digest_hour',
+      t('Digest hour must be a number.'));
+  }
+  elseif ($hour < 0 or $hour > 23) {
+    form_set_error('og_mailinglist_digest_hour',
+      t('Digest hour must be an integer between 0 and 23.'));
+  }
+}
 
 /**
  * Admin settings form for configuration
@@ -621,17 +691,20 @@ function _og_mailinglist_remove_quotes($text) {
  */
 function og_mailinglist_cron() {
   // On first run, set digest to run today.
+  $digest_hour = variable_get('og_mailinglist_digest_hour', 17);
   $next_digest_runtime = variable_get('og_mailinglist_digest_runtime',
-          mktime(17, date("I"), date("s"), date("n"), date("j")));
+    mktime($digest_hour, 0, 0));
 
   if (REQUEST_TIME > $next_digest_runtime) {
+    // Set next run time.
+    $digest_days = variable_get('og_mailinglist_digest_interval_days', 1);
+    $next_digest_runtime = mktime($digest_hour, 0, 0) + $digest_days * 86400;
+    variable_set('og_mailinglist_digest_runtime', $next_digest_runtime);
+
     module_load_include('inc', 'og_mailinglist', 'og_mailinglist_digest_email');
 
     // Send off digest emails.
     _og_mailinglist_send_digest_emails();
-
-    // Set tomorrow's run time.
-    variable_set('og_mailinglist_digest_runtime', mktime(17, date("I"), date("s"), date("n"), date("j") + 1));
   }
 }
 
