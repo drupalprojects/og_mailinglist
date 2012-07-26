@@ -25,9 +25,10 @@ define('OG_MAILINGLIST_BUILD_FULL', 'og_mailinglist_full');
  */
 define('OG_MAILINGLIST_EMAIL_FIELD', 'group_email');
 
-require_once "og_mailinglist_utilities.inc";
-require_once "og_mailinglist_phpmailer.inc";
 require_once "og_mailinglist_api.inc";
+require_once "og_mailinglist_fields.inc";
+require_once "og_mailinglist_phpmailer.inc";
+require_once "og_mailinglist_utilities.inc";
 
 /**
  * Implements hook_menu().
@@ -362,6 +363,9 @@ function og_mailinglist_og_fields_info() {
         'label' => t('Group Email'),
         'description' => t('Choose an email address prefix for your group. It may contain only lowercase letters, numbers, dashes and underscores. e.g. "my-group".'),
         'required' => TRUE,
+        'widget' => array(
+          'module' => 'og_mailinglist',
+        ),
       ),
     ),
   );
