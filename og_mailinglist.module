@@ -293,10 +293,10 @@ function og_mailinglist_config_settings() {
     '#description' => t('This string will be used to validate incoming messages.  It can be anything, but must be used on both sides of the transfer. For more see the INSTALL.txt for your Mail Transfer Agent.'),
   );
   $form['og_mailinglist_test_email_address'] = array(
-    '#title' => t('DEBUGGING: Send an email for all events to a user account'),
+    '#title' => t('DEBUGGING: Enter one or more email addresses to send all emails'),
     '#type' => 'textfield',
     '#default_value' => variable_get('og_mailinglist_test_email_address', ''),
-    '#description' => t('For testing / monitoring purposes, you can set one user account to receive all emails sent by OG Mailinglist. Enter the User ID of the user who should receive all emails.'),
+    '#description' => t('For testing / monitoring purposes, add one or more email addresses to receive all emails sent by OG Mailinglist. Seperate multiple email addresses by comma.'),
   );
   return system_settings_form($form);
 }
