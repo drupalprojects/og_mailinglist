@@ -111,6 +111,7 @@ function og_mailinglist_send_node_email($node, $gids) {
   $body .= og_mailinglist_build_web_footer($node, 0, TRUE);
 
   $group_emails = _og_mailinglist_get_group_emails($group_nodes);
+
   // Let other modules alter outgoing node emails.
   $data = array(
     'subject' => $subject,

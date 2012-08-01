@@ -50,7 +50,8 @@ NOTE: We're using a slightly forked version of PHPMailer. OG Mailinglist
 PHPMailer issue queue has sat untouched for over a year so we're forced
 to go with our forked version of the library. The changes are quite
 minor however and won't interfere with other uses of PHPMailer by your
-Drupal installation.
+Drupal installation. See a diff of the changes we've made:
+https://github.com/KyleAMathews/phpmailer/commit/78cdf9743cc58f7e804207bd8aedd490d521289b
 
 * Install the PHP library mimeDecode. Use the command listed below for your OS:
 *
