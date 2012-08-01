@@ -71,9 +71,14 @@ function og_mailinglist_send_comment_email($comment, $node, $gids) {
     $mailer->AltBody = $body_plain_text;
     og_mailinglist_add_email_headers($mailer, $node, $group_node, $comment, $in_reply_to, $references);
     _og_mailinglist_add_sender($mailer, $node, $group_node, $comment);
-    _og_mailinglist_add_recipients($mailer, $node, $group_node, $messaged_users, FALSE);
+    $are_recipients = _og_mailinglist_add_recipients($mailer, $node, $group_node, $messaged_users, FALSE);
 
-    $success = $mailer->Send();
+    if ($are_recipients) {
+      $success = $mailer->Send();
+    }
+    else {
+      return;
+    }
   }
   if ($success) {
     // In case of multiple groups and emails log it only once.
@@ -137,7 +142,7 @@ function og_mailinglist_send_node_email($node, $gids) {
     $mailer->AltBody = drupal_html_to_text($data['body']);
     og_mailinglist_add_email_headers($mailer, $node, $group_node);
     _og_mailinglist_add_sender($mailer, $node, $group_node);
-    _og_mailinglist_add_recipients($mailer, $node, $group_node, $messaged_users, TRUE);
+    $are_recipients = _og_mailinglist_add_recipients($mailer, $node, $group_node, $messaged_users, TRUE);
 
     // Add attachments if any.
     if (isset($node->files)) {
@@ -148,7 +153,12 @@ function og_mailinglist_send_node_email($node, $gids) {
       }
     }
 
-    $success = $mailer->Send();
+    if ($are_recipients) {
+      $success = $mailer->Send();
+    }
+    else {
+      return;
+    }
   }
   if ($success) {
     og_mailinglist_log_email_sent('web', $node->nid, 0, $mailer->MessageID, 0, 0, $mailer->MessageID);
@@ -229,13 +239,16 @@ function _og_mailinglist_add_sender($mailer, $node, $group_node, $comment = NULL
 function _og_mailinglist_add_recipients($mailer, $node, $group_node, &$messaged_users, $new_node = FALSE) {
   try {
     $subscribers = _og_mailinglist_get_subscribers($node, $group_node, $new_node);
+    $are_recipients = FALSE;
     // Add emails to BCC
     foreach ($subscribers as $uid => $email) {
       if (!in_array($uid, $messaged_users)) {
         $mailer->AddBCC($email);
         $messaged_users[] = $uid;
+        $are_recipients = TRUE;
       }
     }
+    return $are_recipients;
   }
   catch (phpmailerException $e) {
     watchdog('og_mailinglist', t('PHPMailer error: !error', array('!error' => $e->errorMessage())), NULL, WATCHDOG_ERROR);
