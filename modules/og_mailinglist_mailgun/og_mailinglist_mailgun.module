@@ -15,6 +15,8 @@ function og_mailinglist_mailgun_og_mailinglist_new_phpmailer_alter(&$mailer) {
   else {
     $mailer->Mailer = "smtp";
     $mailer->Host = 'smtp.mailgun.org';
+    $mailer->Port = 587; // Mailgun recommends using port 587 instead of 25 as
+    // some ISPs block or throttle port 25.
     $mailer->SMTPAuth = true; // turn on SMTP authentication
     $mailer->Username = $login; // SMTP username
     $mailer->Password = $password; // SMTP password
