@@ -52,7 +52,7 @@ function og_mailinglist_send_comment_email($comment, $node, $gids) {
   $subject = 'Re: ' . og_mailinglist_build_subject($group_nodes) . ' ' . $node->title;
 
   // Decorate body.
-  $body = og_mailinglist_prepare_web_content($comment->comment);
+  $body = og_mailinglist_prepare_web_content($comment->comment_body[LANGUAGE_NONE][0]['value']);
 
   // Add the user's signature.
   $body .= og_mailinglist_build_user_signature($comment->uid);
