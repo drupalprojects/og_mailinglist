@@ -137,7 +137,7 @@ function og_mailinglist_send_node_email($node, $gids) {
     $mailer->AltBody = drupal_html_to_text($data['body']);
     og_mailinglist_add_email_headers($mailer, $node, $group_node);
     _og_mailinglist_add_sender($mailer, $node, $group_node);
-    _og_mailinglist_add_recipients($mailer, $node, $group_node, $messaged_users, FALSE);
+    _og_mailinglist_add_recipients($mailer, $node, $group_node, $messaged_users, TRUE);
 
     // Add attachments if any.
     if (isset($node->files)) {

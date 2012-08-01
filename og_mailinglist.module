@@ -480,7 +480,6 @@ function og_mailinglist_node_insert($node) {
     // First we prepare gids list.
     $gids = array();
     foreach ($node->og_group_ref[LANGUAGE_NONE] as $group) {
-      dpm($group['target_id']);
       $gids[] = $group['target_id'];
     }
 

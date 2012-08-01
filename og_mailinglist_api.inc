@@ -33,7 +33,7 @@ function og_mailinglist_get_group_subscriptions($gid) {
   $query->condition('s.subscription_type', 'email');
   $query->fields('u', array('uid', 'mail'));
   $emails = $query->execute()->fetchAllKeyed();
-  
+
   return $emails;
 }
 
@@ -48,7 +48,7 @@ function og_mailinglist_get_thread_subscriptions($nid) {
   $query->condition('u.status', 1);
   $query->fields('u', array('uid', 'mail'));
   $result = $query->execute();
-  
+
   $emails = array();
   foreach ($result as $user) {
     $emails[$user->uid] = $user->mail;
