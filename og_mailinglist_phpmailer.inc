@@ -29,7 +29,7 @@ function og_mailinglist_send_comment_email($comment, $node, $gids) {
   // main group for certain group collections is always the same,
   // older groups would be preferred. But this may already be the case.
   $group_nodes = node_load_multiple($gids);
-  
+
   // Add custom headers.
   $parent_message_id = _og_mailinglist_get_messageid_from_nid($node->nid);
   // If the comment is in reply to another comment, set the in-reply-to header
@@ -99,10 +99,8 @@ function og_mailinglist_send_node_email($node, $gids) {
   $subject = og_mailinglist_build_subject($group_nodes) . " " . $node->title;
 
   // Prepare node body for viewing.
-  $mail_node = og_mailinglist_render_node_body($node);
-
-  // Decorate body.
-  $body = og_mailinglist_prepare_web_content($mail_node->body);
+  $rendered_body = node_view($node);
+  $body = $rendered_body['body'][0]['#markup'];
 
   // Add the user's signature.
   $body .= og_mailinglist_build_user_signature($node->uid);
@@ -158,34 +156,6 @@ function og_mailinglist_send_node_email($node, $gids) {
   else {
     watchdog('og_mailinglist', "OG_Mailinglist couldn't send a new node email for node.", NULL, WATCHDOG_ERROR);
   }
-}
-
-/*
- * Render nodes according to the default input filter.
- *
- * Code taken and modified from the core node_view function.
- *
- * @param $nid
- *  Node ID
- *
- * @return
- *  Node with rendered body.
- */
-function og_mailinglist_render_node_body($node) {
-  $node = (object) $node;
-  $node->build_mode = OG_MAILINGLIST_BUILD_FULL;
-  $node = node_build_content($node, FALSE, TRUE);
-
-  // Set the proper node part, then unset unused $node part so that a bad
-  // theme can not open a security hole.
-  $content = drupal_render($node->content);
-  $node->body = $content;
-  unset($node->teaser);
-
-  // Allow modules to modify the fully-built node.
-  module_invoke_all('node_build_alter', $node);
-
-  return $node;
 }
 
 /**

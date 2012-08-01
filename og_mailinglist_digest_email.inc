@@ -234,8 +234,8 @@ function og_mailinglist_style_node_message($node) {
     date("d M Y — g:ia O", $node->created) . "</div>\n";
 
   // Prepare node body for viewing.
-  $node = og_mailinglist_render_node_body($node);
-  $body .= og_mailinglist_prepare_web_content($node->body);
+  $rendered_body = node_view($node);
+  $body = $rendered_body['body'][0]['#markup'];
   $body .= "<br />\n";
 
   return $body;
