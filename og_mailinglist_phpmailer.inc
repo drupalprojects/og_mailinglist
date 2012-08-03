@@ -133,8 +133,6 @@ function og_mailinglist_send_node_email($node, $gids) {
   $messaged_users = array();
 
   foreach ($group_nodes as $group_node) {
-    $group_email = $group_node->group_email[LANGUAGE_NONE][0]['value'];
-
     $mailer = og_mailinglist_create_mailer();
     $mailer->Subject = $data['subject'];
     $mailer->isHTML = TRUE;
@@ -203,6 +201,8 @@ function og_mailinglist_add_email_headers($mailer, $node, $group_node, $comment 
 }
 
 function _og_mailinglist_add_sender($mailer, $node, $group_node, $comment = NULL) {
+  $group_email = $group_node->group_email[LANGUAGE_NONE][0]['value'];
+
   if (!empty($comment->uid)) {
     $author = user_load($comment->uid);
   }
@@ -226,7 +226,7 @@ function _og_mailinglist_add_sender($mailer, $node, $group_node, $comment = NULL
   try {
     $mailer->From = $author->mail;
     $mailer->FromName = $author_name;
-    $mailer->AddAddress($group_node->group_email . "@" . $server, $group_node->title);
+    $mailer->AddAddress($group_email . "@" . $server, $group_node->title);
   }
   catch (phpmailerException $e) {
     watchdog('og_mailinglist', t('PHPMailer error: !error', array('!error' => $e->errorMessage())), NULL, WATCHDOG_ERROR);
