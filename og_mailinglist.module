@@ -303,7 +303,8 @@ function _og_mailinglist_filter_settings($form, &$form_state, $filter, $format, 
 
 function _og_mailinglist_filter_tips($filter, $format, $long = FALSE) {
   if ($long){
-    $output = t('Email quotation hider hides all quotations by default and provides a link to show quoted text. <br>');
+    $output = t('Email quotation hider hides all quotations by default and provides a link to show quoted text.');
+    $output .= '<br />';
     $output .= t('It also replaces all e-mail addresses with ***@***.***');
     return $output;
   }
