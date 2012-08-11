@@ -6,6 +6,52 @@
  */
 
 /**
+ * Group email field.
+ */
+define('OG_MAILINGLIST_EMAIL_FIELD', 'group_email');
+
+/**
+ * Implements hook_field_create_instance().
+ *
+ * Adds group_email field to any OG group which is created after enabling
+ * og_mailinglist module. OG group is created by adding group_group field.
+ */
+function og_mailinglist_field_create_instance($instance) {
+  if ($instance['field_name'] == OG_GROUP_FIELD) {
+    og_create_field(OG_MAILINGLIST_EMAIL_FIELD, 'node', $instance['bundle']);
+  }
+}
+
+/**
+ * Implements hook_og_fields_info().
+ */
+function og_mailinglist_og_fields_info() {
+  return array(
+    OG_MAILINGLIST_EMAIL_FIELD => array(
+      'type' => array('group'),
+      'property_type' => 'group',
+      'default_formatter' => 'group_email',
+      'default_widget' => 'group_email',
+      'description' => t('Group email address prefix. This field is required on group nodes for OG Mailinglist.'),
+      'field' => array(
+        'field_name' => OG_MAILINGLIST_EMAIL_FIELD,
+        'type' => 'group_email',
+        'no_ui' => TRUE,
+        'cardinality' => 1,
+      ),
+      'instance' => array(
+        'label' => t('Group Email'),
+        'description' => t('Choose an email address prefix for your group. It may contain only lowercase letters, numbers, dashes and underscores. e.g. "my-group".'),
+        'required' => TRUE,
+        'widget' => array(
+          'module' => 'og_mailinglist',
+        ),
+      ),
+    ),
+  );
+}
+
+/**
  * Implements hook_field_info().
  */
 function og_mailinglist_field_info() {

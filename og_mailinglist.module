@@ -15,13 +15,7 @@
  * by mahfiaz and it's still going on.
  */
 
-/**
- * Group email field.
- */
-define('OG_MAILINGLIST_EMAIL_FIELD', 'group_email');
-
 require_once "og_mailinglist_api.inc";
-require_once "og_mailinglist_fields.inc";
 require_once "og_mailinglist_phpmailer.inc";
 require_once "og_mailinglist_utilities.inc";
 
@@ -425,47 +419,6 @@ function og_mailinglist_subscribe_thread($node) {
 }
 
 /**
- * Implements hook_field_create_instance().
- *
- * Adds group_email field to any OG group which is created after enabling
- * og_mailinglist module. OG group is created by adding group_group field.
- */
-function og_mailinglist_field_create_instance($instance) {
-  if ($instance['field_name'] == OG_GROUP_FIELD) {
-    og_create_field(OG_MAILINGLIST_EMAIL_FIELD, 'node', $instance['bundle']);
-  }
-}
-
-/**
- * Implements hook_og_fields_info().
- */
-function og_mailinglist_og_fields_info() {
-  return array(
-    OG_MAILINGLIST_EMAIL_FIELD => array(
-      'type' => array('group'),
-      'property_type' => 'group',
-      'default_formatter' => 'group_email',
-      'default_widget' => 'group_email',
-      'description' => t('Group email address prefix. This field is required on group nodes for OG Mailinglist.'),
-      'field' => array(
-        'field_name' => OG_MAILINGLIST_EMAIL_FIELD,
-        'type' => 'group_email',
-        'no_ui' => TRUE,
-        'cardinality' => 1,
-      ),
-      'instance' => array(
-        'label' => t('Group Email'),
-        'description' => t('Choose an email address prefix for your group. It may contain only lowercase letters, numbers, dashes and underscores. e.g. "my-group".'),
-        'required' => TRUE,
-        'widget' => array(
-          'module' => 'og_mailinglist',
-        ),
-      ),
-    ),
-  );
-}
-
-/**
  * Implements hook_node_insert().
  */
 function og_mailinglist_node_insert($node) {
@@ -720,4 +673,44 @@ function og_mailinglist_content_build_modes() {
       ),
     ),
   );
+}
+
+/**
+ * Implements hook_hook_info().
+ *
+ * This ensures that hooks which are held in .inc files are included as needed.
+ **/
+function og_mailinglist_hook_info() {
+  $hooks['field_info'] = array(
+    'group' => 'fields',
+  );
+  $hooks['field_validate'] = array(
+    'group' => 'fields',
+  );
+  $hooks['field_is_empty'] = array(
+    'group' => 'fields',
+  );
+  $hooks['field_formatter_info'] = array(
+    'group' => 'fields',
+  );
+  $hooks['field_formatter_view'] = array(
+    'group' => 'fields',
+  );
+  $hooks['field_widget_info'] = array(
+    'group' => 'fields',
+  );
+  $hooks['field_widget_form'] = array(
+    'group' => 'fields',
+  );
+  $hooks['field_widget_validate'] = array(
+    'group' => 'fields',
+  );
+  $hooks['field_widget_error'] = array(
+    'group' => 'fields',
+  );
+  $hooks['og_fields_info'] = array(
+    'group' => 'fields',
+  );
+
+  return $hooks;
 }

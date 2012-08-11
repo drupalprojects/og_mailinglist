@@ -12,3 +12,5 @@ configure = admin/config/group/mailinglist
 
 stylesheets[all][] = og_mailinglist.css
 scripts[] = og_mailinglist.js
+
+files[] = og_mailinglist.fields.inc
