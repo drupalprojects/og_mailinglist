@@ -16,11 +16,6 @@
  */
 
 /**
- * @name OG Mailinglist build modes.
- */
-define('OG_MAILINGLIST_BUILD_FULL', 'og_mailinglist_full');
-
-/**
  * Group email field.
  */
 define('OG_MAILINGLIST_EMAIL_FIELD', 'group_email');
