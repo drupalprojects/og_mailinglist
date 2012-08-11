@@ -129,6 +129,21 @@ function og_mailinglist_permission() {
 }
 
 /**
+ * Callback function for subscribing to a thread.
+ */
+function og_mailinglist_subscribe_thread($node) {
+  global $user;
+  og_mailinglist_save_thread_subscriptions($node->nid, array($user->uid));
+
+  drupal_set_message(
+    t('You were successfully subscribed to the post @link.',
+        array('@link' => '<em>' . l($node->title, "node/" . $node->nid) . '</em>'))
+    . '&nbsp;&nbsp;'
+    . l(t('Undo'), 'og_mailinglist/unsubscribe/' . $node->nid,
+        array('attributes' => array('id' => 'og_mailinglist_undo'))));
+}
+
+/**
  * Callback function for unsubscribing from a thread.
  */
 function og_mailinglist_unsubscribe_thread($node) {
@@ -153,22 +168,6 @@ function og_mailinglist_unsubscribe_thread($node) {
           array('attributes' => array('id' => 'og_mailinglist_undo')))
       );
   }
-}
-
-/**
- * Callback function for subscribing to a thread.
- */
-function og_mailinglist_subscribe_thread($node) {
-  global $user;
-  og_mailinglist_save_thread_subscriptions($node->nid, array($user->uid));
-
-  return '<div class="messages success">'
-    . t('You were successfully subscribed to the post @link.',
-        array('@link' => '<em>' . l($node->title, "node/" . $node->nid) . '</em>'))
-    . '&nbsp;&nbsp;'
-    . l(t('Undo'), 'og_mailinglist/unsubscribe/' . $node->nid,
-        array('attributes' => array('id' => 'og_mailinglist_undo')))
-    . '</div>';
 }
 
 /**
