@@ -1,0 +1,6 @@
+name = OG Mailinglist Block
+description = "Provides block to change subscription type."
+dependencies[] = og_mailinglist
+dependencies[] = og_context
+package = "Organic groups"
+core = 7.x
