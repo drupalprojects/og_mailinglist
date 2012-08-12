@@ -202,7 +202,7 @@ function og_mailinglist_subscriptions_settings_form($form, $account) {
   foreach ($result as $group) {
     $form[$group->gid] = array(
       '#type' => 'fieldset',
-      '#title' => l(t($group->title), "node/" . $group->gid),
+      '#title' => l($group->title, "node/" . $group->gid),
       '#tree' => TRUE,
     );
     $form[$group->gid]['subscription-type'] = array(
@@ -214,8 +214,7 @@ function og_mailinglist_subscriptions_settings_form($form, $account) {
     $form[$group->gid]["leave-group"] = array(
       '#type' => 'checkbox',
       '#title' => t("Leave the @name group",
-        array('@name' => t($group->title))),
-      '#suffix' => "<hr />",
+        array('@name' => $group->title)),
     );
   }
   $form['submit'] = array(
