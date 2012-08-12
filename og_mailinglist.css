@@ -5,16 +5,17 @@
   text-decoration: underline;
   color: #755507;
 }
-.quoted-text {
-  display: none;
-  color: #000033;
-}
 
 .toggle-quoted-text {
   font-size: smaller;
-  color: #000033;
+  color: #006;
   cursor: pointer;
 }
+.quoted-text {
+  display: none;
+  color: #777;
+}
+
 #og-mailinglist-subscriptions-settings-form fieldset {
   margin-bottom: 0;
   padding-bottom: 0;
