@@ -116,7 +116,7 @@ function _og_mailinglist_send_digest_emails() {
     $subject = t('[@ogmemail] Digest for @groupemail - @messages in @discussions',
       array(
         '@ogmemail' => $group->group_email,
-        '@groupemail' => $group_email . "@" .$server_name,
+        '@groupemail' => $group_email . "@" . $server_name,
         '@messages' => $messages,
         '@discussions' => $discussions,
       ));

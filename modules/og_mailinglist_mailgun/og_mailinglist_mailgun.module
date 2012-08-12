@@ -17,7 +17,7 @@ function og_mailinglist_mailgun_og_mailinglist_new_phpmailer_alter(&$mailer) {
     $mailer->Host = 'smtp.mailgun.org';
     $mailer->Port = 587; // Mailgun recommends using port 587 instead of 25 as
     // some ISPs block or throttle port 25.
-    $mailer->SMTPAuth = true; // turn on SMTP authentication
+    $mailer->SMTPAuth = TRUE; // turn on SMTP authentication
     $mailer->Username = $login; // SMTP username
     $mailer->Password = $password; // SMTP password
   }
@@ -30,7 +30,7 @@ function og_mailinglist_mailgun_menu() {
   // Administration
   $items['admin/config/group/mailinglist/mailgun'] = array(
     'title' => 'Mailgun',
-    'description' => t('Manage Mailgun/OG Mailinglist integration settings'),
+    'description' => 'Manage Mailgun/OG Mailinglist integration settings',
     'type' => MENU_LOCAL_TASK,
     'page callback' => 'drupal_get_form',
     'page arguments' => array('og_mailinglist_mailgun_admin_settings'),

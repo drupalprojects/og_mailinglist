@@ -1,6 +1,6 @@
 <?php
 /**
- * $file
+ * @file
  * OG Mailinglist utilities.
  */
 
@@ -121,40 +121,40 @@ function write_string_to_file($data, $name = "lsjdf") {
 /**
  * Make a recursive copy of an array.
  *
- * @param array $aSource
+ * @param array $array_source
  * @return array    copy of source array
  */
-function array_copy($aSource) {
+function array_copy($array_source) {
   // check if input is really an array
-  if (!is_array($aSource)) {
+  if (!is_array($array_source)) {
     throw new Exception("Input is not an Array");
   }
 
   // initialize return array
-  $aRetAr = array();
+  $array_return = array();
 
   // get array keys
-  $aKeys = array_keys($aSource);
+  $array_keys = array_keys($array_source);
   // get array values
-  $aVals = array_values($aSource);
+  $array_values = array_values($array_source);
 
   // loop through array and assign keys+values to new return array
-  for ($x = 0; $x < count($aKeys); $x++) {
+  for ($x = 0; $x < count($array_keys); $x++) {
     // clone if object
-    if (is_object($aVals[$x])) {
-      $aRetAr[$aKeys[$x]] = clone $aVals[$x];
+    if (is_object($array_values[$x])) {
+      $array_return[$array_keys[$x]] = clone $array_values[$x];
       // recursively add array
     }
-    elseif (is_array($aVals[$x])) {
-      $aRetAr[$aKeys[$x]] = array_copy($aVals[$x]);
+    elseif (is_array($array_values[$x])) {
+      $array_return[$array_keys[$x]] = array_copy($array_values[$x]);
       // assign just a plain scalar value
     }
     else {
-      $aRetAr[$aKeys[$x]] = $aVals[$x];
+      $array_return[$array_keys[$x]] = $array_values[$x];
     }
   }
 
-  return $aRetAr;
+  return $array_return;
 }
 
 /**
@@ -183,7 +183,7 @@ function og_mailinglist_get_groups($node) {
   if (!empty($groups['node'])) {
     return $groups['node'];
   }
-  return null;
+  return NULL;
 }
 
 /**
@@ -193,21 +193,21 @@ function og_mailinglist_get_groups($node) {
  * @return string Capitalized words
  * Function taken from http://www.php.net/manual/en/function.ucwords.php#95325
  */
-function capitalize_headers($words, $charList = null) {
+function capitalize_headers($words, $character_list = NULL) {
   // Use ucwords if no delimiters are given
-  if (!isset($charList)) {
+  if (!isset($character_list)) {
     return ucwords($words);
   }
 
   // Go through all characters
-  $capitalizeNext = true;
+  $capitalize_next = TRUE;
 
   for ($i = 0, $max = strlen($words); $i < $max; $i++) {
-    if (strpos($charList, $words[$i]) !== false) {
-      $capitalizeNext = true;
+    if (strpos($character_list, $words[$i]) !== FALSE) {
+      $capitalize_next = TRUE;
     }
-    else if ($capitalizeNext) {
-      $capitalizeNext = false;
+    elseif ($capitalize_next) {
+      $capitalize_next = FALSE;
       $words[$i] = strtoupper($words[$i]);
     }
   }
@@ -281,17 +281,17 @@ function og_mailinglist_mimeDecode_load_library() {
     if (!class_exists('Mail_mimeDecode')) {
       if (module_exists('libraries')) {
         // Let's see if PHPMailer is really available from libraries.
-        $Mail_mimeDecode_library = './' . libraries_get_path('mimeDecode') . '/mimeDecode.php';
-        if (file_exists($Mail_mimeDecode_library)) {
-          include_once $Mail_mimeDecode_library;
+        $mail_mimedecode_library = './' . libraries_get_path('mimeDecode') . '/mimeDecode.php';
+        if (file_exists($mail_mimedecode_library)) {
+          include_once $mail_mimedecode_library;
         }
       }
     }
     // If Mail_mimeDecode is still not loaded, then try from module subdirectory.
     if (!class_exists('Mail_mimeDecode')) {
-      $Mail_mimeDecode_library = './' . drupal_get_path('module', 'og_mailinglist') . '/mimeDecode/mimeDecode.php';
-      if (file_exists($Mail_mimeDecode_library)) {
-        include_once $Mail_mimeDecode_library;
+      $mail_mimedecode_library = './' . drupal_get_path('module', 'og_mailinglist') . '/mimeDecode/mimeDecode.php';
+      if (file_exists($mail_mimedecode_library)) {
+        include_once $mail_mimedecode_library;
       }
     }
 

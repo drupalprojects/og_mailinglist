@@ -24,7 +24,7 @@ function og_mailinglist_post() {
 
   $hash = md5(variable_get('og_mailinglist_incoming_key', '**') . $message);
   if ($hash != $token) {
-    watchdog('access denied', 'Authentication error for POST e-mail. Check that you\'ve set the validation string in /admin/config/group/mailinglist and in site_info.php', NULL, WATCHDOG_WARNING);
+    watchdog('access denied', 'Authentication error for POST e-mail. Check that you\'ve set the validation string in /admin/config/group/mailinglist and in site_info.php', array(), WATCHDOG_WARNING);
     return drupal_access_denied();
   }
   // If this the Maillog module has been set to turn off emails, return.
@@ -339,13 +339,14 @@ function og_mailinglist_save_comment($email) {
   $sender = user_load($email['userid']);
   $group_node = node_load($email['groupid']);
   // Report activity to watchdog.
-  watchdog('og_mailinglist', t("Posted comment for @mailfrom to group @group_name for nid=@nid with cid=@cid",
-      array(
-    '@mailfrom' => $sender->name,
-    '@group_name' => $group_node->title,
-    '@nid' => $node->nid,
-    '@cid' => $cid,
-  )));
+  watchdog('og_mailinglist', "Posted comment for @mailfrom to group @group_name for nid=@nid with cid=@cid",
+    array(
+      '@mailfrom' => $sender->name,
+      '@group_name' => $group_node->title,
+      '@nid' => $node->nid,
+      '@cid' => $cid,
+    )
+  );
 }
 
 /**
@@ -416,12 +417,13 @@ function og_mailinglist_save_node($email) {
   $sender = user_load($email['userid']);
   $group_node = node_load($email['groupid']);
   // Report activity to watchdog.
-  watchdog('og_mailinglist', t("Posted node for @mailfrom to group @group_name with nid=@nid.",
-      array(
-    '@mailfrom' => $sender->name,
-    '@group_name' => $group_node->title,
-    '@nid' => $node->nid,
-  )));
+  watchdog('og_mailinglist', "Posted node for @mailfrom to group @group_name with nid=@nid.",
+    array(
+      '@mailfrom' => $sender->name,
+      '@group_name' => $group_node->title,
+      '@nid' => $node->nid,
+    )
+  );
 }
 
 function _og_mailinglist_email_node_email($email, $node) {
@@ -438,7 +440,7 @@ function _og_mailinglist_email_node_email($email, $node) {
 
   // Send it off.
   $sender_account = user_load($email['userid']);
-  _og_mailinglist_send_email($headers, $email['new_email_text'], $node, null, $sender_account);
+  _og_mailinglist_send_email($headers, $email['new_email_text'], $node, NULL, $sender_account);
 
   // If the sender's subscription type isn't email, give him a thread subscription.
   if (og_mailinglist_get_group_subscription_type($node->og_groups[0], $node->uid) != "email") {
@@ -464,9 +466,9 @@ function _og_mailinglist_email_comment_email($email, $node, $comment) {
 }
 
 function _og_mailinglist_parse_email($email) {
-  $params['include_bodies'] = true;
-  $params['decode_bodies'] = true;
-  $params['decode_headers'] = true;
+  $params['include_bodies'] = TRUE;
+  $params['decode_bodies'] = TRUE;
+  $params['decode_headers'] = TRUE;
   $params['input'] = $email['original_email_text'];
 
   // do the decode
@@ -478,17 +480,17 @@ function _og_mailinglist_parse_email($email) {
   if (!empty($structure->parts)) {
     foreach ($structure->parts as $i => $part) {
       if (!empty($part->parts)) {
-        $subPart = $part->parts;
+        $sub_part = $part->parts;
 
-        foreach ($subPart as $j => $subPartPart) {
-          if (isset($subPartPart->disposition) and ($subPartPart->disposition === 'attachment')) {
-            $email['attachments'][] = _og_mailinglist_parse_attachment($subPartPart);
+        foreach ($sub_part as $j => $sub_part_part) {
+          if (isset($sub_part_part->disposition) and ($sub_part_part->disposition === 'attachment')) {
+            $email['attachments'][] = _og_mailinglist_parse_attachment($sub_part_part);
           }
-          elseif ($subPartPart->ctype_secondary == 'plain') {
-            $email['text'] = _og_mailinglist_parse_content($subPartPart);
+          elseif ($sub_part_part->ctype_secondary == 'plain') {
+            $email['text'] = _og_mailinglist_parse_content($sub_part_part);
           }
-          elseif ($subPartPart->ctype_secondary == 'html') {
-            $email['html'] = _og_mailinglist_parse_content($subPartPart);
+          elseif ($sub_part_part->ctype_secondary == 'html') {
+            $email['html'] = _og_mailinglist_parse_content($sub_part_part);
           }
         }
       }
@@ -532,7 +534,7 @@ function _og_mailinglist_parse_email($email) {
 
   // TODO figure out how to pull out sane HTML w/o funky css or other oddities.
   $email['mailbody'] = $email['text'];
-  $email['isHTML'] = false;
+  $email['isHTML'] = FALSE;
 
   // Save copy of the original mailbody
   $email['orig_mailbody'] = $email['mailbody'];
@@ -744,7 +746,7 @@ function _og_mailinglist_encode_email($structure, $boundary = "", $email = "") {
       $email .= _og_mailinglist_encode_email_headers($part->headers) . "\n";
       // Encode the body as base64 if necessary
       if ($part->headers['content-transfer-encoding'] == "base64") {
-        $email .= wordwrap(base64_encode($part->body), 76, "\n", true);
+        $email .= wordwrap(base64_encode($part->body), 76, "\n", TRUE;
         $email .= "\n";
       }
       else {
@@ -830,7 +832,7 @@ function _og_mailinglist_rewrite_headers($email, $node, $new_node = FALSE, $comm
 function _og_mailinglist_check_base64($body, $headers) {
   // If text/plain + base64
   if ($headers['content-transfer-encoding'] == 'base64') {
-    $email = wordwrap(base64_encode($body), 76, "\n", true);
+    $email = wordwrap(base64_encode($body), 76, "\n", TRUE;
     $email .= "\n";
     return $email;
   }
@@ -909,7 +911,7 @@ function _og_mailinglist_add_footer($email, $footer) {
   return $email;
 }
 
-function _og_mailinglist_send_email($headers, $body, $node, $comment = null, $sender_account) {
+function _og_mailinglist_send_email($headers, $body, $node, $comment = NULL, $sender_account) {
   $mailer = og_mailinglist_create_mailer();
   $mailer->ClearAddresses();
   foreach ($headers as $key => $value) {
@@ -979,7 +981,7 @@ function _og_mailinglist_send_email($headers, $body, $node, $comment = null, $se
   $success = $mailer->Send();
 
   if (!$success) {
-    watchdog('og_mailinglist', "OG_Mailinglist couldn't send an email.", NULL,
+    watchdog('og_mailinglist', "OG_Mailinglist couldn't send an email.", array(),
              WATCHDOG_ERROR);
   }
 

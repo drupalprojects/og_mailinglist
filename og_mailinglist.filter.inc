@@ -232,7 +232,7 @@ function _og_mailinglist_filter_quotes($text) {
       $quotes[$count][] = $line;
     }
     else {
-      $in_quote = false;
+      $in_quote = FALSE;
       $count++;
     }
   }
