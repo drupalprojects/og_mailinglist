@@ -6,7 +6,7 @@
  */
 
 // Load our utilities so the hook_requirements can call those functions.
-include_once 'og_mailinglist_utilities.inc';
+require_once 'og_mailinglist_utilities.inc';
 
 /**
  * Implements hook_install().
@@ -357,6 +357,7 @@ function og_mailinglist_update_6005() {
  * Add the email field to all og groups.
  */
 function add_email_field_to_groups() {
+  require_once 'og_mailinglist.fields.inc';
   // Get all group node types and add group_email field.
   $types = array();
   foreach (node_type_get_types('types') as $type => $name) {

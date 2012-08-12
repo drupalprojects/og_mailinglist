@@ -16,6 +16,8 @@
  */
 
 require_once "og_mailinglist_api.inc";
+require_once "og_mailinglist.fields.inc";
+require_once "og_mailinglist.filter.inc";
 require_once "og_mailinglist_phpmailer.inc";
 require_once "og_mailinglist_utilities.inc";
 
@@ -275,7 +277,7 @@ function og_mailinglist_cron() {
     $next_digest_runtime = mktime($digest_hour, 0, 0) + $digest_days * 86400;
     variable_set('og_mailinglist_digest_runtime', $next_digest_runtime);
 
-    module_load_include('inc', 'og_mailinglist', 'og_mailinglist_digest_email');
+    require_once 'og_mailinglist_digest_email.inc';
 
     // Send off digest emails.
     _og_mailinglist_send_digest_emails();
