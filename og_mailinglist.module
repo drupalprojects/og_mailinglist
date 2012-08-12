@@ -25,8 +25,8 @@ require_once "og_mailinglist_utilities.inc";
  * Implements hook_menu().
  */
 function og_mailinglist_menu() {
-  # The following item is copied from og.module, otherwise it would be
-  # necessary to enable og_ui before og_mailinglist just for config menu.
+  // The following item is copied from og.module, otherwise it would be
+  // necessary to enable og_ui before og_mailinglist just for config menu.
   $items['admin/config/group'] = array(
     'title' => 'Organic groups',
     'description' => 'Administer the suite of Organic groups modules.',

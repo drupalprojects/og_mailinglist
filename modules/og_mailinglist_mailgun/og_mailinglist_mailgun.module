@@ -27,7 +27,7 @@ function og_mailinglist_mailgun_og_mailinglist_new_phpmailer_alter(&$mailer) {
  * Implmentation of hook_menu().
  */
 function og_mailinglist_mailgun_menu() {
-  # Administration
+  // Administration
   $items['admin/config/group/mailinglist/mailgun'] = array(
     'title' => 'Mailgun',
     'description' => t('Manage Mailgun/OG Mailinglist integration settings'),

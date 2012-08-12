@@ -38,7 +38,7 @@ function og_mailinglist_install() {
  * Implements hook_uninstall().
  */
 function og_mailinglist_uninstall() {
-  # http://api.drupal.org/api/drupal/includes!bootstrap.inc/function/variable_del/7
+  // http://api.drupal.org/api/drupal/includes!bootstrap.inc/function/variable_del/7
   db_delete('variable')
     ->condition('name', 'og_mailinglist_%', 'LIKE')
     ->execute();

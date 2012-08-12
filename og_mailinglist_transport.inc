@@ -828,7 +828,7 @@ function _og_mailinglist_rewrite_headers($email, $node, $new_node = FALSE, $comm
 }
 
 function _og_mailinglist_check_base64($body, $headers) {
-  # If text/plain + base64
+  // If text/plain + base64
   if ($headers['content-transfer-encoding'] == 'base64') {
     $email = wordwrap(base64_encode($body), 76, "\n", true);
     $email .= "\n";

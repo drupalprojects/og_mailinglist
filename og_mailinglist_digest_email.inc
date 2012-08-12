@@ -100,7 +100,7 @@ function _og_mailinglist_send_digest_emails() {
       $nids[$nid]['node_obj'] = node_load($nid);
     }
 
-    // Count # of messages.
+    // Count number of messages.
     $message_count = 0;
     foreach ($nids as $nid) {
       $message_count += og_mailinglist_count_new_messages($nid);

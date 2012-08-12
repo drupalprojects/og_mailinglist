@@ -172,8 +172,8 @@ function og_mailinglist_send_node_email($node, $gids) {
 function og_mailinglist_add_email_headers($mailer, $node, $group_node, $comment = Null, $in_reply_to = Null, $references = Null) {
   $server = variable_get('og_mailinglist_server_string', $_SERVER['SERVER_NAME']);
   $group_email = $group_node->group_email[LANGUAGE_NONE][0]['value'];
-  # TODO: when node data is not prepared for viewing, viewing hooks are
-  # not applied. So we do it manually. This is a hack, although it's safe.
+  // TODO: when node data is not prepared for viewing, viewing hooks are
+  // not applied. So we do it manually. This is a hack, although it's safe.
   if (strpos($group_email, '@') === FALSE)  {
     $group_email = $group_email . '@' . $server;
   }

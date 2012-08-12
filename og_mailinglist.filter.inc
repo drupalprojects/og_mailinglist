@@ -72,7 +72,7 @@ function _og_mailinglist_build_quotes_toggle($text, $filter) {
   module_load_include('inc', 'og_mailinglist', 'og_mailinglist_filter');
 
   if ($filter->settings['og_mailinglist_filter_quotations'] == 'removed') {
-    # Remove all quoted text instead.
+    // Remove all quoted text instead.
     return _og_mailinglist_remove_quotes($text);
   }
   $text = str_replace(array('\r\n', '\r'), '\n', $text);
@@ -183,28 +183,38 @@ function _og_mailinglist_filter_quotes($text) {
   $count = 0;
   $in_quote = FALSE;
   foreach ($lines as $line) {
-    if (preg_match("/On\s\w{3},\s\w{3}\s\d{1,2},\s\d{4}\sat\s\d{1,2}:\d{2}\s[PM|AM]/s", #Gmail
-                             $line, $matches)
-       || preg_match("/On\s\w{3}\s\d{1,2},\s\d{4},\sat\s\d{1,2}:\d{2}\s(AM|PM),\s/s", #Apple mail
+    // GMail
+    if (preg_match("/On\s\w{3},\s\w{3}\s\d{1,2},\s\d{4}\sat\s\d{1,2}:\d{2}\s[PM|AM]/s",
+                           $line, $matches)
+    // Apple mail
+       || preg_match("/On\s\w{3}\s\d{1,2},\s\d{4},\sat\s\d{1,2}:\d{2}\s(AM|PM),\s/s",
                             $line, $matches)
-       || preg_match("/On\s\w{3}\s\d{2},\s\d{4},\sat\s[0-9:]{4,5}\s(PM|AM),\s[a-zA-Z\s]+wrote:/s", #unknown as of yet
+    // unknown as of yet
+       || preg_match("/On\s\w{3}\s\d{2},\s\d{4},\sat\s[0-9:]{4,5}\s(PM|AM),\s[a-zA-Z\s]+wrote:/s",
                             $line, $matches)
-       || preg_match("/On\s\d{1,2}\/\d{1,2}\/\d{1,2},\s.+?<[a-zA-Z0-9_\-\.\+\^!#\$%&*+\/\=\?\`\|\{\}~\']+@(?:(?:[a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.?)+>\swrote:/s", # Some mobile email client, blackberry maybe?
+    // Some mobile email client, blackberry maybe?
+       || preg_match("/On\s\d{1,2}\/\d{1,2}\/\d{1,2},\s.+?<[a-zA-Z0-9_\-\.\+\^!#\$%&*+\/\=\?\`\|\{\}~\']+@(?:(?:[a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.?)+>\swrote:/s",
                             $line, $matches)
-       || preg_match("/On\s\w{3,10},\s\w{3,9}\s\d{1,2},\s\d{4},\s.+?wrote:/s", #unknown as of yet "On Saturday, May 22, 2010, Joe Smith wrote:"
+    // unknown as of yet "On Saturday, May 22, 2010, Joe Smith wrote:"
+       || preg_match("/On\s\w{3,10},\s\w{3,9}\s\d{1,2},\s\d{4},\s.+?wrote:/s",
                             $line, $matches)
-       || preg_match("/On.\d{1,2}\/\d{1,2}\/\d{1,2}.\d{1,2}:\d{1,2}\s(PM|AM),.+?wrote:/s", #unknown as of yet "On 5/21/10 8:43 PM, Joe Smith wrote:"
+    // unknown as of yet "On 5/21/10 8:43 PM, Joe Smith wrote:"
+       || preg_match("/On.\d{1,2}\/\d{1,2}\/\d{1,2}.\d{1,2}:\d{1,2}\s(PM|AM),.+?wrote:/s",
                             $line, $matches)
-       || preg_match("/On.\d{1,2}\/\d{1,2}\/\d{1,2}.\d{1,2}:\d{1,2},.+?wrote:/s", #unknown as of yet "On 30/01/11 22:38, Joe Smith wrote:"
+    // unknown as of yet "On 30/01/11 22:38, Joe Smith wrote:"
+       || preg_match("/On.\d{1,2}\/\d{1,2}\/\d{1,2}.\d{1,2}:\d{1,2},.+?wrote:/s",
                             $line, $matches)
-       || preg_match("/On\s\d{1,2}\s\w{3,9}\s\d{4}\s\d{1,2}:\d{1,2},?\s.+?wrote:/s", #unknown as of yet "On 1 February 2011 10:24, Joe Smith wrote:" (the comma after the time is optional)
+    // unknown as of yet "On 1 February 2011 10:24, Joe Smith wrote:"
+    // (the comma after the time is optional)
+       || preg_match("/On\s\d{1,2}\s\w{3,9}\s\d{4}\s\d{1,2}:\d{1,2},?\s.+?wrote:/s",
                             $line, $matches)
-       || preg_match("/On\s\d{1,2}\s\w{3,9}\s\d{4},\sat\s\d{1,2}:\d{1,2},\s.+?wrote:/s", #unknown as of yet "On 30 Jan 2011, at 13:18, Joe Smith  wrote:"
+    // unknown as of yet "On 30 Jan 2011, at 13:18, Joe Smith  wrote:"
+       || preg_match("/On\s\d{1,2}\s\w{3,9}\s\d{4},\sat\s\d{1,2}:\d{1,2},\s.+?wrote:/s",
                             $line, $matches)
-       || preg_match("/On.\d{1,2}\/\d{1,2}\/\d{1,2}.\d{1,2}:\d{1,2},.+?wrote:/s", #Thunderbird 24hr "On 21/5/10 13:45, Joe Smith wrote:"
+    // Thunderbird 24hr "On 21/5/10 13:45, Joe Smith wrote:"
+       || preg_match("/On.\d{1,2}\/\d{1,2}\/\d{1,2}.\d{1,2}:\d{1,2},.+?wrote:/s",
                             $line, $matches)
        && !$in_quote) {
-
 
       $quotes[$count][] = $line;
       $in_quote = TRUE;
