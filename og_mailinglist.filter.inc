@@ -45,7 +45,7 @@ function _og_mailinglist_filter_settings($form, &$form_state, $filter, $format, 
 }
 
 function _og_mailinglist_filter_tips($filter, $format, $long = FALSE) {
-  if ($long){
+  if ($long) {
     $output = t('Email quotation hider hides all quotations by default and provides a link to show quoted text.');
     $output .= '<br />';
     $output .= t('It also replaces all e-mail addresses with ***@***.***');
@@ -209,7 +209,7 @@ function _og_mailinglist_filter_quotes($text) {
       $quotes[$count][] = $line;
       $in_quote = TRUE;
     }
-    else if ($in_quote && (trim($line) === "" || substr(trim($line), 0, 1) === ">"
+    elseif ($in_quote && (trim($line) === "" || substr(trim($line), 0, 1) === ">"
       // or the previous line ended w/ a "<" Long emails addresses
       // (e.g. <someaddress@gmail.com>) sometimes get truncated
       // leaving the second part of the line on the next line.

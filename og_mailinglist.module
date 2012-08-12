@@ -39,7 +39,7 @@ function og_mailinglist_menu() {
   );
   $items['admin/config/group/mailinglist'] = array(
     'title' => 'OG mailinglist',
-    'description' => t('Configure posts/comments generated from email'),
+    'description' => 'Configure posts/comments generated from email',
     'file' => 'og_mailinglist.admin.inc',
     'page callback' => 'drupal_get_form',
     'page arguments' => array('og_mailinglist_email_settings'),
@@ -47,13 +47,13 @@ function og_mailinglist_menu() {
   );
   $items['admin/config/group/mailinglist/emails'] = array(
     'title' => 'Emails',
-    'description' => t('Email settings of OG Mailinglist'),
+    'description' => 'Email settings of OG Mailinglist',
     'type' => MENU_DEFAULT_LOCAL_TASK,
     'weight' => -1,
   );
   $items['admin/config/group/mailinglist/content_types'] = array(
     'title' => 'Content types',
-    'description' => t('Configure content types used by OG Mailinglist'),
+    'description' => 'Configure content types used by OG Mailinglist',
     'type' => MENU_LOCAL_TASK,
     'file' => 'og_mailinglist.admin.inc',
     'page callback' => 'drupal_get_form',
@@ -62,7 +62,7 @@ function og_mailinglist_menu() {
   );
   $items['admin/config/group/mailinglist/digest'] = array(
     'title' => 'Digest',
-    'description' => t('Digest email options'),
+    'description' => 'Digest email options',
     'type' => MENU_LOCAL_TASK,
     'file' => 'og_mailinglist.admin.inc',
     'page callback' => 'drupal_get_form',
@@ -71,7 +71,7 @@ function og_mailinglist_menu() {
   );
   $items['admin/config/group/mailinglist/config'] = array(
     'title' => 'Configuration',
-    'description' => t('Domain and debugging settings'),
+    'description' => 'Domain and debugging settings',
     'type' => MENU_LOCAL_TASK,
     'file' => 'og_mailinglist.admin.inc',
     'page callback' => 'drupal_get_form',
@@ -81,8 +81,8 @@ function og_mailinglist_menu() {
   );
   $items['og_mailinglist/subscriptions'] =
   $items['user/%user/og_mailinglist'] = array(
-    'title' => t('Group subscriptions'),
-    'description' => t('Allows users to manage their group subscriptions'),
+    'title' => 'Group subscriptions',
+    'description' => 'Allows users to manage their group subscriptions',
     'type' => MENU_LOCAL_TASK,
     'file' => 'og_mailinglist.admin.inc',
     'page callback' => 'drupal_get_form',
@@ -90,19 +90,19 @@ function og_mailinglist_menu() {
     'access arguments' => array('manage og_mailinglist subscriptions'),
   );
   $items['og_mailinglist/subscriptions']['type'] = MENU_CALLBACK;
-  $items['og_mailinglist/subscriptions']['title'] = t('OG Mailinglist subscriptions');
+  $items['og_mailinglist/subscriptions']['title'] = 'OG Mailinglist subscriptions';
 
   $items['og_mailinglist/unsubscribe/%node'] = array(
-    'title' => t('Unsubscribe from post'),
-    'description' => t('Users who hit this page will not get more emails for comments on the node.'),
+    'title' => 'Unsubscribe from post',
+    'description' => 'Users who hit this page will not get more emails for comments on the node.',
     'type' => MENU_CALLBACK,
     'page callback' => 'og_mailinglist_unsubscribe_thread',
     'page arguments' => array(2),
     'access arguments' => array('manage og_mailinglist subscriptions'),
   );
   $items['og_mailinglist/subscribe/%node'] = array(
-    'title' => t('Subscribe to post'),
-    'description' => t('Users who hit this page will get emails for comments on the node.'),
+    'title' => 'Subscribe to post',
+    'description' => 'Users who hit this page will get emails for comments on the node.',
     'type' => MENU_CALLBACK,
     'page callback' => 'og_mailinglist_subscribe_thread',
     'page arguments' => array(2),

@@ -1,4 +1,9 @@
 <?php
+/**
+ * @file
+ * Handles sending digest emails. Digest emails are handled as cron jobs.
+ *
+ */
 
 require_once 'og_mailinglist_utilities.inc';
 
@@ -128,7 +133,7 @@ function _og_mailinglist_send_digest_emails() {
       $body .= "<li>" . l($nid['node_obj']->title, "",
         array(
           'fragment' => "digest-" . $nid['node_obj']->nid,
-          'external' => True
+          'external' => TRUE
         ))
         . " ("
         . format_plural(og_mailinglist_count_new_messages($nid),
@@ -173,11 +178,11 @@ function _og_mailinglist_send_digest_emails() {
       ))
      . "<br />";
     $body .= t("To unsubscribe from this group, visit @url",
-      array('@url' => url("og_mailinglist/subscriptions", array("absolute" => true))))
+      array('@url' => url("og_mailinglist/subscriptions", array("absolute" => TRUE))))
       . "<br />";
     $body .= t("To post a new message to this group, email @email",
       array(
-        '@email' =>  $group_email . "@" .$server_name,
+        '@email' =>  $group_email . "@" . $server_name,
       ))
       . "<br />";
 

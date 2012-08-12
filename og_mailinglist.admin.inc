@@ -199,7 +199,7 @@ function og_mailinglist_subscriptions_settings_form($form, $account) {
     '#value' => $uid,
   );
 
-  foreach($result as $group) {
+  foreach ($result as $group) {
     $form[$group->gid] = array(
       '#type' => 'fieldset',
       '#title' => l(t($group->title), "node/" . $group->gid),

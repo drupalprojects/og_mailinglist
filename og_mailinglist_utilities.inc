@@ -111,10 +111,10 @@ function dd_log($data, $label = "") {
 }
 
 function write_string_to_file($data, $name = "lsjdf") {
-  $myFile = "/tmp/" . $name;
-  $fh = fopen($myFile, 'w') or die("can't open file");
+  $my_file = "/tmp/" . $name;
+  $fh = fopen($my_file, 'w') or die("can't open file");
   $string_data = print_r($data, TRUE);
-  fwrite($fh, $stringData . "\n");
+  fwrite($fh, $string_data . "\n");
   fclose($fh);
 }
 

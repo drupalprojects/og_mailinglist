@@ -1,5 +1,8 @@
 <?php
-// $Id$
+/**
+ * @file
+ * API functions for OG Mailinglist.
+ */
 
 /**
  * Saves new thread subscriptions for members of a group.
