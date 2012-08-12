@@ -129,7 +129,7 @@ function og_mailinglist_digest_settings_validate($form, &$form_state) {
     form_set_error('og_mailinglist_digest_interval_days',
       t('Digest interval be a positive integer.'));
   }
-  
+
   $hour = $form_state['values']['og_mailinglist_digest_hour'];
   if (!is_numeric($hour)) {
     form_set_error('og_mailinglist_digest_hour',

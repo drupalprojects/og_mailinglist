@@ -24,7 +24,7 @@ function og_mailinglist_filter_info() {
 
 function _og_mailinglist_filter_settings($form, &$form_state, $filter, $format, $defaults) {
   $filter->settings += $defaults;
-  
+
   $settings['og_mailinglist_filter_quotations'] = array(
     '#title' => t('Quotations style'),
     '#type' => 'radios',
@@ -88,7 +88,7 @@ function _og_mailinglist_build_quotes_toggle($text, $filter) {
         . t('- Show quoted text -') . '</div>'
         . '<div class="quoted-text">' . $filtered_quote . '</div>';
       $text = str_replace($quote, $replace, $text);
-      
+
       if ($filter->settings['og_mailinglist_filter_email'] == 1) {
         // Remove email addresses. Regex borrowed from valid_email_address().
         $regex = "([a-zA-Z0-9_\-\.\+\^!#\$%&*+\/\=\?\`\|\{\}~\']+@(?:(?:[a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.?)+)";
