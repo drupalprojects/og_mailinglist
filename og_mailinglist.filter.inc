@@ -84,10 +84,9 @@ function _og_mailinglist_build_quotes_toggle($text, $filter) {
       // Otherwise the HTML Converter input filter will bork the HTML. This *could* be a
       // potential problem if someone doesn't want the Line Break filter run.
       $filtered_quote = _filter_autop($quote);
-      $replace = '<br /><span class="toggle-quoted-text">- '
-        . t('Show quoted text')
-        . ' -</span><div class="quoted-text">'
-        . $filtered_quote . '</div>';
+      $replace = '<div class="toggle-quoted-text">'
+        . t('- Show quoted text -') . '</div>'
+        . '<div class="quoted-text">' . $filtered_quote . '</div>';
       $text = str_replace($quote, $replace, $text);
       
       if ($filter->settings['og_mailinglist_filter_email'] == 1) {
