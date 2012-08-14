@@ -134,20 +134,8 @@ function _og_mailinglist_find_quoted_sections($text) {
   $quotes = array();
 
   // Some email clients are "special". They don't like to place ">" in front of
-  // quotes. We need to give them their own special functions.
-  $quotes[] = array();
-  $quotes[] = _og_mailinglist_filter_hotmail_quotes($text);
-  $quotes[] = _og_mailinglist_filter_outlook_quotes($text);
-  $quotes[] = _og_mailinglist_filter_android_gmail_quotes($text);
-  $quotes[] = _og_mailinglist_filter_unknown_client_quotes($text);
-  $quotes[] = _og_mailinglist_filter_unknown_client2_quotes($text);
-  $quotes[] = _og_mailinglist_filter_unknown_client3_quotes($text);
-  $quotes[] = _og_mailinglist_filter_unknown_client3a_quotes($text);
-  $quotes[] = _og_mailinglist_filter_unknown_client4_quotes($text);
-  $quotes[] = _og_mailinglist_filter_unknown_client4a_quotes($text);
-  $quotes[] = _og_mailinglist_filter_unknown_client4b_quotes($text);
-  $quotes[] = _og_mailinglist_filter_unknown_client5_quotes($text);
-  $quotes[] = _og_mailinglist_filter_quotes($text);
+  // quotes. We need to give them their special treatment.
+  $quotes[] = _og_mailinglist_filter_strange_quotes($text);
 
   // Identify the longest quoted section of all possible matches and only
   // remove that one.
@@ -178,44 +166,44 @@ function _og_mailinglist_longest_string($quotes) {
  * (the traditional indicator for email quote) is included in the quoted section.
  **/
 function _og_mailinglist_filter_quotes($text) {
+  $normal_quote_start = array(
+    // GMail
+    "/On\s\w{3},\s\w{3}\s\d{1,2},\s\d{4}\sat\s\d{1,2}:\d{2}\s[PM|AM]/s",
+    // Apple mail
+    "/On\s\w{3}\s\d{1,2},\s\d{4},\sat\s\d{1,2}:\d{2}\s(AM|PM),\s/s",
+    // unknown as of yet
+    "/On\s\w{3}\s\d{2},\s\d{4},\sat\s[0-9:]{4,5}\s(PM|AM),\s[a-zA-Z\s]+wrote:/s",
+    // Some mobile email client, blackberry maybe?
+    "/On\s\d{1,2}\/\d{1,2}\/\d{1,2},\s.+?<[a-zA-Z0-9_\-\.\+\^!#\$%&*+\/\=\?\`\|\{\}~\']+@(?:(?:[a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.?)+>\swrote:/s",
+    // unknown as of yet "On Saturday, May 22, 2010, Joe Smith wrote:"
+    "/On\s\w{3,10},\s\w{3,9}\s\d{1,2},\s\d{4},\s.+?wrote:/s",
+    // unknown as of yet "On 5/21/10 8:43 PM, Joe Smith wrote:"
+    "/On.\d{1,2}\/\d{1,2}\/\d{1,2}.\d{1,2}:\d{1,2}\s(PM|AM),.+?wrote:/s",
+    // unknown as of yet "On 30/01/11 22:38, Joe Smith wrote:"
+    "/On.\d{1,2}\/\d{1,2}\/\d{1,2}.\d{1,2}:\d{1,2},.+?wrote:/s",
+    // unknown as of yet "On 1 February 2011 10:24, Joe Smith wrote:"
+    // (the comma after the time is optional)
+    "/On\s\d{1,2}\s\w{3,9}\s\d{4}\s\d{1,2}:\d{1,2},?\s.+?wrote:/s",
+    // unknown as of yet "On 30 Jan 2011, at 13:18, Joe Smith  wrote:"
+    "/On\s\d{1,2}\s\w{3,9}\s\d{4},\sat\s\d{1,2}:\d{1,2},\s.+?wrote:/s",
+    // Thunderbird 24hr "On 21/5/10 13:45, Joe Smith wrote:"
+    "/On.\d{1,2}\/\d{1,2}\/\d{1,2}.\d{1,2}:\d{1,2},.+?wrote:/s",
+  );
+
   $lines = explode("\n", $text);
   $quotes = array();
   $count = 0;
   $in_quote = FALSE;
-  foreach ($lines as $line) {
-    // GMail
-    if (preg_match("/On\s\w{3},\s\w{3}\s\d{1,2},\s\d{4}\sat\s\d{1,2}:\d{2}\s[PM|AM]/s",
-                           $line, $matches)
-    // Apple mail
-       || preg_match("/On\s\w{3}\s\d{1,2},\s\d{4},\sat\s\d{1,2}:\d{2}\s(AM|PM),\s/s",
-                            $line, $matches)
-    // unknown as of yet
-       || preg_match("/On\s\w{3}\s\d{2},\s\d{4},\sat\s[0-9:]{4,5}\s(PM|AM),\s[a-zA-Z\s]+wrote:/s",
-                            $line, $matches)
-    // Some mobile email client, blackberry maybe?
-       || preg_match("/On\s\d{1,2}\/\d{1,2}\/\d{1,2},\s.+?<[a-zA-Z0-9_\-\.\+\^!#\$%&*+\/\=\?\`\|\{\}~\']+@(?:(?:[a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.?)+>\swrote:/s",
-                            $line, $matches)
-    // unknown as of yet "On Saturday, May 22, 2010, Joe Smith wrote:"
-       || preg_match("/On\s\w{3,10},\s\w{3,9}\s\d{1,2},\s\d{4},\s.+?wrote:/s",
-                            $line, $matches)
-    // unknown as of yet "On 5/21/10 8:43 PM, Joe Smith wrote:"
-       || preg_match("/On.\d{1,2}\/\d{1,2}\/\d{1,2}.\d{1,2}:\d{1,2}\s(PM|AM),.+?wrote:/s",
-                            $line, $matches)
-    // unknown as of yet "On 30/01/11 22:38, Joe Smith wrote:"
-       || preg_match("/On.\d{1,2}\/\d{1,2}\/\d{1,2}.\d{1,2}:\d{1,2},.+?wrote:/s",
-                            $line, $matches)
-    // unknown as of yet "On 1 February 2011 10:24, Joe Smith wrote:"
-    // (the comma after the time is optional)
-       || preg_match("/On\s\d{1,2}\s\w{3,9}\s\d{4}\s\d{1,2}:\d{1,2},?\s.+?wrote:/s",
-                            $line, $matches)
-    // unknown as of yet "On 30 Jan 2011, at 13:18, Joe Smith  wrote:"
-       || preg_match("/On\s\d{1,2}\s\w{3,9}\s\d{4},\sat\s\d{1,2}:\d{1,2},\s.+?wrote:/s",
-                            $line, $matches)
-    // Thunderbird 24hr "On 21/5/10 13:45, Joe Smith wrote:"
-       || preg_match("/On.\d{1,2}\/\d{1,2}\/\d{1,2}.\d{1,2}:\d{1,2},.+?wrote:/s",
-                            $line, $matches)
-       && !$in_quote) {
 
+  foreach ($lines as $line) {
+    $matched = FALSE;
+    foreach ($normal_quote_start as $regex) {
+      if (preg_match($regex, $line, $matches)) {
+        $matched = TRUE;
+        break;
+      }
+    }
+    if ($matched && !$in_quote) {
       $quotes[$count][] = $line;
       $in_quote = TRUE;
     }
@@ -250,189 +238,29 @@ function _og_mailinglist_filter_quotes($text) {
  * all content after that is quotes. This seems to be how in practice people
  * send emails but occasionaly this might filter the wrong text.
  */
-function _og_mailinglist_filter_hotmail_quotes($text) {
-  $regex = "/Date:\s\w{3},\s\d{1,2}\s\w{3}\s\d{4}\s\d{2}:\d{2}:\d{2}\s-\d{4}.Subject:\s.*?From:.*?To:\s.*/s";
-  preg_match($regex, $text, $matches);
-  if (!empty($matches)) {
-    return $matches;
+function _og_mailinglist_filter_strange_quotes($text) {
+  $unusual_quote_starting = array(
+    // hotmail.com
+    "/Date:\s\w{3},\s\d{1,2}\s\w{3}\s\d{4}\s\d{2}:\d{2}:\d{2}\s-\d{4}.Subject:\s.*?From:.*?To:\s.*/s",
+    "/From:\s\w+\s\w+.+?\[mailto:\w+.+?Sent:\s\w+,\s\w+\s\d{2},\s\d{4}\s\d{1,2}:\d{1,2}\s[AM|PM]+.To:\s.+?Subject:\s.*/s",
+    // Android's GMail client
+    "/On\s\w{3}\s\d{1,2},\s\d{4}\s\d{1,2}:\d{2}\s[PM|AM]+,\s.*/s",
+    // something other
+    "/From:\s\".*?\"\s<.*?@.*?>.Date:\s\w{3},.*?To:.*?<.*?@.*?>.*?Cc:\s.*?<.*?@.*?>.*?Subject:.*/s",
+    "/From:\s.*?<.*?@.*?>.To:.*?@.*?Sent:\s\w{3},\s.*?\d{1,2},\s\d{4}\s.*?Subject:\s.*/s",
+    "/From:\s.*?\[.*?@.*?\].*?Sent:\s\w*?,\s\w*?\s\d{1,2},\s\d{4}\s\d{1,2}:\d{2}\s(PM|AM).*?To:\s.*?Subject:.*/s",
+    "/From:\s.*?\[.*?@.*?\].*?Sent:\s\w*?,\s\d{1,2}\s\w*?\s\d{4}\s\d{1,2}:\d{2}\s(PM|AM).*?To:\s.*?Subject:.*/s",
+    "/-----Original\sMessage-----.*?From:\s.*?@.*?Date:\s\w{3},\s\d{1,2}\s.*?:.*?:.*?To:.*?@.*?Subject:.*/s",
+    "/-----Original\sMessage-----.*?From:\s.*?@.*?Sent:\s\w{3,9},\s\d{1,2}\s.*?:.*?:.*?To:.*?@.*?Subject:.*/s",
+    "/-----\sOriginal\sMessage\s-----.*?From:\s.*?\<.*?@.*?\>.*?To:\s.*?Subject:\s.*?Date:\s\w*?,\s\d{1,2}\s\w*?\s\d{4}\s\d{1,2}:\d{2}:\d{2}\s.*/s",
+    "/On\s\d{1,2}\s\w.*?\s\d{4}\s\d{2}:\d{2},\s.*?@.*?\s.*?wrote:.*/s",
+  );
+  
+  foreach ($unusual_quote_starting as $regex) {
+    preg_match($regex, $text, $matches);
+    if (!empty($matches)) {
+      return $matches;
+    }
   }
-  else {
-    return array();
-  }
-}
-
-/**
- * Filter quotes out of emails from hotmail.com.
- */
-function _og_mailinglist_filter_outlook_quotes($text) {
-  $regex = "/From:\s\w+\s\w+.+?\[mailto:\w+.+?Sent:\s\w+,\s\w+\s\d{2},\s\d{4}\s\d{1,2}:\d{1,2}\s[AM|PM]+.To:\s.+?Subject:\s.*/s";
-  preg_match($regex, $text, $matches);
-  if (!empty($matches)) {
-    return $matches;
-  }
-  else {
-    return array();
-  }
-}
-
-/**
- * Filter quotes out of emails from Android's GMail client.
- */
-function _og_mailinglist_filter_android_gmail_quotes($text) {
-  $regex = "/On\s\w{3}\s\d{1,2},\s\d{4}\s\d{1,2}:\d{2}\s[PM|AM]+,\s.*/s";
-  preg_match($regex, $text, $matches);
-  if (!empty($matches)) {
-    return $matches;
-  }
-  else {
-    return array();
-  }
-}
-
-/**
- * Filter quotes out of emails from some other microsoftie looking email client.
- */
-function _og_mailinglist_filter_unknown_client_quotes($text) {
-  $regex = "/From:\s\".*?\"\s<.*?@.*?>.Date:\s\w{3},.*?To:.*?<.*?@.*?>.*?Cc:\s.*?<.*?@.*?>.*?Subject:.*/s";
-  preg_match($regex, $text, $matches);
-  if (!empty($matches)) {
-    return $matches;
-  }
-  else {
-    return array();
-  }
-}
-
-/**
- * Filter quotes out of emails from some other microsoftie looking email client.
- */
-function _og_mailinglist_filter_unknown_client2_quotes($text) {
-  $regex = "/From:\s.*?<.*?@.*?>.To:.*?@.*?Sent:\s\w{3},\s.*?\d{1,2},\s\d{4}\s.*?Subject:\s.*/s";
-  preg_match($regex, $text, $matches);
-  if (!empty($matches)) {
-    return $matches;
-  }
-  else {
-    return array();
-  }
-}
-
-/**
- * Filter quotes out of emails from yet another microsoftie looking email client.
- *
- * From: Dave [mailto:bob@example.com]
- * Sent: Monday, April 05, 2010 5:30 PM
- * To: A group
- * Subject: [a-group] SQL Server Express
- *
- */
-function _og_mailinglist_filter_unknown_client3_quotes($text) {
-  $regex = "/From:\s.*?\[.*?@.*?\].*?Sent:\s\w*?,\s\w*?\s\d{1,2},\s\d{4}\s\d{1,2}:\d{2}\s(PM|AM).*?To:\s.*?Subject:.*/s";
-  preg_match($regex, $text, $matches);
-  if (!empty($matches)) {
-    return $matches;
-  }
-  else {
-    return array();
-  }
-}
-
-/**
- * Filter quotes out of emails from yet another microsoftie looking email client.
- *
- * From: Someone [mailto:someone@gmail.com]
- * Sent: Thursday, 23 September 2010 9:55 AM // Diff from above is in date format.
- * To: test-two@lists.somewhere.com
- * Subject: [test-two] Thursday morning: Forum start via email
- *
- */
-function _og_mailinglist_filter_unknown_client3a_quotes($text) {
-  $regex = "/From:\s.*?\[.*?@.*?\].*?Sent:\s\w*?,\s\d{1,2}\s\w*?\s\d{4}\s\d{1,2}:\d{2}\s(PM|AM).*?To:\s.*?Subject:.*/s";
-  preg_match($regex, $text, $matches);
-  if (!empty($matches)) {
-    return $matches;
-  }
-  else {
-    return array();
-  }
-}
-
-/**
- * Filter quotes out of emails from yet another microsoftie looking email client.
- *
- * -----Original Message-----
- * From: Someone <someone@me.com>
- * Date: Sat, 10 Apr 2110 12:25:28
- * To: Entrepreneurship<entrepreneurship@island.byu.edu>
- * Subject: Re: [entrepreneurship] Need Tech Guys to Form
- *
- */
-function _og_mailinglist_filter_unknown_client4_quotes($text) {
-  $regex = "/-----Original\sMessage-----.*?From:\s.*?@.*?Date:\s\w{3},\s\d{1,2}\s.*?:.*?:.*?To:.*?@.*?Subject:.*/s";
-  preg_match($regex, $text, $matches);
-  if (!empty($matches)) {
-    return $matches;
-  }
-  else {
-    return array();
-  }
-}
-
-/**
- * Filter quotes out of emails from yet another microsoftie looking email client.
- *
- * -----Original Message-----
- * From: someone [mailto:someone@somewhere.com]
- * Sent: Friday, 24 September 2010 10:54 AM
- * To: test-one@lists.somewhere.com
- * Subject: Re: [test-one] Test to Group 1 From Email
- *
- */
-function _og_mailinglist_filter_unknown_client4a_quotes($text) {
-  $regex = "/-----Original\sMessage-----.*?From:\s.*?@.*?Sent:\s\w{3,9},\s\d{1,2}\s.*?:.*?:.*?To:.*?@.*?Subject:.*/s";
-  preg_match($regex, $text, $matches);
-  if (!empty($matches)) {
-    return $matches;
-  }
-  else {
-    return array();
-  }
-}
-
-/**
- * Filter quotes out of emails from yet another microsoftie looking email client.
- *
- * ----- Original Message -----
- * From: "John someone" <someone@gmail.com>
- * To: test-one@lists.somewhere.com
- * Subject: [test-one] Test to Group 1 From Email
- * Date: Fri, 24 Sep 2010 09:36:57 +1000
- *
- */
-function _og_mailinglist_filter_unknown_client4b_quotes($text) {
-  $regex = "/-----\sOriginal\sMessage\s-----.*?From:\s.*?\<.*?@.*?\>.*?To:\s.*?Subject:\s.*?Date:\s\w*?,\s\d{1,2}\s\w*?\s\d{4}\s\d{1,2}:\d{2}:\d{2}\s.*/s";
-  preg_match($regex, $text, $matches);
-  if (!empty($matches)) {
-    return $matches;
-  }
-  else {
-    return array();
-  }
-}
-
-/**
- * Filter quotes out of emails from yet another email client.
- *
- * On 15 April 2010 21:57, someone someone@example.com wrote:
- *
- */
-function _og_mailinglist_filter_unknown_client5_quotes($text) {
-  $regex = "/On\s\d{1,2}\s\w.*?\s\d{4}\s\d{2}:\d{2},\s.*?@.*?\s.*?wrote:.*/s";
-  preg_match($regex, $text, $matches);
-  if (!empty($matches)) {
-    return $matches;
-  }
-  else {
-    return array();
-  }
+  return array();
 }
