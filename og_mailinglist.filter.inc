@@ -10,12 +10,13 @@
 function og_mailinglist_filter_info() {
   $filters['filter_email_quote_hider'] = array(
     'title' => t('Hide quotations in emails'),
-    'description' => t('Finds quoted text from comments created via email and adds Show / Hide link.'),
-    'process callback' => '_og_mailinglist_build_quotes_toggle',
+    'description' => t('Finds quoted text from comments created via email and adds Show / Hide link. This works only when it is followed with "Limit allowed HTML" tags filter, which needs to have div, p and br tags allowed.'),
+    'process callback' => '_og_mailinglist_filter_quotes',
     'tips callback' => '_og_mailinglist_filter_tips',
     'settings callback' => '_og_mailinglist_filter_settings',
     'default settings' => array(
       'og_mailinglist_filter_quotations' => 'hidden',
+      'og_mailinglist_filter_quotations_length' => '2',
       'og_mailinglist_filter_email' => 1,
     ),
   );
@@ -34,6 +35,12 @@ function _og_mailinglist_filter_settings($form, &$form_state, $filter, $format, 
     ),
     '#default_value' => $filter->settings['og_mailinglist_filter_quotations'],
     '#description' => t('E-mail style quotations are lines starting with ">" marks.'),
+  );
+  $settings['og_mailinglist_filter_quotations_length'] = array(
+    '#title' => t('Quotations\' minimum length'),
+    '#type' => 'textfield',
+    '#default_value' => $filter->settings['og_mailinglist_filter_quotations_length'],
+    '#description' => t('Only quotations with more lines than specified value will be removed or hidden. Shorter quotations are either shown or not hidden by default. Default is 2. Values less than 2 are treated as 2.'),
   );
   $settings['og_mailinglist_filter_email'] = array(
     '#title' => t('Hide email addresses.'),
@@ -58,187 +65,199 @@ function _og_mailinglist_filter_tips($filter, $format, $long = FALSE) {
 
 /**
  * Surround quotes within an email text to make the text hidden by default.
+ * Or remove quotes entirely.
  *
  * @param string $text
- *  Text where to hide quotes.
+ *  Text where to hide or remove quotes.
  *
  * @param $filter
  *  Filter passes on e.g settings.
  *
  * @return
- *  Text with hidden quotes, contains HTML.
+ *  Text with hidden or removed quotes, contains HTML tags <div><br><p>.
  */
-function _og_mailinglist_build_quotes_toggle($text, $filter) {
-  module_load_include('inc', 'og_mailinglist', 'og_mailinglist_filter');
-
-  if ($filter->settings['og_mailinglist_filter_quotations'] == 'removed') {
-    // Remove all quoted text instead.
-    return _og_mailinglist_remove_quotes($text);
+function _og_mailinglist_filter_quotes($text, $filter) {
+  // Fetch settings.
+  $filter_type = $filter->settings['og_mailinglist_filter_quotations'];
+  $quote_min_length = (int) $filter->settings['og_mailinglist_filter_quotations_length'];
+  if ($quote_min_length < 2) {
+    $quote_min_length = 2;
   }
+
+  // Replace legacy operating systems' line break characters.
   $text = str_replace(array('\r\n', '\r'), '\n', $text);
-  $quotes = _og_mailinglist_find_quoted_sections($text);
+  $lines = explode("\n", $text);
 
-  if (!empty($quotes)) {
-    foreach ($quotes as $quote) {
-      // Run the quote through the Line break filter before replacing it in the text.
-      // Otherwise the HTML Converter input filter will bork the HTML. This *could* be a
-      // potential problem if someone doesn't want the Line Break filter run.
-      $filtered_quote = _filter_autop($quote);
-      $replace = '<div class="toggle-quoted-text">'
-        . t('- Show quoted text -') . '</div>'
-        . '<div class="quoted-text">' . $filtered_quote . '</div>';
-      $text = str_replace($quote, $replace, $text);
+  // This value is used to determine if quoted section can be relied on.
+  // If not, then we rather will not remove the section but hide it as
+  // usual. Such a behaviour might be surprising to some. Maybe needs fixing.
+  $valid_quotes = TRUE;
+  // Find the quotes.
+  $quote_ranges = _og_mailinglist_find_quoted_sections($lines);
+  if (empty($quote_ranges)) {
+    $quote_ranges = _og_mailinglist_find_unusual_quoted_sections($lines);
+    $valid_quotes = FALSE;
+  }
 
-      if ($filter->settings['og_mailinglist_filter_email'] == 1) {
-        // Remove email addresses. Regex borrowed from valid_email_address().
-        $regex = "([a-zA-Z0-9_\-\.\+\^!#\$%&*+\/\=\?\`\|\{\}~\']+@(?:(?:[a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.?)+)";
-        $text = preg_replace($regex, '***@***.***', $text);
+  $current_line = 0;
+  $text = '';
+
+  // We expect quote_ranges to be non-overlapping and sorted.
+  foreach ($quote_ranges as $quote) {
+    $start = $quote['start'];
+    $end = $quote['end'];
+    $quote_length = $end - $start + 1;
+    
+    $quote_text = '';
+    // First we append text before the quote.
+    for (; $current_line < $start; $current_line++) {
+      $quote_text .= $lines[$current_line] . "\n";
+    }
+    // Run the quote through the Line break filter before replacing it in the text.
+    // Otherwise the HTML Converter input filter will bork the HTML. This *could* be a
+    // potential problem if someone doesn't want the Line Break filter run.
+    $text .= _filter_autop($quote_text);
+
+    // Now we prepare the text inside the quote.
+    $quote_text = '';
+    for (; $current_line <= $end; $current_line++) {
+      $quote_text .= $lines[$current_line] . "\n";
+    }
+    $quote_text = _filter_autop($quote_text);
+
+    // This quote is not long enough.
+    if ($quote_length < $quote_min_length) {
+      if ($filter_type == 'hidden') {
+        $text .= '<div class="quoted-text visible">' . $quote_text . '</div>';
+      }
+      else {
+        $text .= $quote_text;
       }
     }
+    // This is normal size quote.
+    else {
+      if ($filter_type == 'removed' and $valid_quotes) {
+        // We do nothing
+      }
+      else {
+        $text .= '<div class="toggle-quoted-text">'
+          . t('- Show quoted text -') . '</div>'
+          . '<div class="quoted-text hidden">' . _filter_autop($quote_text) . '</div>';
+      }
+    }
+  }
+  $quote_text = '';
+  // Now we append any text after the last quote.
+  for (; $current_line < count($lines); $current_line++) {
+    $quote_text .= $lines[$current_line] . "\n";
+  }
+  $text .= _filter_autop($quote_text);
+
+  // Remove email addresses, if needed.
+  if ($filter->settings['og_mailinglist_filter_email'] == 1) {
+    // Regex borrowed from valid_email_address().
+    $regex = "([a-zA-Z0-9_\-\.\+\^!#\$%&*+\/\=\?\`\|\{\}~\']+@(?:(?:[a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.?)+)";
+    $text = preg_replace($regex, '***@***.***', $text);
   }
 
   return $text;
 }
 
 /**
- * Remove quotes from e-mail text entirely.
- *
- * @param string $text
- *  Text to remove quotes from.
- *
- * @return
- *  Text with quotes removed.
+ * Loops through the text line by line and tries to determine which ones are
+ * quotes. If no '>' is found at start of line, then it is considered as
+ * email from bad client and it searches for special title lines. If one is
+ * found, everything starting for that one is considered a quote.
+ * This assumes that people with bad email clients tend to top-post as well.
  */
-function _og_mailinglist_remove_quotes($text) {
-  module_load_include('inc', 'og_mailinglist', 'og_mailinglist_filter');
-  $text = str_replace(array('\r\n', '\r'), '\n', $text);
-  $quotes = _og_mailinglist_find_quoted_sections($text);
-  if (!empty($quotes)) {
-    foreach ($quotes as $quote) {
-      $text = str_replace($quote, '', $text);
+function _og_mailinglist_find_quoted_sections(&$lines) {
+  $quotes = array();
+  $in_quote = FALSE;
+  $start = $end = NULL;
+
+  foreach ($lines as $line_number => $line) {
+    if (!$in_quote and substr(ltrim($line), 0, 1) == '>') {
+      $in_quote = TRUE;
+      $start = $end = $line_number;
+    }
+    elseif ($in_quote and (
+      substr(ltrim($line), 0, 1) == '>'
+      // A empty line does not break a quote.
+      || trim($line) == ''
+      // Email address is brought down to the next line so < starts the line.
+      || substr(trim($line), 0, 1) == '<'
+      // Long email addresses sometimes get truncated leaving the second part
+      // of the line on the next line. See if previous line ended with a "<".
+      || ($line_number > 1 and substr(trim($lines[$line_number-1]), -1) == "<")
+      ))
+    {
+      // Do nothing. We are still in a quote.
+    }
+    elseif ($in_quote) {
+      $quotes[] = array('start' => $start, 'end' => $line_number - 1);
+      $in_quote = FALSE;
+      $start = NULL;
     }
   }
-  return $text;
-}
+  if ($start !== NULL) {
+    $quotes[] = array('start' => $start, 'end' => $line_number);
+  }
 
-// Possible way to simplify this. Drop the find start of quoted section and loop through it
-// and just do as doing with Hotmail/Outlook and other clients that don't quote
-// properly and match all the quoted section w/ regex.
-// This rests on the assumption that everyone will either top-post or
-// properly trim their emails where they bottom post. It seems the vast majority
-// of people do that.
-// Making the switch would vastly simplify the code.
-// We could then hold the regex for each email client in an array and just pass
-// that and the text into a function.
-function _og_mailinglist_find_quoted_sections($text) {
-  $quotes = array();
-
-  // Some email clients are "special". They don't like to place ">" in front of
-  // quotes. We need to give them their special treatment.
-  $quotes[] = _og_mailinglist_filter_strange_quotes($text);
-
-  // Identify the longest quoted section of all possible matches and only
-  // remove that one.
-  $quotes = _og_mailinglist_longest_string($quotes);
-
+  // If the line before usual > quote range is title/reference line,
+  // then include that line into quote as well.
+  foreach ($quotes as $key => $range) {
+    $new_start = _og_mailinglist_check_quote_start($lines, $range['start']);
+    if ($new_start !== NULL) {
+      $quotes[$key]['start'] = $new_start;
+    }
+  }
   return $quotes;
 }
 
-/*
- * Identify the longest quoted section as that should contain all the others
- * that are possibly within it.
- */
-function _og_mailinglist_longest_string($quotes) {
-  $longest = array();
-  foreach ($quotes as $quote) {
-    if (key($longest) < strlen(implode("", $quote))) {
-      $longest = array(strlen(implode("", $quote)) => $quote);
-    }
+function _og_mailinglist_check_quote_start(&$lines, $start) {
+  if ($start == 0) {
+    return NULL;
+  }
+  $new_start = $start - 1;
+  $text = trim($lines[$new_start]);
+  // If text is less than 10 characters, then it might be split
+  // and we add one more line.
+  if (strlen($text) < 10 and $start >= 2) {
+    $new_start--;
+    $text = trim($lines[$new_start]) . ' ' .$text;
   }
 
-  return end($longest);
-}
+  $is_title = 0;
+  // Count all digits in the string
+  preg_match_all('/[0-9]/', $text, $match);
+  $is_title += (count($match [0]) > 4) ? 0.1 : 0;
+  // If the line contains time.
+  preg_match('/[0-9]{1,2}:[0-9]{2}/', $text, $match);
+  $is_title += (!empty($match)) ? 0.2 : 0;
+  // If the line contains date.
+  preg_match('/[0-9]{2,4}[.\/][0-9]{2,4}/', $text, $match);
+  $is_title += (!empty($match)) ? 0.2 : 0;
+  // Starts with 'On ' or contains 'wrote'. Sorry, non-english speakers.
+  $is_title += (strtolower(substr($text, 0, 3)) == 'on ') ? 0.2 : 0;
+  $is_title += (strpos($text, 'wrote') != -1) ? 0.1 : 0;
+  // Whether the line ends with colon.
+  $is_title += (substr($text, -1) == ':') ? 0.2 : 0;
 
-/*
- * Loops through the text line by line. If a line matches the header of
- * an email client's quoted section, that line is marked as a beginning of a
- * quoted section. Each succeeding line which starts with a ">"
- * (the traditional indicator for email quote) is included in the quoted section.
- **/
-function _og_mailinglist_filter_quotes($text) {
-  $normal_quote_start = array(
-    // GMail
-    "/On\s\w{3},\s\w{3}\s\d{1,2},\s\d{4}\sat\s\d{1,2}:\d{2}\s[PM|AM]/s",
-    // Apple mail
-    "/On\s\w{3}\s\d{1,2},\s\d{4},\sat\s\d{1,2}:\d{2}\s(AM|PM),\s/s",
-    // unknown as of yet
-    "/On\s\w{3}\s\d{2},\s\d{4},\sat\s[0-9:]{4,5}\s(PM|AM),\s[a-zA-Z\s]+wrote:/s",
-    // Some mobile email client, blackberry maybe?
-    "/On\s\d{1,2}\/\d{1,2}\/\d{1,2},\s.+?<[a-zA-Z0-9_\-\.\+\^!#\$%&*+\/\=\?\`\|\{\}~\']+@(?:(?:[a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.?)+>\swrote:/s",
-    // unknown as of yet "On Saturday, May 22, 2010, Joe Smith wrote:"
-    "/On\s\w{3,10},\s\w{3,9}\s\d{1,2},\s\d{4},\s.+?wrote:/s",
-    // unknown as of yet "On 5/21/10 8:43 PM, Joe Smith wrote:"
-    "/On.\d{1,2}\/\d{1,2}\/\d{1,2}.\d{1,2}:\d{1,2}\s(PM|AM),.+?wrote:/s",
-    // unknown as of yet "On 30/01/11 22:38, Joe Smith wrote:"
-    "/On.\d{1,2}\/\d{1,2}\/\d{1,2}.\d{1,2}:\d{1,2},.+?wrote:/s",
-    // unknown as of yet "On 1 February 2011 10:24, Joe Smith wrote:"
-    // (the comma after the time is optional)
-    "/On\s\d{1,2}\s\w{3,9}\s\d{4}\s\d{1,2}:\d{1,2},?\s.+?wrote:/s",
-    // unknown as of yet "On 30 Jan 2011, at 13:18, Joe Smith  wrote:"
-    "/On\s\d{1,2}\s\w{3,9}\s\d{4},\sat\s\d{1,2}:\d{1,2},\s.+?wrote:/s",
-    // Thunderbird 24hr "On 21/5/10 13:45, Joe Smith wrote:"
-    "/On.\d{1,2}\/\d{1,2}\/\d{1,2}.\d{1,2}:\d{1,2},.+?wrote:/s",
-  );
-
-  $lines = explode("\n", $text);
-  $quotes = array();
-  $count = 0;
-  $in_quote = FALSE;
-
-  foreach ($lines as $line) {
-    $matched = FALSE;
-    foreach ($normal_quote_start as $regex) {
-      if (preg_match($regex, $line, $matches)) {
-        $matched = TRUE;
-        break;
-      }
-    }
-    if ($matched && !$in_quote) {
-      $quotes[$count][] = $line;
-      $in_quote = TRUE;
-    }
-    elseif ($in_quote && (trim($line) === "" || substr(trim($line), 0, 1) === ">"
-      // or the previous line ended w/ a "<" Long emails addresses
-      // (e.g. <someaddress@gmail.com>) sometimes get truncated
-      // leaving the second part of the line on the next line.
-            || substr(trim(array_pop(end($quotes))), -1) === "<"
-      // Same situation as above. But here the <someaddress@gmail.com> is
-      // brought down to the next line so the < is at the start of the line.
-            || substr(trim($line), 0, 1) === "<"
-      // And wrote: is also sometimes shoved down to the next line.
-            || substr(trim($line), 0, 6) === "wrote:")) {
-      $quotes[$count][] = $line;
-    }
-    else {
-      $in_quote = FALSE;
-      $count++;
-    }
+  // Let's see, if it looks enough like a title.
+  if ($is_title >= 0.5 ) {
+    return $new_start;
   }
-  $quotes_imploded = array();
-  foreach ($quotes as $quote) {
-    $quotes_imploded[] = implode($quote, "\n");
-  }
-  return $quotes_imploded;
+  return NULL;
 }
 
 /**
- * Filter quotes out of emails from hotmail.com.
- *
- * The assumption here is that once the headers to the quoted section begins,
- * all content after that is quotes. This seems to be how in practice people
- * send emails but occasionaly this might filter the wrong text.
+ * Go over lines array line by line and determine if that line might start
+ * a quoted section.
  */
-function _og_mailinglist_filter_strange_quotes($text) {
+function _og_mailinglist_find_unusual_quoted_sections(&$lines) {
+  // These are starting lines for quotes which need special treatment, since
+  // these clients do not place > marks to starting lines inside quote.
+  // Boo for any listed client.
   $unusual_quote_starting = array(
     // hotmail.com
     "/Date:\s\w{3},\s\d{1,2}\s\w{3}\s\d{4}\s\d{2}:\d{2}:\d{2}\s-\d{4}.Subject:\s.*?From:.*?To:\s.*/s",
@@ -255,12 +274,16 @@ function _og_mailinglist_filter_strange_quotes($text) {
     "/-----\sOriginal\sMessage\s-----.*?From:\s.*?\<.*?@.*?\>.*?To:\s.*?Subject:\s.*?Date:\s\w*?,\s\d{1,2}\s\w*?\s\d{4}\s\d{1,2}:\d{2}:\d{2}\s.*/s",
     "/On\s\d{1,2}\s\w.*?\s\d{4}\s\d{2}:\d{2},\s.*?@.*?\s.*?wrote:.*/s",
   );
-  
-  foreach ($unusual_quote_starting as $regex) {
-    preg_match($regex, $text, $matches);
-    if (!empty($matches)) {
-      return $matches;
+
+  $quotes = array();
+  foreach ($lines as $line_number => $line) {
+    foreach ($unusual_quote_starting as $regex) {
+      preg_match($regex, $line, $matches);
+      if (!empty($matches)) {
+        $quotes[] = array('start' => $line_number, 'end' => count($lines) - 1);
+        return $quotes;
+      }
     }
   }
-  return array();
+  return $quotes;
 }

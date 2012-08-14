@@ -12,6 +12,11 @@
   cursor: pointer;
 }
 .quoted-text {
+  background: #FCFCFC;
+  border-left: 1px solid gray;
+  color: #555;
+  padding-left: 0.5em;
+}
+.quoted-text.hidden {
   display: none;
-  color: #777;
 }
