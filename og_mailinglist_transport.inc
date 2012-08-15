@@ -315,7 +315,7 @@ function og_mailinglist_save_comment($email) {
   }
   $comment->comment_body[$comment->language][0]['value'] = $mailbody;
   // TODO: AGAIN WE ASSUME A NAME!!!
-  $comment->comment_body[$comment->language][0]['format'] = 'e_mail';
+  $comment->comment_body[$comment->language][0]['format'] = 'filtered_html';
 
   // Get the cid that'll be used. Yes, this isn't a very pretty way to do this.
   // If someone else creates a comment between now and when the comment is
@@ -408,7 +408,7 @@ function og_mailinglist_save_node($email) {
   $node->body[$node->language][0]['value'] = $mailbody;
   $node->body[$node->language][0]['summary'] = text_summary($mailbody);
   // TODO: here we assume the filter bundle name to be email. BAD!
-  $node->body[$node->language][0]['format'] = 'e_mail';
+  $node->body[$node->language][0]['format'] = 'filtered_html';
   // TODO: This needs love.
   //$node->status = 1; // published
   //$node->promote = 0;
