@@ -248,13 +248,13 @@ function _og_mailinglist_process_email($raw_email, $group_name = NULL) {
       }
 
       // print error message to log, then quit
-      echo t("Error: !message\n", array('!message' => $e->getMessage()));
+      echo "Error: " . $e->getMessage() . "\n";
       exit(0);
 
     }
     catch (Exception $e2) {
       // if we get here, we couldn't even send an email back to sender, so just have Exim compose an error message and send back
-      echo t("Error: !e2 ::: Embedded Error: !e\n", array('!e2' => $e2->getMessage(), '!e' => $e->getMessage()));
+      echo "Error: " . $e2->getMessage() . " ::: Embedded Error: " . $e->getMessage() . "\n";
       exit(1);
     }
   }
