@@ -746,7 +746,7 @@ function _og_mailinglist_encode_email($structure, $boundary = "", $email = "") {
       $email .= _og_mailinglist_encode_email_headers($part->headers) . "\n";
       // Encode the body as base64 if necessary
       if ($part->headers['content-transfer-encoding'] == "base64") {
-        $email .= wordwrap(base64_encode($part->body), 76, "\n", TRUE;
+        $email .= wordwrap(base64_encode($part->body), 76, "\n", TRUE);
         $email .= "\n";
       }
       else {
@@ -832,7 +832,7 @@ function _og_mailinglist_rewrite_headers($email, $node, $new_node = FALSE, $comm
 function _og_mailinglist_check_base64($body, $headers) {
   // If text/plain + base64
   if ($headers['content-transfer-encoding'] == 'base64') {
-    $email = wordwrap(base64_encode($body), 76, "\n", TRUE;
+    $email = wordwrap(base64_encode($body), 76, "\n", TRUE);
     $email .= "\n";
     return $email;
   }
