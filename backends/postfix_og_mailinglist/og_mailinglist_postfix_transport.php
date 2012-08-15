@@ -1,7 +1,8 @@
 #!/usr/bin/php
 <?php
 
-// Reads in raw email off the STDIN and posts the email using our curl command for the appropriate site.
+// Reads in raw email off the STDIN and posts the email using our curl command
+// for the appropriate site.
 
 $raw_email = '';
 // Grab the raw email message from stdin.
@@ -13,27 +14,19 @@ while (!feof($fd)) {
 // Set command line arguments (sent by the postfix transport) to variables.
 $parts = explode("@", $argv[1]);
 $mail_username = $parts[0];
-$mail_domain = $parts[1];
+$mail_domain = strtolower($parts[1]);
 
 // Load site info
 require_once('site_info.php');
 $sites = og_mailinglist_site_info();
 
-$post_url = "";
-$validation_string = "";
-// look for mail domain in site_info.php
-foreach ($sites as $domain => $info) {
-  if (strtolower($mail_domain) === $domain) {
-    $post_url = $info['post_url'];
-    $validation_string = $info['validation_string'];
-  }
-}
-
-if (empty($post_url)) {
+if (!in_array($mail_domain, $sites)) {
   echo "Could not match the email domain $mail_domain with a Drupal site. Check that you've setup site_info.php correctly.";
   exit();
 }
 
+$post_url = $sites[$mail_domain]['post_url'];
+$validation_string = $sites[$mail_domain]['validation_string'];
 $token = md5($validation_string . $raw_email);
 
 $ch = curl_init();
