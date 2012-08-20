@@ -262,39 +262,28 @@ function og_mailinglist_get_phpmailer_plugin_dir() {
  * Load the mimeDecode library.
  */
 function og_mailinglist_mimeDecode_load_library() {
+  // Check the standard include path for the file first
   if (!class_exists('Mail_mimeDecode')) {
-    // First we'll try grabbing the file from a few default pear install locations.
-    if (file_exists('Mail/mimeDecode.php')) {
-      include_once 'Mail/mimeDecode.php';
-    }
-    if (!class_exists('Mail_mimeDecode')) {
-      if (file_exists('/usr/share/php/Mail/mimeDecode.php')) {
-        include_once '/usr/share/php/Mail/mimeDecode.php';
-      }
-    }
-    if (!class_exists('Mail_mimeDecode')) {
-      if (file_exists('/usr/share/pear/Mail/mimeDecode.php')) {
-        include_once '/usr/share/pear/Mail/mimeDecode.php';
-      }
-    }
-    // If that didn't work, let's try using the libraries module.
-    if (!class_exists('Mail_mimeDecode')) {
-      if (module_exists('libraries')) {
-        // Let's see if PHPMailer is really available from libraries.
-        $mail_mimedecode_library = './' . libraries_get_path('mimeDecode') . '/mimeDecode.php';
-        if (file_exists($mail_mimedecode_library)) {
-          include_once $mail_mimedecode_library;
-        }
-      }
-    }
-    // If Mail_mimeDecode is still not loaded, then try from module subdirectory.
-    if (!class_exists('Mail_mimeDecode')) {
-      $mail_mimedecode_library = './' . drupal_get_path('module', 'og_mailinglist') . '/mimeDecode/mimeDecode.php';
-      if (file_exists($mail_mimedecode_library)) {
-        include_once $mail_mimedecode_library;
-      }
-    }
-
+    // With @ we surpress the Warning in case the file isn't found.
+    @include_once('Mail/mimeDecode.php');
+  }
+  // Next we'll try grabbing the file from a few default pear install locations.
+  if (!class_exists('Mail_mimeDecode')) {
+    @include_once '/usr/share/php/Mail/mimeDecode.php';
+  }
+  if (!class_exists('Mail_mimeDecode')) {
+    @include_once '/usr/share/pear/Mail/mimeDecode.php';
+  }
+  // If that didn't work, let's try using the libraries module.
+  if (!class_exists('Mail_mimeDecode') and module_exists('libraries')) {
+    // Let's see if PHPMailer is really available from libraries.
+    $mail_mimedecode_library = './' . libraries_get_path('mimeDecode') . '/mimeDecode.php';
+    @include_once $mail_mimedecode_library;
+  }
+  // If Mail_mimeDecode is still not loaded, then try from module subdirectory.
+  if (!class_exists('Mail_mimeDecode')) {
+    $mail_mimedecode_library = './' . drupal_get_path('module', 'og_mailinglist') . '/mimeDecode/mimeDecode.php';
+    @include_once $mail_mimedecode_library;
   }
   // Tell the caller if Mail_mimeDecode class exists.
   return class_exists('Mail_mimeDecode');
