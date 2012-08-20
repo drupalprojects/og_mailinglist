@@ -166,6 +166,12 @@ function _og_mailinglist_process_email($raw_email, $group_name = NULL) {
       ));
     }
 
+    // Additional check that user has access to publish content
+    $node_type = variable_get('og_mailinglist_default_content_type', 'article');
+    if (!user_access('create ' . $node_type  . ' content', $user)) {
+      throw new Exception(t("You do not have permission to post to this group. Please contact the site administrator."));
+    }
+
     // See if the email is a comment to an existing node or a new node.
     // If the email is a comment to a node, we should be able to get the Node ID of the original node.
     $email['nid'] = og_mailinglist_parse_nid($email['text_plain'], $email['structure']->headers);
