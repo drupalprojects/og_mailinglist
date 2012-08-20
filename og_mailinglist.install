@@ -391,9 +391,9 @@ function og_mailinglist_create_subscriptions_for_last_month($gid) {
           JOIN {node} n
           ON o.nid = n.nid
           WHERE o.group_nid = %d
-          AND n.created > (unix_timestamp() - 2592000)";
+          AND n.created > (%d - 2592000)";
 
-  $results = db_query($sql, $gid);
+  $results = db_query($sql, $gid, time());
 
   while ($data = db_fetch_array($results)) {
     og_mailinglist_save_group_thread_subscriptions($gid, $data['nid']);
