@@ -224,33 +224,3 @@ function og_mailinglist_subscriptions_settings_form($form, $account) {
 
   return $form;
 }
-
-/**
- * Form submit handler.
- */
-function og_mailinglist_subscriptions_settings_form_submit($form, &$form_state) {
-  $uid = $form_state['values']['uid'];
-  unset($form_state['values']['uid']);
-  foreach ($form_state['values'] as $gid => $settings) {
-    if (is_numeric($gid)) {
-      og_mailinglist_update_group_subcription_type($gid, $uid, $settings['subscription-type']);
-
-      if ($settings['subscription-type']['#value'] != "email") {
-        og_mailinglist_delete_group_threads($gid, $uid);
-      }
-
-      // If they choose to leave the group.
-      if ($settings['leave-group']) {
-        og_ungroup($gid, 'user', $uid);
-        $group_name = $form[$gid]['title'];
-        drupal_set_message(
-          t("You are no longer in the <a href='@gid'>@group_name</a> group.",
-          array(
-            "@gid" => url("node/" . $gid),
-            "@group_name" => $group_name,
-          )));
-      }
-    }
-  }
-  drupal_set_message(t('Your group subscriptions were updated.'));
-}

@@ -104,9 +104,45 @@ function og_mailinglist_subscription_settings_form($form, &$form_state, $group_n
 }
 
 /**
+ * Form submit handler.
+ */
+function og_mailinglist_subscriptions_settings_form_submit($form, &$form_state) {
+  if (isset($form_state['values']['uid'])) {
+    $uid = $form_state['values']['uid'];
+  }
+  else {
+    global $user;
+    $uid = $user->uid;
+  }
+  unset($form_state['values']['uid']);
+  foreach ($form_state['values'] as $gid => $settings) {
+    if (is_numeric($gid)) {
+      og_mailinglist_update_group_subcription_type($gid, $uid, $settings['subscription-type']);
+
+      if ($settings['subscription-type']['#value'] != "email") {
+        og_mailinglist_delete_group_threads($gid, $uid);
+      }
+
+      // If they choose to leave the group.
+      if ($settings['leave-group']) {
+        og_ungroup($gid, 'user', $uid);
+        $group_name = $form[$gid]['title'];
+        drupal_set_message(
+          t("You are no longer in the <a href='@gid'>@group_name</a> group.",
+          array(
+            "@gid" => url("node/" . $gid),
+            "@group_name" => $group_name,
+          )));
+      }
+    }
+  }
+  drupal_set_message(t('Your group subscriptions were updated.'));
+}
+
+/**
  * Implements hook_help().
  */
-function og_mailinglist_help($path, $args) {
+function og_mailinglist_block_help($path, $args) {
   switch ($path) {
     case 'admin/help#og_mailinglist_block':
       return t('This module provides a block to subscribe to / unsubscribe from a group. To enable the block go to admin/structure/block. This block is shown only for the nodes which belong to a group which is handled by OG Mailinglist module.');
