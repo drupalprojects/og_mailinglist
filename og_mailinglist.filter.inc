@@ -189,8 +189,7 @@ function _og_mailinglist_find_quoted_sections(&$lines) {
       // Long email addresses sometimes get truncated leaving the second part
       // of the line on the next line. See if previous line ended with a "<".
       || ($line_number > 1 and substr(trim($lines[$line_number-1]), -1) == "<")
-      ))
-    {
+      )) {
       // Do nothing. We are still in a quote.
     }
     elseif ($in_quote) {
@@ -224,7 +223,7 @@ function _og_mailinglist_check_quote_start(&$lines, $start) {
   // and we add one more line.
   if (strlen($text) < 10 and $start >= 2) {
     $new_start--;
-    $text = trim($lines[$new_start]) . ' ' .$text;
+    $text = trim($lines[$new_start]) . ' ' . $text;
   }
 
   $is_title = 0;

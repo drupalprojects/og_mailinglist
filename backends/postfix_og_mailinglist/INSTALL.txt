@@ -1,4 +1,4 @@
-og_mailing list: Installation in a Postfix environment.
+og_mailinglist: Installation in a Postfix environment.
 
 The integration between og_mailinglist and Postfix requires:
 

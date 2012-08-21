@@ -168,7 +168,7 @@ function _og_mailinglist_process_email($raw_email, $group_name = NULL) {
 
     // Additional check that user has access to publish content
     $node_type = variable_get('og_mailinglist_default_content_type', 'article');
-    if (!user_access('create ' . $node_type  . ' content', $user)) {
+    if (!user_access('create ' . $node_type . ' content', $user)) {
       throw new Exception(t("You do not have permission to post to this group. Please contact the site administrator."));
     }
 
@@ -204,7 +204,7 @@ function _og_mailinglist_process_email($raw_email, $group_name = NULL) {
       $treated_subject =  preg_replace("/^[RrEe:]{3}\s\[[\w-]*\]/", "", $email['headers']['subject']);
 
       if (levenshtein($node->title, $treated_subject) > 7) {
-        // The subject was changed so we'll create a new node now intead of a comment.
+        // The subject was changed so we'll create a new node now instead of a comment.
         // Unset the in-reply-to and references headers so this new thread doesn't get merged with the old thread.
         unset($email['headers']['in-reply-to']);
         unset($email['structure']->headers['in-reply-to']);
