@@ -69,7 +69,7 @@ The simplest way of linking an address to the transport script is by using a
 pipe command in your Postfix alias file (as is often done for Mailman
 addresses):
 
-test:              "|/etc/postfix/og_mailinglist_script.sh ${DOMAIN}"
+test:              "|/etc/postfix/og_mailinglist_script.sh ${RECIPIENT}"
 
 Your script will need to invoke og_mailinglist_postfix_transport.php,
 sending the text of the message (which it received on stdin)
@@ -82,8 +82,15 @@ Sample test script:
 #!/bin/bash
 
 cat >/tmp/message.$$
-(cd /etc/postfix/og_mailinglist; cat /tmp/message.$$ | \
-  ./og_mailinglist_postfix_transport.php $1 >/tmp/message.$$.log 2>&1 )
+(cat /tmp/message.$$ | \
+ /etc/postfix/og_mailinglist/og_mailinglist_postfix_transport.php $1 > \
+ /tmp/message.$$.log 2>&1 )
+
+
+To test this script you could invoke it from command line as follows (when
+inside the og_mailinglist directory; you also need to adjust From field to
+match your user account in Drupal):
+/etc/postfix/og_mailinglist_script.sh test@example.com < testing/applemail
 
 As mentioned above, if you follow step 2, you can stop here. The following steps
 provide an alternative to step 2 that may be preferable in some circumstances.
@@ -115,4 +122,4 @@ test@groups.example.com organic_groups:
 Finally, in /etc/postfix/master.cf, you want to define the 'organic_groups' transport...
 
   flags=FR user=nobody directory=/etc/postfix/og_mailinglist \
-    argv=debug.sh ${domain}
+    argv=og_mailinglist_postfix.php ${recipient}
