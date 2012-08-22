@@ -818,7 +818,7 @@ function _og_mailinglist_rewrite_headers($email, $node, $new_node = FALSE, $comm
   $new_headers['mime-version'] = $headers['mime-version'];
   $new_headers['date'] = $headers['date'];
   if ($new_node) {
-    $new_headers['subject'] = "[" . $group_node->group_email . "] " . $node->title;
+    $new_headers['subject'] = "[" . $group_email . "] " . $node->title;
   }
   else {
     $new_headers['subject'] = $headers['subject'];
