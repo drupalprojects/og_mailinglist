@@ -57,6 +57,17 @@ function og_mailinglist_content_types_settings() {
     '#options' => $n_types,
     '#description' => t('Choose the default content type to be created from new emails.'),
   );
+  $filter_list = array();
+  foreach (filter_formats() as $machine_name => $filter) {
+    $filter_list[$machine_name] = $filter->name;
+  }
+  $form['og_mailinglist_default_filter_format'] = array(
+    '#title' => t('Default filter format'),
+    '#type' => 'select',
+    '#default_value' => variable_get('og_mailinglist_default_filter_format', 'plain_text'),
+    '#options' => $filter_list,
+    '#description' => t('Choose the default filter format to be used on new nodes which are sent from email.'),
+  );
   $form['og_mailinglist_exclude_content_types'] = array(
     '#title' => t('Exclude the following content types'),
     '#type' => 'select',
