@@ -22,34 +22,21 @@ function _og_mailinglist_send_digest_emails() {
   // Get list of groups where at least one person has subscribed to a digest node
   // and which had a new post or comment in the last 24 hours.
 
-  $groups_with_new_nodes = db_query('SELECT DISTINCT s.nid
-            FROM {og_mailinglist_group_subscription} s
-            JOIN {og} o
-            JOIN {node} n
-            ON s.nid = o.group_nid
-            WHERE o.etid = n.nid
-            AND o.entity_type = "node"
-            AND n.created > :digest_time
-            AND s.subscription_type = "digest email"',
-            array(
-              ':digest_time' => $digest_start,
-              ':subscription_type' => 'digest email',
-            ));
+  $query = db_select('og_mailinglist_group_subscription', 'ogms');
+  $query->join('node', 'n', 'ogms.nid = n.nid');
+  $query->condition('n.created', $digest_start, '>');
+  $query->condition('n.status', 1);
+  $query->condition('ogms.subscription_type', 'digest email');
+  $query->addField('ogms', 'nid');
+  $groups_with_new_nodes = $query->execute();
 
-  $groups_with_new_comments = db_query('SELECT DISTINCT s.nid
-            FROM {og_mailinglist_group_subscription} s
-            JOIN {og} o
-            JOIN {comments} c
-            ON s.nid = o.etid
-            WHERE o.entity_type = "node"
-            AND c.status = 0
-            AND o.nid = c.nid
-            AND c.timestamp > :digest_time
-            AND s.subscription_type = :subscription_type',
-            array(
-              ':digest_time' => $digest_start,
-              ':subscription_type' => 'digest email',
-            ));
+  $query = db_select('og_mailinglist_group_subscription', 'ogms');
+  $query->join('comment', 'c', 'ogms.nid = c.nid');
+  $query->condition('c.created', $digest_start, '>');
+  $query->condition('c.status', '1');
+  $query->condition('ogms.subscription_type', 'digest email');
+  $query->addField('ogms', 'nid');
+  $groups_with_new_comments = $query->execute();
 
   $digest_groups = array();
   foreach ($groups_with_new_comments as $data) {
@@ -60,42 +47,37 @@ function _og_mailinglist_send_digest_emails() {
   }
 
   foreach ($digest_groups as $gid) {
-    $group = node_load(array('nid' => $gid));
-    // Get list of new activity -- new nodes and new comments
-    $nids_with_new_nodes = db_query('SELECT o.nid
-      FROM {node} n
-      JOIN {og} o
-      ON n.nid = o.etid
-      WHERE o.entity_type = "node"
-      AND n.created > :digest_time
-      AND o.group_nid = :gid',
-      array(
-        ':digest_time' => $digest_start,
-        ':gid' => $gid,
-      ));
+    $group = node_load($gid);
 
-    $nids_with_new_comments = db_query('SELECT c.nid, c.cid
-      FROM {comments} c
-      JOIN {og} o
-      ON c.nid = o.etid
-      WHERE o.entity_type = "node"
-      AND c.status = 0
-      AND c.timestamp > :digest_time
-      AND o.group_nid = :gid',
-      array(
-        ':digest_time' => $digest_start,
-        ':gid' => $gid,
-      ));
+    // Get list of new activity -- new nodes and new comments
+    $query = db_select('og_membership', 'ogm');
+    $query->condition('ogm.entity_type', 'node');
+    $query->condition('ogm.created', $digest_start, '>');
+    $query->condition('ogm.state', 1);
+    $query->condition('ogm.gid', $gid);
+    $query->addField('ogm', 'etid');
+    $nids_with_new_nodes = $query->execute();
+
+    $query = db_select('comment', 'c');
+    $query->join('og_membership', 'ogm', 'c.nid = ogm.etid');
+    $query->condition('ogm.entity_type', 'node');
+    $query->condition('ogm.state', 1);
+    $query->condition('ogm.gid', 1);
+    $query->condition('c.created', $digest_start, '>');
+    $query->condition('c.status', 1);
+    $query->fields('c', array('cid', 'nid'));
+    $query->addField('ogm', 'etid');
+    $nids_with_new_comments = $query->execute();
 
     $nids = array();
     foreach ($nids_with_new_comments as $data) {
-      $nid = $data->nid;
+      $nid = $data->etid;
       $nids[$nid]['status'] = "old";
       $nids[$nid]['node_obj'] = node_load($nid);
-      $nids[$nid][$data->cid] = _comment_load($data->cid);
+      $nids[$nid]['comments'][$data->cid] = _comment_load($data->cid);
     }
     foreach ($nids_with_new_nodes as $data) {
-      $nid = $data->nid;
+      $nid = $data->etid;
       $nids[$nid]['status'] = "new";
       $nids[$nid]['node_obj'] = node_load($nid);
     }
@@ -187,12 +169,12 @@ function _og_mailinglist_send_digest_emails() {
       . "<br />";
 
     // For each person, send out an email.
-    $emails = db_select('og_mailinglist_group_subscription', 'og')
-      ->join('users', 'u', 'og.uid = u.uid')
-      ->groupBy('u.uid') // this line might be unnecessary
-      ->fields('u.mail')
-      ->condition('og.nid', $gid)
-      ->condition('og.subscription_type', 'digest email');
+    $query = db_select('og_mailinglist_group_subscription', 'ogms');
+    $query->join('users', 'u', 'ogms.uid = u.uid');
+    $query->condition('ogms.nid', $gid);
+    $query->condition('ogms.subscription_type', 'digest email');
+    $query->addField('u', 'mail');
+    $users = $query->execute();
 
     // Add a test user if any.
     if ($uid = variable_get('og_mailinglist_test_email_address', '')) {
