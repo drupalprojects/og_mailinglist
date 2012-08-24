@@ -170,13 +170,9 @@ function og_mailinglist_send_node_email($node, $gids) {
  * Add needed email headers.
  */
 function og_mailinglist_add_email_headers($mailer, $node, $group_node, $comment = Null, $in_reply_to = Null, $references = Null) {
+  $group_name = _og_mailinglist_get_group_name($group_node);
   $server = variable_get('og_mailinglist_server_string', $_SERVER['SERVER_NAME']);
-  $group_email = $group_node->group_email[LANGUAGE_NONE][0]['value'];
-  // TODO: when node data is not prepared for viewing, viewing hooks are
-  // not applied. So we do it manually. This is a hack, although it's safe.
-  if (strpos($group_email, '@') === FALSE)  {
-    $group_email = $group_email . '@' . $server;
-  }
+  $group_email = $group_name . '@' . $server;
 
   $mailer->AddCustomHeader($mailer->HeaderLine("List-Id", "<" . $group_email . ">"));
   $mailer->AddCustomHeader($mailer->HeaderLine("List-Post", "<mailto:" . $group_email . ">"));
@@ -205,7 +201,9 @@ function og_mailinglist_add_email_headers($mailer, $node, $group_node, $comment 
 }
 
 function _og_mailinglist_add_sender($mailer, $node, $group_node, $comment = NULL) {
-  $group_email = $group_node->group_email[LANGUAGE_NONE][0]['value'];
+  $group_name = _og_mailinglist_get_group_name($group_node);
+  $server = variable_get('og_mailinglist_server_string', $_SERVER['SERVER_NAME']);
+  $group_email = $group_name . '@' . $server;
 
   if (!empty($comment->uid)) {
     $author = user_load($comment->uid);
@@ -221,7 +219,6 @@ function _og_mailinglist_add_sender($mailer, $node, $group_node, $comment = NULL
     $author_name = $author->name;
   }
 
-  $server = variable_get('og_mailinglist_server_string', $_SERVER['SERVER_NAME']);
   if ($author->uid == 0) {
     $author->mail = "anonymous@" . $server;
     $author_name = t("anonymous");
@@ -230,7 +227,7 @@ function _og_mailinglist_add_sender($mailer, $node, $group_node, $comment = NULL
   try {
     $mailer->From = $author->mail;
     $mailer->FromName = $author_name;
-    $mailer->AddAddress($group_email . "@" . $server, $group_node->title);
+    $mailer->AddAddress($group_email, $group_node->title);
   }
   catch (phpmailerException $e) {
     watchdog('og_mailinglist', 'PHPMailer error: !error', array('!error' => $e->errorMessage()), NULL, WATCHDOG_ERROR);
@@ -263,9 +260,11 @@ function _og_mailinglist_add_recipients($mailer, $node, $group_node, &$messaged_
 }
 
 function _og_mailinglist_get_group_emails($group_nodes) {
+  $server = variable_get('og_mailinglist_server_string', $_SERVER['SERVER_NAME']);
   $mails = array();
   foreach ($group_nodes as $group_node) {
-    $mails[] = $group_node->group_email[LANGUAGE_NONE][0]['value'];
+    $group_name = _og_mailinglist_get_group_name($group_node);
+    $mails[] = $group_name . '@' . $server;
   }
   return $mails;
 }

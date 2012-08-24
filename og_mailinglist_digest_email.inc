@@ -48,6 +48,9 @@ function _og_mailinglist_send_digest_emails() {
 
   foreach ($digest_groups as $gid) {
     $group = node_load($gid);
+    $group_name = _og_mailinglist_get_group_name($group_node);
+    $server = variable_get("og_mailinglist_server_string", $_SERVER['SERVER_NAME']);
+    $group_email = $group_name . '@' . $server;
 
     // Get list of new activity -- new nodes and new comments
     $query = db_select('og_membership', 'ogm');
@@ -88,17 +91,12 @@ function _og_mailinglist_send_digest_emails() {
       $message_count += og_mailinglist_count_new_messages($nid);
     }
 
-    $group_email = db_query("SELECT group_email
-                                        FROM {og_mailinglist}
-                                        WHERE nid = :nid", array(':nid' => $gid))->fetchField();
-
-    $server_name = variable_get("og_mailinglist_server_string", $_SERVER['SERVER_NAME']);
     $messages = format_plural($message_count, '1 message', '@count messages');
     $discussions = format_plural(count($nids), '1 discussion', '@count discussions');
     $subject = t('[@ogmemail] Digest for @groupemail - @messages in @discussions',
       array(
-        '@ogmemail' => $group->group_email,
-        '@groupemail' => $group_email . "@" . $server_name,
+        '@ogmemail' => $group_name,
+        '@groupemail' => $group_email,
         '@messages' => $messages,
         '@discussions' => $discussions,
       ));
@@ -156,7 +154,7 @@ function _og_mailinglist_send_digest_emails() {
     $body .= t("You received this message because you are a member of the \"@group\" group on @server",
       array(
         '@group' => $group->title,
-        '@server' => $server_name,
+        '@server' => $server,
       ))
      . "<br />";
     $body .= t("To unsubscribe from this group, visit @url",
@@ -164,7 +162,7 @@ function _og_mailinglist_send_digest_emails() {
       . "<br />";
     $body .= t("To post a new message to this group, email @email",
       array(
-        '@email' =>  $group_email . "@" . $server_name,
+        '@email' =>  $group_email,
       ))
       . "<br />";
 
@@ -191,12 +189,10 @@ function _og_mailinglist_send_digest_emails() {
         continue;
       }
       $mailer = og_mailinglist_create_mailer();
-      $mailer->From = $group->group_email . "+no-reply@" . $server_name;
+      $mailer->From = $group->group_name . "+no-reply@" . $server_name;
       $mailer->FromName = $group_email . "@" . $server_name;
-      $mailer->AddCustomHeader($mailer->HeaderLine("List-Id", "<" . $group->group_email .
-            "@" . $server_name . ">"));
-      $mailer->AddCustomHeader($mailer->HeaderLine("List-Post", "<mailto:" . $group->group_email .
-            "@" . $server_name . ">"));
+      $mailer->AddCustomHeader($mailer->HeaderLine("List-Id", "<" . $group_email . ">"));
+      $mailer->AddCustomHeader($mailer->HeaderLine("List-Post", "<mailto:" . $group_email . ">"));
       $mailer->AddCustomHeader($mailer->HeaderLine("List-Archive", url("node/" .
             $group->nid, array('absolute' => TRUE))));
       $mailer->AddAddress($email);
@@ -205,7 +201,7 @@ function _og_mailinglist_send_digest_emails() {
       $mailer->isHTML(TRUE);
       $mailer->Send();
       watchdog('og_mailinglist', 'Sent digest email to @email for group @group',
-                array('@email' => $email, '@group' => $group->title), WATCHDOG_INFO);
+                array('@email' => $group_email, '@group' => $group->title), WATCHDOG_INFO);
     }
   }
 }
@@ -233,8 +229,9 @@ function og_mailinglist_style_node_message($node) {
  */
 function og_mailinglist_style_comment_message($comment) {
   $user = user_load(array('uid' => $comment->uid));
+  $name = isset($user->realname) ? $user->realname : $user->name;
   $body = "<div style=\"" . MESSAGE_HEADER . "\"><strong>" .
-    l((isset($user->realname) ? $user->realname : $user->name), "user/" . $user->uid, array('absolute' => TRUE))
+    l($name, "user/" . $user->uid, array('absolute' => TRUE))
     . "</strong> " . $user->mail . " " .
     date("d M Y — g:ia O", $comment->timestamp) . "</div>\n";
 

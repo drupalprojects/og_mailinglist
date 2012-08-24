@@ -38,9 +38,9 @@ function _og_mailinglist_get_subscribers($node, $group_node, $new_node = FALSE) 
 
 function og_mailinglist_build_subject($group_nodes) {
   $title_groups = '';
-  foreach ($group_nodes as $group) {
-    $email_prefix = $group->group_email[LANGUAGE_NONE][0]['value'];
-    $title_groups .= '[' . $email_prefix . ']';
+  foreach ($group_nodes as $group_node) {
+    $group_name = _og_mailinglist_get_group_name($group_node);
+    $title_groups .= '[' . $group_name . ']';
   }
   return $title_groups;
 }
@@ -287,4 +287,22 @@ function og_mailinglist_mimeDecode_load_library() {
   }
   // Tell the caller if Mail_mimeDecode class exists.
   return class_exists('Mail_mimeDecode');
+}
+
+/*
+ * Get group name from group object.
+ *
+ * $group_node Group node object.
+ */
+function _og_mailinglist_get_group_name($group_node) {
+  $fields = field_get_items('node', $group_node, OG_MAILINGLIST_EMAIL_FIELD);
+  $group_name = current($fields)['value'];
+  // TODO: A hack to ensure this really is a name. Sometimes for viewing it
+  // gets passed through og_mailinglist_field_formatter_prepare_view()
+  if (strpos($group_name, '@') !== FALSE)  {
+    $name = $group_name;//
+    $group_name = substr($group_name, 0, strpos($group_name, '@') - 1);
+    drupal_set_message($name.' '.$group_name);//
+  }
+  return $group_name;
 }

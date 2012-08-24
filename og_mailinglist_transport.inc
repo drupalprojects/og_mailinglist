@@ -61,12 +61,12 @@ function _og_mailinglist_process_email($raw_email, $group_name = NULL) {
     }
 
     // Parse the group name from the email. Regex borrowed from valid_email_address().
-    $server_string = variable_get("og_mailinglist_server_string", $_SERVER['SERVER_NAME']);
+    $server = variable_get("og_mailinglist_server_string", $_SERVER['SERVER_NAME']);
     if (empty($group_name)) {
-      if (preg_match("/([a-zA-Z0-9_\-\.\+\^!#\$%&*+\/\=\?\`\|\{\}~\']+)@" . $server_string . "/", $email['headers']['to'], $matches)) {
+      if (preg_match("/([a-zA-Z0-9_\-\.\+\^!#\$%&*+\/\=\?\`\|\{\}~\']+)@" . $server . "/", $email['headers']['to'], $matches)) {
         $group_name = $matches[1];
       }
-      if (preg_match("/([a-zA-Z0-9_\-\.\+\^!#\$%&*+\/\=\?\`\|\{\}~\']+)@" . $server_string . "/", $email['headers']['cc'], $matches)) {
+      if (preg_match("/([a-zA-Z0-9_\-\.\+\^!#\$%&*+\/\=\?\`\|\{\}~\']+)@" . $server . "/", $email['headers']['cc'], $matches)) {
         $group_name = $matches[1];
       }
     }
@@ -137,7 +137,7 @@ function _og_mailinglist_process_email($raw_email, $group_name = NULL) {
     // We are safe since the group_email field is required to be lowercase.
     $query = new EntityFieldQuery;
     $query->entityCondition('entity_type', 'node')
-      ->fieldCondition('group_email', 'value', strtolower($group_name));
+      ->fieldCondition(OG_MAILINGLIST_EMAIL_FIELD, 'value', strtolower($group_name));
     $result = $query->execute();
     $email['groupid'] = key($result['node']);
 
@@ -809,10 +809,12 @@ function _og_mailinglist_rewrite_headers($email, $node, $new_node = FALSE, $comm
   }
   // TODO: This one here looks like a slight hack.
   $group_nodes = node_load_multiple($gids);
-  $group_node = $group_nodes[key($group_nodes)];
-  $group_email = $group_node->group_email[$group_node->language][0]['value'];
+  $group_node = current($group_nodes);
 
-  $server = variable_get('og_mailinglist_server_string', $_SERVER['SERVER_NAME']);
+  $group_name = _og_mailinglist_get_group_name($group_node);
+  $server = variable_get("og_mailinglist_server_string", $_SERVER['SERVER_NAME']);
+  $group_email = $group_name . '@' . $server;
+
   $headers = $email['structure']->headers;
   $new_headers = array();
   $new_headers['mime-version'] = $headers['mime-version'];
@@ -825,19 +827,19 @@ function _og_mailinglist_rewrite_headers($email, $node, $new_node = FALSE, $comm
   }
 
   $new_headers['from'] = $headers['from'];
-  $new_headers['to'] = $group_email . "@" . $server;
+  $new_headers['to'] = $group_email;
   $new_headers['bcc'] = _og_mailinglist_get_subscribers($node, $group_node, $new_node);
   $new_headers['content-type'] = $headers['content-type'];
   $new_headers['content-transfer-encoding'] =  $headers['content-transfer-encoding'];
 
   // Add a reply-to header directed to the group if enabled.
   if (variable_get('og_mailinglist_reply_to_group', FALSE)) {
-    $new_headers['reply-to'] = $group_email . "@" . $server;
+    $new_headers['reply-to'] = $group_email;
   }
 
   // Add list headers.
-  $new_headers['List-Id'] = "<" . $group_email . "@" . $server . ">";
-  $new_headers['List-Post'] = "<mailto:" . $group_email . "@" . $server . ">";
+  $new_headers['List-Id'] = "<" . $group_email . ">";
+  $new_headers['List-Post'] = "<mailto:" . $group_email . ">";
   $new_headers['List-Archive'] = url("node/" . $group_node->nid, array('absolute' => TRUE));
 
   // Thread-URL header.
@@ -845,7 +847,7 @@ function _og_mailinglist_rewrite_headers($email, $node, $new_node = FALSE, $comm
   $new_headers['X-Thread-Url'] = $base_url . "/node/" . $node->nid;
 
   // Set x-BeenThere header
-  $new_headers['X-BeenThere'] = $group_email . "@" . $server;
+  $new_headers['X-BeenThere'] = $group_email;
 
   // Set Message-Id
   $new_headers['Message-ID'] = $email['headers']['message-id'];
