@@ -92,7 +92,9 @@ function _og_mailinglist_process_email($raw_email, $group_name = NULL) {
       $mailfrom = $matches[1];
     }
     $user = user_load_by_mail($mailfrom);
-    $email['userid'] = $user->uid;
+    if ($user) {
+      $email['userid'] = $user->uid;
+    }
 
     if (!$user) {
       // If not posting from their normal email account, let's try their mail alias.
@@ -120,16 +122,16 @@ function _og_mailinglist_process_email($raw_email, $group_name = NULL) {
       throw new Exception($exception);
     }
     // Check how many posts have been made by this user (for security).
-    if (variable_get('og_mailinglist_max_posts_per_hour', 20) > 0) {
-      $one_hour_ago = REQUEST_TIME - (60 * 60);
+    if ($max_posts = variable_get('og_mailinglist_max_posts_per_hour', 20) > 0) {
+      $one_hour_ago = REQUEST_TIME - 3600;
       $num_recent_posts = db_select('node', 'n')
         ->condition('n.uid', $email['userid'])
         ->condition('n.created', $one_hour_ago, '>')
         ->countQuery()
         ->execute()
         ->fetchField();
-      if ($num_recent_posts > variable_get('og_mailinglist_max_posts_per_hour', 20)) {
-        throw new Exception(t("You have posted via email too many times in the last hour.  For security reasons, please wait a while or post through the regular web interface."));
+      if ($num_recent_posts > $max_posts) {
+        throw new Exception(t("You have posted via email too many times in the last hour. For security reasons, please wait a while or post through the regular web interface."));
       }
     }
 
@@ -300,7 +302,7 @@ function og_mailinglist_save_comment($email) {
 
   $mailbody = $email['mailbody'];
 
-  // Create an array representing the comment
+  // Create an object representing the comment
   $comment = new stdClass();
   $comment->cid = 0;
   $comment->nid = $nid;
@@ -308,7 +310,7 @@ function og_mailinglist_save_comment($email) {
   $comment->language = LANGUAGE_NONE;
   $comment->is_anonymous = 0;
   $comment->status = COMMENT_PUBLISHED;
-  $comment->node_type = 'comment_node_grupi_sisu';
+  $comment->node_type = 'comment_node_' . $node->type;
 
   if (preg_match("/re:\s*\[.*?\]\s*(.*)/i", $email['headers']['subject'], $matches)) {
     $comment->subject = $matches[1];

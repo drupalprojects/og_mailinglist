@@ -109,10 +109,10 @@ function _og_mailinglist_send_digest_emails() {
     $body .= t("Group: @url",
       array('@url' => url("node/" . $gid, array('absolute' => TRUE)))) . "\n";
     $body .= "<ul>\n";
-    foreach ($nids as $nid) {
-      $body .= "<li>" . l($nid['node_obj']->title, "",
+    foreach ($nids as $nid => $node) {
+      $body .= "<li>" . l($node['node_obj']->title, "",
         array(
-          'fragment' => "digest-" . $nid['node_obj']->nid,
+          'fragment' => "digest-" . $nid,
           'external' => TRUE
         ))
         . " ("
@@ -124,27 +124,25 @@ function _og_mailinglist_send_digest_emails() {
     $body .= "<hr />\n";
 
     // Add individual posts.
-    foreach ($nids as $nid) {
-      $body .= '<a name="digest-' . $nid['node_obj']->nid . '"></a>';
+    foreach ($nids as $nid => $node) {
+      $body .= '<a name="digest-' . $nid . '"></a>';
       $body .= '<div style="' . DISCUSSION_HEADER . '">';
       $body .= t("Discussion: @link",
         array(
-          '@link' => l($nid['node_obj']->title,
-            "node/" . $nid['node_obj']->nid,
+          '@link' => l($node['node_obj']->title,
+            "node/" . $nid,
             array('absolute' => TRUE))
         ))
         . "\n";
       $body .= "</div>";
       $body .= "<blockquote>\n";
       // If new node created today.
-      if ($nid['status'] === "new") {
-        $body .= og_mailinglist_style_node_message($nid['node_obj']);
+      if ($node['status'] === "new") {
+        $body .= og_mailinglist_style_node_message($node['node_obj']);
       }
 
-      foreach ($nid as $cid => $comment) {
-        if (is_numeric($cid)) {
-          $body .= og_mailinglist_style_comment_message($comment);
-        }
+      foreach ($node['comments'] as $cid => $comment) {
+        $body .= og_mailinglist_style_comment_message($comment);
       }
       $body .= "</blockquote>\n";
     }
@@ -172,7 +170,7 @@ function _og_mailinglist_send_digest_emails() {
     $query->condition('ogms.nid', $gid);
     $query->condition('ogms.subscription_type', 'digest email');
     $query->addField('u', 'mail');
-    $users = $query->execute();
+    $emails = $query->execute();
 
     // Add a test user if any.
     if ($uid = variable_get('og_mailinglist_test_email_address', '')) {
@@ -184,10 +182,12 @@ function _og_mailinglist_send_digest_emails() {
     }
 
     foreach ($emails as $email) {
+      $email = $email->mail;
       // Ensure email is valid.
       if (!valid_email_address($email)) {
         continue;
       }
+
       $mailer = og_mailinglist_create_mailer();
       $mailer->From = $group->group_name . "+no-reply@" . $server_name;
       $mailer->FromName = $group_email . "@" . $server_name;
@@ -251,7 +251,7 @@ function og_mailinglist_count_new_messages($message) {
   if ($message['status'] === "new") {
     $count++;
   }
-  $count += count(array_keys($message)) - 2;
+  $count += count($message['comments']);
 
   return $count;
 }

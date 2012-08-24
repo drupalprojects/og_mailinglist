@@ -11,7 +11,7 @@
  *  Node object.
  *
  * @param boolean $new_node
- *  If TRUE, then new node's subscribtions are saved to og_mailinglist_thread_subscription.
+ *  If TRUE, then new node's subscriptions are saved to og_mailinglist_thread_subscription.
  *  If FALSE, it just loads subscriptions.
  */
 function _og_mailinglist_get_subscribers($node, $group_node, $new_node = FALSE) {
