@@ -296,13 +296,11 @@ function og_mailinglist_mimeDecode_load_library() {
  */
 function _og_mailinglist_get_group_name($group_node) {
   $fields = field_get_items('node', $group_node, OG_MAILINGLIST_EMAIL_FIELD);
-  $group_name = current($fields)['value'];
+  $group_name = $fields[0]['value'];
   // TODO: A hack to ensure this really is a name. Sometimes for viewing it
   // gets passed through og_mailinglist_field_formatter_prepare_view()
   if (strpos($group_name, '@') !== FALSE)  {
-    $name = $group_name;//
     $group_name = substr($group_name, 0, strpos($group_name, '@') - 1);
-    drupal_set_message($name.' '.$group_name);//
   }
   return $group_name;
 }
