@@ -423,7 +423,7 @@ function og_mailinglist_save_node($email) {
   //$node->sticky = 0;
   //$node->og_public = $is_public;
   $node->og_group_ref[$node->language][]['target_id'] = $email['groupid'];
-  $node->comment = variable_get("comment_$node_type", COMMENT_NODE_READ_WRITE);
+  $node->comment = variable_get("comment_$node_type", COMMENT_NODE_OPEN);
 
   // Add attachments if any.
   // TODO fix this someday. Best idea -- save mail objects w/ attachments.
