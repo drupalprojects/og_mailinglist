@@ -96,18 +96,6 @@ function _og_mailinglist_process_email($raw_email, $group_name = NULL) {
       $email['userid'] = $user->uid;
     }
 
-    if (!$user) {
-      // If not posting from their normal email account, let's try their mail alias.
-      // This one here just assumes that user profile data field contains any
-      // other email inside other text.
-      $email['userid'] = db_select('users', 'u')
-        ->fields('u', array('uid'))
-        ->condition('status', 1)
-        ->condition('data', '%' . $mailfrom . '%', 'LIKE')
-        ->execute()
-        ->fetchField();
-    }
-
     // If site is using multiple_email, check for alternative emails.
     if (!$email['userid'] && module_exists('multiple_email') && $multiple = multiple_email_find_address($mailfrom)) {
       $email['userid'] = $multiple->uid;
