@@ -103,10 +103,6 @@ function _og_mailinglist_process_email($raw_email, $group_name = NULL) {
 
     if (!$email['userid']) {
       $exception = t("Could not locate the user account for !mailfrom. For security reasons, please post from the email account you are registered with.", array('!mailfrom' => $mailfrom));
-      if (module_exists('mailalias')) {
-        $exception .= t("If you'd like to post from an email account different than the one you registered with, edit your account page to add that email address as an email alias.");
-
-      }
       throw new Exception($exception);
     }
     // Check how many posts have been made by this user (for security).

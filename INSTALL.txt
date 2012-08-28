@@ -104,10 +104,9 @@ more on this.
 
 Q: Users want to be able to post from email accounts other than the one they
 registered with on the site, is this possible?
-A: Yes! OG Mailinglist supports
-the Mailalias module - http://drupal.org/project/mailalias. Install this on your
-site and users will be able to add additional email addresses they'd like to
-post from.
+A: No. It was possible in 6.x but since there is no Mailalias module anymore the
+support has been removed. This feature could be reimplemented using
+http://drupal.org/project/multiple_email module.
 
 Q: I can't get mimeDecode to install or work.
 A: mimeDecode depends on PHP PEAR, which should be installed on any
