@@ -45,16 +45,17 @@ function og_mailinglist_email_settings() {
  * Admin settings form for OGM content types
  */
 function og_mailinglist_content_types_settings() {
-  $node_types = _node_types_build()->types;
-  $n_types = array();
-  foreach ($node_types as $type) {
-    $n_types[$type->type] = $type->name;
+  $node_types = node_type_get_names();
+  foreach ($node_types as $type => $name) {
+    if (!og_is_group_content_type('node', $type)) {
+      unset($node_types[$type]);
+    }
   }
   $form['og_mailinglist_default_content_type'] = array(
     '#title' => t('Default content type'),
     '#type' => 'select',
-    '#default_value' => variable_get('og_mailinglist_default_content_type', 'story'),
-    '#options' => $n_types,
+    '#default_value' => variable_get('og_mailinglist_default_content_type', 'article'),
+    '#options' => $node_types,
     '#description' => t('Choose the default content type to be created from new emails.'),
   );
   $filter_list = array();
@@ -73,7 +74,7 @@ function og_mailinglist_content_types_settings() {
     '#type' => 'select',
     '#multiple' => TRUE,
     '#default_value' => variable_get('og_mailinglist_exclude_content_types', 'group'),
-    '#options' => $n_types,
+    '#options' => $node_types,
     '#description' => t('Do not send emails on creation of these content types.'),
   );
   $form['og_mailinglist_default_group_subscription_type'] = array(

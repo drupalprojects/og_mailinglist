@@ -77,6 +77,10 @@ https://github.com/KyleAMathews/phpmailer/commit/78cdf9743cc58f7e804207bd8aedd49
 * saving, navigate to /admin/config/group/mailinglist and configure per your
 * server setup.
 
+* After creating a content type for group content you have to go to
+* admin/config/group/mailinglist/content_types page and save,
+* otherwise your content will be posted as articles.
+
 * If you're not using Mailgun, to setup og_mailinglist for incoming email,
 * follow the installation instructions for your Mail Transfer Agent in the
 * INSTALL.txt file found in its subdirectory (e.g. exim_og_mailinglist).
