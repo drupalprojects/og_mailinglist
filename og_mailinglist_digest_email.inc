@@ -12,30 +12,33 @@ define("DIGEST_TIME_PERIOD", 86400); // One day currently.
 // TODO -- make email from list address
 
 function _og_mailinglist_send_digest_emails() {
+  // Digest start time (current time minus the digest time period)
+  $digest_start = time() - DIGEST_TIME_PERIOD;
+
   // Get list of groups where at least one person has subscribed to a digest node
   // and which had a new post or comment in the last 24 hours.
 
-  $new_nodes_sql = 'SELECT DISTINCT s.nid
+  $new_nodes_sql = "SELECT DISTINCT s.nid
             FROM {og_mailinglist_subscription} s
             JOIN {og_ancestry} o
+            ON (s.nid = o.group_nid)
             JOIN {node} n
-            ON s.nid = o.group_nid
-            WHERE o.nid = n.nid
-            AND n.created > (unix_timestamp() - %d)
-            AND s.subscription_type = "digest email"';
+            ON (o.nid = n.nid)
+            WHERE n.created > %d
+            AND s.subscription_type = 'digest email'";
 
-  $new_comments_sql = 'SELECT DISTINCT s.nid
+  $new_comments_sql = "SELECT DISTINCT s.nid
             FROM {og_mailinglist_subscription} s
             JOIN {og_ancestry} o
+            ON (s.nid = o.group_nid)
             JOIN {comments} c
-            ON s.nid = o.group_nid
+            ON (o.nid = c.nid)
             WHERE c.status = 0
-            AND o.nid = c.nid
-            AND c.timestamp > (unix_timestamp() - %d)
-            AND s.subscription_type = "digest email"';
+            AND c.timestamp > %d
+            AND s.subscription_type = 'digest email'";
 
-  $groups_with_new_nodes = db_query($new_nodes_sql, DIGEST_TIME_PERIOD);
-  $groups_with_new_comments = db_query($new_comments_sql, DIGEST_TIME_PERIOD);
+  $groups_with_new_nodes = db_query($new_nodes_sql, $digest_start);
+  $groups_with_new_comments = db_query($new_comments_sql, $digest_start);
 
   $digest_groups = array();
   while ($data = db_fetch_array($groups_with_new_comments)) {
@@ -48,23 +51,23 @@ function _og_mailinglist_send_digest_emails() {
   foreach ($digest_groups as $gid) {
     $group = node_load(array('nid' => $gid));
     // Get list of new activity -- new nodes and new comments
-    $new_nids = 'SELECT o.nid
+    $new_nids = "SELECT o.nid
                   FROM {node} n
                   JOIN {og_ancestry} o
                   ON n.nid = o.nid
-                  WHERE n.created > (unix_timestamp() - %d)
-                  AND o.group_nid = %d';
+                  WHERE n.created > %d
+                  AND o.group_nid = %d";
 
-    $new_comment_nids = 'SELECT c.nid, c.cid
+    $new_comment_nids = "SELECT c.nid, c.cid
                           FROM {comments} c
                           JOIN {og_ancestry} o
                           ON c.nid = o.nid
                           WHERE c.status = 0
-                          AND c.timestamp > (unix_timestamp() - %d)
-                          AND o.group_nid = %d';
+                          AND c.timestamp > %d
+                          AND o.group_nid = %d";
 
-    $nids_with_new_nodes = db_query($new_nids, DIGEST_TIME_PERIOD, $gid);
-    $nids_with_new_comments = db_query($new_comment_nids, DIGEST_TIME_PERIOD, $gid);
+    $nids_with_new_nodes = db_query($new_nids, $digest_start, $gid);
+    $nids_with_new_comments = db_query($new_comment_nids, $digest_start, $gid);
 
     $nids = array();
     while ($data = db_fetch_array($nids_with_new_comments)) {
@@ -76,8 +79,6 @@ function _og_mailinglist_send_digest_emails() {
       $nids[$data['nid']]['status'] = "new";
       $nids[$data['nid']]['node_obj'] = node_load(array("nid" => $data['nid']));
     }
-
-
 
     // Count # of messages.
     $message_count = 0;
@@ -143,7 +144,7 @@ function _og_mailinglist_send_digest_emails() {
     $result = db_query("SELECT uid
                        FROM {og_mailinglist_subscription}
                        WHERE nid = %d
-                       AND subscription_type = \"digest email\"", $gid);
+                       AND subscription_type = 'digest email'", $gid);
     $uids = array();
     while ($data = db_fetch_array($result)) {
       $email = db_result(db_query("SELECT mail
