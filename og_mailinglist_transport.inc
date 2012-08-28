@@ -85,12 +85,27 @@ function _og_mailinglist_process_email($raw_email, $group_name = NULL) {
       throw new Exception(t("Discussion items sent via email must be less than !max_size Kb. For security reasons, please post larger messages through the web interface.", array("!max_size" => $max_size)));
     }
 
-    // This regex worries me... do *all* email clients place email addresses between <>?
-    // Get the user id.
+    // Get clean email address.
     $mailfrom = $email['headers']['from'];
     if (preg_match("/<(.*?)>/", $email['headers']['from'], $matches)) {
       $mailfrom = $matches[1];
     }
+    else {
+      // This regex is borrowed from valid_email_address for D6.
+      // This is only needed for these email clients which do not enclose
+      // email address between <> tags. See http://drupal.org/node/1039876
+      // for example "From: user@example.com (User name)". It would
+      // handle any other case as well.
+      $user = '[a-zA-Z0-9_\-\.\+\^!#\$%&*+\/\=\?\`\|\{\}~\']+';
+      $domain = '(?:(?:[a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.?)+';
+      $ipv4 = '[0-9]{1,3}(\.[0-9]{1,3}){3}';
+      $ipv6 = '[0-9a-fA-F]{1,4}(\:[0-9a-fA-F]{1,4}){7}';
+      if (preg_match("/$user@($domain|(\[($ipv4|$ipv6)\]))/", $mailfrom, $matches)) {
+        $mailfrom = $matches[0];
+      }
+    }
+
+    // Get the user id.
     $user = user_load_by_mail($mailfrom);
     if ($user) {
       $email['userid'] = $user->uid;
