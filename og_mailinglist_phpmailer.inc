@@ -108,6 +108,12 @@ function og_mailinglist_send_node_email($node, $gids) {
 
   // Prepare node body for viewing.
   $rendered_body = node_view($node);
+
+  // If body is empty, we will send no e-mail.
+  if (empty($rendered_body['body'])) {
+    drupal_set_message(t('Message body is empty. Node was created but no e-mail was sent.'), 'error');
+    return;
+  }
   $body = $rendered_body['body'][0]['#markup'];
 
   // Add the user's signature.
