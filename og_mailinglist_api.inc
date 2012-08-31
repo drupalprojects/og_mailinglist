@@ -218,19 +218,21 @@ function og_mailinglist_log_email_sent($source, $nid, $cid = 0, $message_id = 0,
  * @return PHPMailer object.
  */
 function og_mailinglist_create_mailer() {
-  og_mailinglist_phpmailer_load_library();
-  // The TRUE param makes it throw exceptions on errors, which we need to catch.
-  $mailer = new PHPMailer(TRUE);
-  $mailer->PluginDir = og_mailinglist_get_phpmailer_plugin_dir();
-  $mailer->CharSet = 'UTF-8';
-  drupal_alter('og_mailinglist_new_phpmailer', $mailer);
+  if (og_mailinglist_phpmailer_load_library()) {
+    // The TRUE param makes it throw exceptions on errors, which we need to catch.
+    $mailer = new PHPMailer(TRUE);
+    $mailer->PluginDir = og_mailinglist_get_phpmailer_plugin_dir();
+    $mailer->CharSet = 'UTF-8';
+    drupal_alter('og_mailinglist_new_phpmailer', $mailer);
 
-  if (!$mailer) {
-    drupal_set_message(t('E-mail cannot be sent. PHPMailer library is missing.'
-      . ' See <a href=@link>status report</a> for more information.',
-      array('@link' => '"/admin/reports/status"')), 'error');
+    if ($mailer) {
+      return $mailer;
+    }
   }
-  return $mailer;
+
+  drupal_set_message(t('E-mail cannot be sent. PHPMailer library is missing.'
+    . ' See <a href=@link>status report</a> for more information.',
+    array('@link' => '/admin/reports/status')), 'error');
 }
 
 /*

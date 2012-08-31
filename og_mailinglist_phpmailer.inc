@@ -65,6 +65,9 @@ function og_mailinglist_send_comment_email($comment, $node, $gids) {
 
   foreach ($group_nodes as $group_node) {
     $mailer = og_mailinglist_create_mailer();
+    if (!$mailer) {
+      return;
+    }
     $mailer->Subject = $subject;
     $mailer->Body = $body;
     $mailer->isHTML = TRUE;
@@ -134,6 +137,9 @@ function og_mailinglist_send_node_email($node, $gids) {
 
   foreach ($group_nodes as $group_node) {
     $mailer = og_mailinglist_create_mailer();
+    if (!$mailer) {
+      return;
+    }
     $mailer->Subject = $data['subject'];
     $mailer->isHTML = TRUE;
     $mailer->Body = $data['body'];

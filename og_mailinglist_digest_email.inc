@@ -189,6 +189,10 @@ function _og_mailinglist_send_digest_emails() {
       }
 
       $mailer = og_mailinglist_create_mailer();
+      if (!$mailer) {
+        return;
+      }
+
       $mailer->From = $group->group_name . "+no-reply@" . $server_name;
       $mailer->FromName = $group_email . "@" . $server_name;
       $mailer->AddCustomHeader($mailer->HeaderLine("List-Id", "<" . $group_email . ">"));
