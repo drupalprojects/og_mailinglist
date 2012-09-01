@@ -174,8 +174,9 @@ function _og_mailinglist_process_email($raw_email, $group_name = NULL) {
     }
 
     // See if the email is a comment to an existing node or a new node.
-    // If the email is a comment to a node, we should be able to get the Node ID of the original node.
-    $email['nid'] = og_mailinglist_parse_nid($email['text_plain'], $email['structure']->headers);
+    // If the email is a comment to a node, we should be able to get the
+    // Node ID of the original node.
+    $email['nid'] = og_mailinglist_parse_nid($email['structure']->headers);
 
     // Create the new content in Drupal.
     if (!empty($email['nid'])) { // a new comment
@@ -1018,13 +1019,10 @@ function _og_mailinglist_send_email($headers, $body, $node, $comment = NULL, $se
 /**
  * Try to parse nid from the email.
  *
- * @param $email
- *  Email address. Not used right now.
- *
  * @param $headers
  *  Headers of the email to be parsed.
  */
-function og_mailinglist_parse_nid($email, $headers) {
+function og_mailinglist_parse_nid($headers) {
   $nid = "";
   // Check the in-reply-to header.
   $parent_message_id = _og_mailinglist_get_thread_parent_messageid($headers['in-reply-to'], $headers['references']);
