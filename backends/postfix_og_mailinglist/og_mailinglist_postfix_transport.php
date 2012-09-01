@@ -20,7 +20,7 @@ $mail_domain = strtolower($parts[1]);
 require_once('site_info.php');
 $sites = og_mailinglist_site_info();
 
-if (!in_array($mail_domain, $sites)) {
+if (empty($sites[$mail_domain])) {
   echo "Could not match the email domain $mail_domain with a Drupal site. Check that you've setup site_info.php correctly.";
   exit();
 }
