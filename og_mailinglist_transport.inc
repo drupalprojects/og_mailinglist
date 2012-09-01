@@ -417,9 +417,6 @@ function og_mailinglist_save_node($email) {
   $filter = variable_get('og_mailinglist_default_filter_format', 'plain_text');
   $node->body[$node->language][0]['format'] = $filter;
   // TODO: This needs love.
-  //$node->status = 1; // published
-  //$node->promote = 0;
-  //$node->sticky = 0;
   //$node->og_public = $is_public;
   $node->og_group_ref[$node->language][]['target_id'] = $email['groupid'];
   $node->comment = variable_get("comment_$node_type", COMMENT_NODE_OPEN);
