@@ -18,10 +18,9 @@ og_mailinglist_phpmailer_load_library();
  * Original version written by Conan Albrecht in March 2009.
  */
 function og_mailinglist_post() {
-  $message = (isset($_POST['message'])) ? $_POST['message'] : '';
-  $token = (isset($_POST['token'])) ? $_POST['token'] : '';
-  $group_name = (isset($_POST['group_name'])) ? $_POST['group_name'] : '';
-
+  $group_name = isset($_POST['group_name']) ? $_POST['group_name'] : NULL;
+  $message = isset($_POST['message']) ? $_POST['message'] : '';
+  $token = isset($_POST['token']) ? $_POST['token'] : '';
   $hash = md5(variable_get('og_mailinglist_incoming_key', '**') . $message);
 
   if ($hash != $token) {
@@ -79,14 +78,14 @@ function _og_mailinglist_process_email($raw_email, $group_name = NULL) {
     $group_name = trim($group_name, '"\' ');
 
     // Did we actually get email text back? If not, throw an exception.
-    if ($email['mailbody'] == "") {
-      throw new Exception(t("Could not parse message body from the text/plain portion of the email."));
+    if ($email['text'] == "") {
+      throw new Exception(t("Could not parse message body from the email."));
     }
 
     // Check the size of the body and kick out if too large (for security).
     $max_size = variable_get('og_mailinglist_max_message_size', 200); // 200kb
-    if (strlen($email['mailbody']) > $max_size * 1024 && $max_size != 0) {
-      throw new Exception(t("Discussion items sent via email must be less than !max_size Kb. For security reasons, please post larger messages through the web interface.", array("!max_size" => $max_size)));
+    if (strlen($email['text']) > $max_size * 1024 && $max_size != 0) {
+      throw new Exception(t("Discussion items sent via email must be less than !max_size Kb for security reasons. Please post larger messages through the web interface.", array("!max_size" => $max_size)));
     }
 
     // Get clean email address.
@@ -247,7 +246,7 @@ function _og_mailinglist_process_email($raw_email, $group_name = NULL) {
       $errormsg = $e->getMessage();
       $msgdate = $email['headers']['date'];
       $msgfrom = $email['headers']['from'];
-      $commentedbody = str_replace("\n", "\n> ", $email['mailbody']);
+      $commentedbody = str_replace("\n", "\n> ", $email['text']);
       $body = t("Hi, sorry about this but we were unable to handle your email correctly for the following reason:")
         . "\n\n"
         . $errormsg
@@ -307,7 +306,7 @@ function og_mailinglist_save_comment($email) {
     throw new Exception(t("Comments have been disabled for this post."));
   }
 
-  $mailbody = $email['mailbody'];
+  $mailbody = $email['text'];
 
   // Create an object representing the comment
   $comment = new stdClass();
@@ -387,7 +386,7 @@ function og_mailinglist_save_node($email) {
     exit(0);
   }
 
-  $mailbody = $email['mailbody'];
+  $mailbody = $email['text'];
 
   // Get the nid that'll be used. Yes, this isn't a very pretty way to do this.
   // If someone else creates a node between now and when the node is
@@ -497,7 +496,7 @@ function _og_mailinglist_email_comment_email($email, $node, $comment) {
   _og_mailinglist_send_email($headers, $email['new_email_text'], $node, $comment, $sender_account);
 }
 
-function _og_mailinglist_parse_email($email) {
+function _og_mailinglist_parse_email(&$email) {
   $params['include_bodies'] = TRUE;
   $params['decode_bodies'] = TRUE;
   $params['decode_headers'] = TRUE;
@@ -506,7 +505,7 @@ function _og_mailinglist_parse_email($email) {
   // Decode the email message.
   $email['structure'] = clone $structure = Mail_mimeDecode::decode($params);
 
-  // Copy headers to $email array.
+  // Copy headers to the $email array.
   $email['headers'] = array_copy($structure->headers);
 
   if (!empty($structure->parts)) {
@@ -538,38 +537,31 @@ function _og_mailinglist_parse_email($email) {
       }
     }
   }
-  // Make sure our text and html parts are accounted for
+  // Make sure we always have text.
   if (isset($email['html']) && !isset($email['text'])) {
     $email['text'] = preg_replace('|<style.*</style>|mis', '', $email['html']);
     $email['text'] = drupal_html_to_text($email['text']);
   }
-  elseif (isset($email['text']) && !isset($email['html'])) {
-    $mail['html'] = check_markup($email['text']);
+
+  // Set the default character encoding.
+  $charset = 'iso-8859-1';
+
+  if (!empty($structure->ctype_parameters['charset'])) {
+    $charset = $structure->ctype_parameters['charset'];
   }
 
   // Last ditch attempt - use the body as-is.
   if (!isset($email['text'])) {
-    // Try to convert character set to UTF-8.
-    if (!empty($structure->ctype_parameters['charset'])) {
-      $email['text'] = drupal_convert_to_utf8($structure->body, $structure->ctype_parameters['charset']);
-    }
-    else {
-      $email['text'] = $structure->body;
-    }
-    $email['html'] = check_markup($email['text']);
+    $email['text'] = drupal_convert_to_utf8($structure->body, $charset);
   }
+
+  // Save a copy of the original text
+  $email['orig_text'] = $email['text'];
 
   // Convert the subject to UTF-8.
   if (!empty($structure->ctype_parameters['charset'])) {
     $email['headers']['subject'] = drupal_convert_to_utf8($email['headers']['subject'], $structure->ctype_parameters['charset']);
   }
-
-  // TODO figure out how to pull out sane HTML w/o funky css or other oddities.
-  $email['mailbody'] = $email['text'];
-  $email['isHTML'] = FALSE;
-
-  // Save copy of the original mailbody
-  $email['orig_mailbody'] = $email['mailbody'];
 
   return $email;
 }
