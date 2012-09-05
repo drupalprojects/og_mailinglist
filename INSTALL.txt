@@ -80,6 +80,10 @@ https://github.com/KyleAMathews/phpmailer/commit/78cdf9743cc58f7e804207bd8aedd49
 * After creating a content type for group content you have to go to
 * admin/config/group/mailinglist/content_types page and save,
 * otherwise your content will be posted as articles.
+* Missing this step gives you this error from og_mailinglist_transport.inc
+* when receiving new email, the error might end up in logs or email reply:
+* "Error: Mail error ::: Embedded Error: Missing bundle property on
+ * entity of type node."
 
 * If you're not using Mailgun, to setup og_mailinglist for incoming email,
 * follow the installation instructions for your Mail Transfer Agent in the
