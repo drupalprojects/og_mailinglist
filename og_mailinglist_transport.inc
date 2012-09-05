@@ -12,10 +12,10 @@ og_mailinglist_phpmailer_load_library();
 /**
  * Receive messages POSTed from an external source.
  *
- * This function enables messages to be sent to a Drupal site via POST or some other RFC822
- * source input (e.g. directly from a mail server).
+ * This function enables messages to be sent to a Drupal site via POST or some
+ * other RFC822 source input (e.g. directly from a mail server).
  *
- * Original version written by Conan Albrecht  March 2009.
+ * Original version written by Conan Albrecht in March 2009.
  */
 function og_mailinglist_post() {
   $message = (isset($_POST['message'])) ? $_POST['message'] : '';
@@ -23,11 +23,13 @@ function og_mailinglist_post() {
   $group_name = (isset($_POST['group_name'])) ? $_POST['group_name'] : '';
 
   $hash = md5(variable_get('og_mailinglist_incoming_key', '**') . $message);
+
   if ($hash != $token) {
     watchdog('access denied', 'Authentication error for POST e-mail. Check that you\'ve set the validation string in /admin/config/group/mailinglist and in site_info.php', array(), WATCHDOG_WARNING);
     return drupal_access_denied();
   }
-  // If this the Maillog module has been set to turn off emails, return.
+
+  // If the Maillog module has been set to turn off emails, return.
   if (!variable_get('maillog_send', TRUE)) {
     watchdog('WATCHDOG_INFO', 'This site is using Maillog and has disabled this site from sending emails so this email was not processed.');
     return;
@@ -51,7 +53,8 @@ function _og_mailinglist_process_email($raw_email, $group_name = NULL) {
       exit();
     }
 
-    // If there isn't a message-id (which sometimes happens with spam emails), reject it.
+    // If there isn't a message-id (which sometimes happens with spam emails),
+    // reject it.
     if (empty($email['headers']['message-id'])) {
       exit();
     }
@@ -60,7 +63,8 @@ function _og_mailinglist_process_email($raw_email, $group_name = NULL) {
       $email['headers']['subject'] = t('(no subject)');
     }
 
-    // Parse the group name from the email. Regex borrowed from valid_email_address().
+    // Parse the group name from the email.
+    // Regex borrowed from valid_email_address().
     $server = variable_get("og_mailinglist_server_string", $_SERVER['SERVER_NAME']);
     if (empty($group_name)) {
       if (preg_match("/([a-zA-Z0-9_\-\.\+\^!#\$%&*+\/\=\?\`\|\{\}~\']+)@" . $server . "/", $email['headers']['to'], $matches)) {
@@ -190,19 +194,21 @@ function _og_mailinglist_process_email($raw_email, $group_name = NULL) {
 
       // Does the detected nid belong to the same group as the email was
       // forwarded to?
-      // If not, then it was intended as start of a new thread.
+      // If not, then it was intended to start a new thread.
       if (!og_is_member('node', $email['groupid'], 'node', $email['nid'])) {
         og_mailinglist_save_node($email);
         exit(0); // So we don't save a comment as well
       }
 
-      // Check if the thread was forked by comparing the email subject to the node's title.
-      // The levenshtein distance between a reply and node title should be 4 (e.g. "a subject" and "Re: a subject").
-      // I added a few more to the distance to account for oddness in foreign languages but
+      // Check if the thread was forked by comparing the email subject to the
+      // node's title. The levenshtein distance between a reply and node title
+      // should be 4 (e.g. "a subject" and "Re: a subject"). I added a few more
+      // to the distance to account for oddness in foreign languages but
       // is still small enough to catch any substantive subject change.
       $node = node_load($email['nid']);
 
-      // Remove the group identifier (e.g. [a-group]) from the subject as it's not in the node title.
+      // Remove the group identifier (e.g. [a-group]) from the subject as it's
+      // not in the node title.
       $treated_subject =  preg_replace("/^[RrEe:]{3}\s\[[\w-]*\]/", "", $email['headers']['subject']);
 
       if (levenshtein($node->title, $treated_subject) > 7) {
@@ -261,7 +267,8 @@ function _og_mailinglist_process_email($raw_email, $group_name = NULL) {
 
     }
     catch (Exception $e2) {
-      // if we get here, we couldn't even send an email back to sender, so just have Exim compose an error message and send back
+      // If we got here, we couldn't even send an email back to the sender, so
+      // just have MTA compose an error message and send it back.
       echo "Error: " . $e2->getMessage() . " ::: Embedded Error: " . $e->getMessage() . "\n";
       exit(1);
     }
@@ -343,8 +350,8 @@ function og_mailinglist_save_comment($email) {
     $comment->pid = 0;
   }
 
-  // Let other modules alter the comment array before saving.
-  drupal_alter('og_mailinglist_save_commment', $comment);
+  // Let other modules alter the comment object before saving.
+  drupal_alter('og_mailinglist_save_comment', $comment);
 
   // Save the new comment.
   comment_submit($comment);
@@ -496,7 +503,7 @@ function _og_mailinglist_parse_email($email) {
   $params['decode_headers'] = TRUE;
   $params['input'] = $email['original_email_text'];
 
-  // do the decode
+  // Decode the email message.
   $email['structure'] = clone $structure = Mail_mimeDecode::decode($params);
 
   // Copy headers to $email array.
@@ -734,7 +741,8 @@ function _og_mailinglist_sanitise_filename($filename) {
   // Decode multibyte encoded filename
   $filename = mb_decode_mimeheader($filename);
 
-  // Replaces all characters up through space and all past ~ along with the above reserved characters to sanitise filename
+  // Replaces all characters up through space and all past ~ along with the
+  // above reserved characters to sanitise filename
   // from php.net/manual/en/function.preg-replace.php#80431
 
   // Define characters that are  illegal on any of the 3 major OS's
@@ -902,7 +910,7 @@ function _og_mailinglist_add_footer($email, $footer) {
   }
   else {
     // Else, move existing fields into new MIME entity surrounded by new multipart
-    // and append footer field to end.
+    // and append footer field to the end.
     $structure->headers['mime-version'] = "1.0";
     $boundary = "Drupal-OG-Mailinglist--" . rand(100000000, 9999999999999);
 

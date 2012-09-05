@@ -20,7 +20,7 @@ require_once 'og_mailinglist_api.inc';
  *  Group IDs of groups where $node belongs.
  */
 function og_mailinglist_send_comment_email($comment, $node, $gids) {
-  // Check if comment arrived via email so already sent.
+  // Check if comment arrived via email so it's already sent.
   if (_og_mailinglist_email_already_sent($comment->nid, $comment->cid)) {
     return;
   }
