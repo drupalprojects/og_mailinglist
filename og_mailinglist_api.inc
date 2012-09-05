@@ -255,8 +255,10 @@ function _og_mailinglist_get_thread_parent_messageid($in_reply_to_message_id, $r
   foreach ($refs_array as $reference) {
     if (!empty($reference)) {
       $parent_message_id = db_query("SELECT parent_message_id
-                              FROM {og_mailinglist_source}
-                              WHERE message_id = :message_id", array(':message_id' => $reference))->fetchField();
+        FROM {og_mailinglist_source}
+        WHERE message_id = :message_id",
+        array(':message_id' => $reference))
+        ->fetchField();
 
       if (!empty($parent_message_id)) {
         return $parent_message_id;
@@ -269,8 +271,10 @@ function _og_mailinglist_get_thread_parent_messageid($in_reply_to_message_id, $r
     return;
   }
   $parent_message_id = db_query("SELECT parent_message_id
-                              FROM {og_mailinglist_source}
-                              WHERE message_id = :message_id", array(':message_id' => $in_reply_to_message_id))->fetchField();
+    FROM {og_mailinglist_source}
+    WHERE message_id = :message_id",
+    array(':message_id' => $in_reply_to_message_id))
+    ->fetchField();
 
   if (!empty($parent_message_id)) {
     return $parent_message_id;
@@ -279,13 +283,17 @@ function _og_mailinglist_get_thread_parent_messageid($in_reply_to_message_id, $r
 
 function _og_mailinglist_get_nid_from_parent_messageid($message_id) {
   return db_query("SELECT nid
-                              FROM {og_mailinglist_source}
-                              WHERE message_id = :message_id", array(':message_id' => $message_id))->fetchField();
+    FROM {og_mailinglist_source}
+    WHERE message_id = :message_id",
+    array(':message_id' => $message_id))
+    ->fetchField();
 }
 
 function _og_mailinglist_get_messageid_from_nid($nid) {
   return db_query("SELECT parent_message_id
-                              FROM {og_mailinglist_source}
-                              WHERE cid = :cid
-                              AND nid = :nid", array(':cid' => 0, ':nid' => $nid))->fetchField();
+    FROM {og_mailinglist_source}
+    WHERE cid = :cid
+    AND nid = :nid",
+    array(':cid' => 0, ':nid' => $nid))
+    ->fetchField();
 }
