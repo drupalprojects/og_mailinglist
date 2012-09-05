@@ -25,7 +25,7 @@ set "Actions" to
 "forward('http://BASE_URL_OF_YOUR_DRUPAL_SITE/og_mailinglist/mailgun_callback_mime')"
 
 Once you have a domain setup, goto
-yoursite.com/admin/config/group/mailinglist/mailgun and copy/paste your
+example.com/admin/config/group/mailinglist/mailgun and copy/paste your
 domain's Login/Password information as well as your API Key.
 
 The last step is to go to admin/config/group/mailinglist and set the Domain

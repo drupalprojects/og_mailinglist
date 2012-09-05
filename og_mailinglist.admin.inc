@@ -86,7 +86,7 @@ function og_mailinglist_content_types_settings() {
       'digest email' => t('Digest email'),
       'no email' => t('No email'),
     ),
-    '#description' => t('Choose the default email subscription for users joining a new group. "Email" means the user will receive an email for each new post. "No email" means the user will recieve no emails except for discussion threads they participate in. "Digest" is the same as "no email" except the user will also receive digest emails. (Users can change this later at http://example.org/user/%user/og_mailinglist)'),
+    '#description' => t('Choose the default email subscription for users joining a new group. "Email" means the user will receive an email for each new post. "No email" means the user will recieve no emails except for discussion threads they participate in. "Digest" is the same as "no email" except the user will also receive digest emails. (Users can change this later at http://example.com/user/%user/og_mailinglist)'),
   );
   return system_settings_form($form);
 }

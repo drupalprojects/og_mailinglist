@@ -7,7 +7,7 @@ These files are for integrating OG Mailinglist with the EXIM MTA.
 4. Create a file in the /etc/exim4/exim_og_mailinglist directory called site_info.php. Model it after the code below. Add an array item for each site that your server is receiving emails for.
 5. Run dpkg-reconfigure exim4-config on Debain/Ubuntu systems (What is the equivalent command if any on other OSs?) and ensure that the "Other destinations for which mail is accepted:" or "local domains" setting includes your site's domain name. Otherwise, Exim will simply reject emails directed to this domain.
 6. Restart exim by running "/etc/init.d/exim4 restart". Note that on some operating systems like Debian, you need to run "update-exim4.conf.template" to actually update the configuration before restarting.  See your installation's Exim documentation for specifics.
-7. Test setup by sending email to a test group's email on your site e.g. test-group@yoursite.com
+7. Test setup by sending email to a test group's email on your site e.g. test-group@example.com
 
 Debugging help for when things don't work:
 While SSHed into your server, run "tail -f /var/log/exim/mainlog" to see that emails are actually reaching your server and that the og_mailinglist router/transports are being called.
@@ -22,12 +22,12 @@ sites_info.php:
  */
 function og_mailinglist_site_info() {
   return array (
-    'eduglu.com' => array(
-            'post_url' => 'http://eduglu.com/og_mailinglist',
+    'example.com' => array(
+            'post_url' => 'http://example.com/og_mailinglist',
             'validation_string' => 'get this from /admin/config/group/mailinglist and paste here',
            ),
-    'anothersite.com' => array(
-            'post_url' => 'http://anothersite.com/og_mailinglist',
+    'example.org' => array(
+            'post_url' => 'http://example.org/og_mailinglist',
             'validation_string' => 'get this from /admin/config/group/mailinglist and paste here',
            ),
   );

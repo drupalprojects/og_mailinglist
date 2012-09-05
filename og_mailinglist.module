@@ -7,7 +7,7 @@
  * email server to create discussions and respond to comments. Because it is
  * tied directly to Exim, Postfix, Qmail or Mailgun, email is processed
  * immediately upon receipt in the mail server.  Mails should be sent to
- * group_prefix@server.com rather than to a single email address.
+ * group_prefix@example.com rather than to a single email address.
  *
  * Original version written by Conan Albrecht, March 2009.
  * Maintained since by Kyle Mathews.
