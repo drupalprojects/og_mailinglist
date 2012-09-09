@@ -108,35 +108,51 @@ function _og_mailinglist_process_email($raw_email, $group_name = NULL) {
       }
     }
 
-    // Get the group id.
+    // Get the group IDs.
     // We are safe since the group_email field is required to be lowercase.
+    $group_names_list = array();
+    foreach ($group_names as $group_name => $group_email) {
+      $group_names_list[] = strtolower($group_name);
+    }
     $query = new EntityFieldQuery;
     $query->entityCondition('entity_type', 'node')
-      ->fieldCondition(OG_MAILINGLIST_EMAIL_FIELD, 'value', strtolower($group_name));
+      ->fieldCondition(OG_MAILINGLIST_EMAIL_FIELD, 'value', $group_names_list, 'IN');
     $result = $query->execute();
-    $email['groupid'] = key($result['node']);
 
-    if (!$email['groupid']) {
-      throw new Exception(t("Could not locate group named !group_name",
-        array('!group_name' => $group_name)));
+    if (empty($result)) {
+      throw new Exception(t("Could not locate groups with names !group_names",
+        array('!group_names' => '"' . implode('", "', $group_names_list) . '"')));
     }
 
-    // Check that the group is published. If it's not published, it's
-    // effectively not there.
-    $group_node = node_load($email['groupid']);
-    if ($group_node->status === 0) {
-      throw new Exception(t("Could not locate group named !group_name",
-        array('!group_name' => $group_name)));
+    // Load group nodes.
+    $gids = array_keys($result['node']);
+    $group_nodes = node_load_multiple($gids);
+
+    // Check if the group is published.
+    // If it's not published, it's effectively not there.
+    foreach ($group_nodes as $gid => $group_node) {
+      if ($group_node->status === 0) {
+        unset($group_nodes[$gid]);
+      }
+    }
+    if (empty($group_nodes)) {
+      throw new Exception(t("None of the groups are published."));
     }
 
-    // Check if this user is a member of this group (for security).
-    if (!og_is_member('node', $email['groupid'], 'user', $email['userid'])) {
-      // TODO also check if person is subscribed to this thread -- if they are,
-      // let them comment by email.
-      throw new Exception(t("You (email: !mailfrom, account page: !account_page) are not a member of this group.  Please join the group via the web site before posting.",
+    // Check if this user is a member of these groups (for security).
+    foreach ($group_nodes as $gid => $group_node) {
+      if (!og_is_member('node', $group_node->nid, 'user', $user)) {
+        unset($group_nodes[$gid]);
+        // TODO also check if person is subscribed to this thread -- if they are,
+        // let them comment by email.
+      }
+    }
+
+    if (empty($group_nodes)) {
+      throw new Exception(t("You (email: !mailfrom, account page: !account_page) are not a member of groups these groups. Please join the group via the web site before posting.",
         array(
-          '!mailfrom' => $mailfrom,
-          '!account_page' => url("user/" . $email['userid'], array('absolute' => TRUE))
+          '!mailfrom' => $user->mail,
+          '!account_page' => url("user/" . $user->uid, array('absolute' => TRUE)),
         )
       ));
     }
@@ -144,12 +160,13 @@ function _og_mailinglist_process_email($raw_email, $group_name = NULL) {
     // Additional check that user has access to publish content
     $node_type = variable_get('og_mailinglist_default_content_type', 'article');
     if (!user_access('create ' . $node_type . ' content', $user)) {
-      throw new Exception(t("You do not have permission to post to this group. Please contact the site administrator."));
+      throw new Exception(t("You do not have permission to post using group content type @type. Please contact the site administrator.",
+        array('@type' => $node_type)));
     }
 
     // See if the email is a comment to an existing node or a new node.
     // If the email is a comment to a node, we should be able to get the
-    // Node ID of the original node.
+    // node ID of the original node.
     $email['nid'] = og_mailinglist_parse_nid($email['structure']->headers);
 
     // Create the new content in Drupal.
@@ -162,11 +179,28 @@ function _og_mailinglist_process_email($raw_email, $group_name = NULL) {
        * the subject line. We need to check for both.
        */
 
-      // Does the detected nid belong to the same group as the email was
+      // Does the detected nid belong to any of the groups where the email was
       // forwarded to?
       // If not, then it was intended to start a new thread.
-      if (!og_is_member('node', $email['groupid'], 'node', $email['nid'])) {
-        og_mailinglist_save_node($email);
+      $direct_members = array();
+      $not_direct_members = array();
+      foreach ($group_nodes as $gid => $group_node) {
+        if (og_is_member('node', $group_node->nid, 'node', $email['nid'])) {
+          $direct_members[$gid] = $group_node;
+        }
+        else {
+          $not_direct_members[$gid] = $group_node;
+        }
+      }
+      // TODO When there is at least one direct member and also not direct
+      // ones, then we just add the node to other groups if the user is
+      // member of these groups (has permission to post there).
+      // If there are no direct members, then it is definitely a new
+      // post. So it turns out that you can add groups by email but you cannot
+      // remove these, so when you reply using any of the addresses to a
+      // existing node, everybody is notified.
+      if (empty($direct_members) and count($not_direct_members)) {
+        og_mailinglist_save_node($email, $group_nodes);
         exit(0); // So we don't save a comment as well
       }
 
@@ -188,16 +222,15 @@ function _og_mailinglist_process_email($raw_email, $group_name = NULL) {
         unset($email['structure']->headers['in-reply-to']);
         unset($email['headers']['references']);
         unset($email['structure']->headers['references']);
-        og_mailinglist_save_node($email);
+        og_mailinglist_save_node($email, $group_nodes);
         exit(0); // So we don't save a comment as well.
       }
 
       // If we got this far, the email is definitely intended as a new comment.
-      og_mailinglist_save_comment($email);
-
+      og_mailinglist_save_comment($email, $group_nodes);
     }
     else { // A new node.
-      og_mailinglist_save_node($email);
+      og_mailinglist_save_node($email, $group_nodes);
     }
 
     // Tell Exim4 we had success!
@@ -248,7 +281,7 @@ function _og_mailinglist_process_email($raw_email, $group_name = NULL) {
 /**
  * Save new comment that came through email.
  */
-function og_mailinglist_save_comment($email) {
+function og_mailinglist_save_comment(&$email, &$group_nodes) {
   $nid = $email['nid'];
   $email['node'] = $node = node_load($nid);
 
@@ -396,7 +429,9 @@ function og_mailinglist_save_node($email) {
   $node->body[$node->language][0]['format'] = $filter;
   // TODO: This needs love.
   //$node->og_public = $is_public;
-  $node->og_group_ref[$node->language][]['target_id'] = $email['groupid'];
+  foreach ($group_nodes as $gid => $group_node) {
+    $node->og_group_ref[$node->language][]['target_id'] = $gid;
+  }
   $node->comment = variable_get("comment_$node_type", COMMENT_NODE_OPEN);
 
   // Add attachments if any.
