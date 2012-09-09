@@ -403,7 +403,7 @@ function og_mailinglist_save_node(&$email, &$group_nodes) {
   // node_save() expects the opposite so we'll invert the value of $is_private.
   // TODO: Check whether it actually works.
   $is_public = TRUE;
-  if (defined(OG_CONTENT_ACCESS_FIELD)) {
+  if (defined("OG_CONTENT_ACCESS_FIELD")) {
     // TODO: if possible, get rid of node_load() here
     $access = field_get_items('node', node_load($email['groupid']), OG_CONTENT_ACCESS_FIELD);
     // TODO: There is also OG_CONTENT_ACCESS_DEFAULT case.
