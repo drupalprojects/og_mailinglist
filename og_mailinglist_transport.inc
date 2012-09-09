@@ -468,13 +468,16 @@ function _og_mailinglist_email_comment_email($email, $node, $comment) {
 }
 
 function _og_mailinglist_parse_email(&$email) {
-  $params['include_bodies'] = TRUE;
-  $params['decode_bodies'] = TRUE;
-  $params['decode_headers'] = TRUE;
-  $params['input'] = $email['original_email_text'];
-
+  $params = array(
+    'include_bodies' => TRUE,
+    'decode_bodies' => TRUE,
+    'decode_headers' => TRUE,
+  );
+ 
   // Decode the email message.
-  $email['structure'] = clone $structure = Mail_mimeDecode::decode($params);
+  $decoder = new Mail_mimeDecode($email['original_email_text']);
+  $structure = $decoder->decode($params);
+  $email['structure'] = $structure;
 
   // Copy headers to the $email array.
   $email['headers'] = array_copy($structure->headers);
