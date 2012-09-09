@@ -1,7 +1,7 @@
 <?php
 /**
  * @file
- *  Sends and receives emails.
+ *  Recieves group email, posts as node or comment and sends it out again.
  */
 
 require_once 'og_mailinglist_utilities.inc';
@@ -62,20 +62,12 @@ function _og_mailinglist_process_email($raw_email, $group_name = NULL) {
       $email['headers']['subject'] = t('(no subject)');
     }
 
-    // Parse the group name from the email.
-    // Regex borrowed from valid_email_address().
-    $server = variable_get("og_mailinglist_server_string", $_SERVER['SERVER_NAME']);
-    if (empty($group_name)) {
-      if (preg_match("/([a-zA-Z0-9_\-\.\+\^!#\$%&*+\/\=\?\`\|\{\}~\']+)@" . $server . "/", $email['headers']['to'], $matches)) {
-        $group_name = $matches[1];
-      }
-      if (preg_match("/([a-zA-Z0-9_\-\.\+\^!#\$%&*+\/\=\?\`\|\{\}~\']+)@" . $server . "/", $email['headers']['cc'], $matches)) {
-        $group_name = $matches[1];
-      }
-    }
-
-    // Strip enclosing quotes sometimes added by MS Outlook.
-    $group_name = trim($group_name, '"\' ');
+    // Initialize group_names array.
+    $group_names = $group_name ? array($group_name => '') : array();
+    
+    // Add all possible group_names from TO and CC fields.
+    $group_names += _og_mailinglist_extract_group_names($email['to']);
+    $group_names += _og_mailinglist_extract_group_names($email['cc']);
 
     // Did we actually get email text back? If not, throw an exception.
     if ($email['text'] == "") {
@@ -88,46 +80,25 @@ function _og_mailinglist_process_email($raw_email, $group_name = NULL) {
       throw new Exception(t("Discussion items sent via email must be less than !max_size Kb for security reasons. Please post larger messages through the web interface.", array("!max_size" => $max_size)));
     }
 
-    // Get clean email address.
-    $mailfrom = $email['headers']['from'];
-    if (preg_match("/<(.*?)>/", $email['headers']['from'], $matches)) {
-      $mailfrom = $matches[1];
-    }
-    else {
-      // This regex is borrowed from valid_email_address for D6.
-      // This is only needed for these email clients which do not enclose
-      // email address between <> tags. See http://drupal.org/node/1039876
-      // for example "From: user@example.com (User name)". It would
-      // handle any other case as well.
-      $user = '[a-zA-Z0-9_\-\.\+\^!#\$%&*+\/\=\?\`\|\{\}~\']+';
-      $domain = '(?:(?:[a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.?)+';
-      $ipv4 = '[0-9]{1,3}(\.[0-9]{1,3}){3}';
-      $ipv6 = '[0-9a-fA-F]{1,4}(\:[0-9a-fA-F]{1,4}){7}';
-      if (preg_match("/$user@($domain|(\[($ipv4|$ipv6)\]))/", $mailfrom, $matches)) {
-        $mailfrom = $matches[0];
-      }
-    }
-
     // Get the user id.
-    $user = user_load_by_mail($mailfrom);
-    if ($user) {
-      $email['userid'] = $user->uid;
-    }
+    global $user;
+    $user = user_load_by_mail(key($email['from']));
 
     // If site is using multiple_email, check for alternative emails.
-    if (!$email['userid'] && module_exists('multiple_email') && $multiple = multiple_email_find_address($mailfrom)) {
-      $email['userid'] = $multiple->uid;
+    if (!$user && module_exists('multiple_email') && $multiple = multiple_email_find_address($mailfrom)) {
+      $user = user_load($multiple->uid);
     }
 
-    if (!$email['userid']) {
+    if (!$user) {
       $exception = t("Could not locate the user account for !mailfrom. For security reasons, please post from the email account you are registered with.", array('!mailfrom' => $mailfrom));
       throw new Exception($exception);
     }
+
     // Check how many posts have been made by this user (for security).
     if ($max_posts = variable_get('og_mailinglist_max_posts_per_hour', 20) > 0) {
       $one_hour_ago = REQUEST_TIME - 3600;
       $num_recent_posts = db_select('node', 'n')
-        ->condition('n.uid', $email['userid'])
+        ->condition('n.uid', $user->uid)
         ->condition('n.created', $one_hour_ago, '>')
         ->countQuery()
         ->execute()
@@ -559,8 +530,19 @@ function _og_mailinglist_parse_email(&$email) {
   $email['orig_text'] = $email['text'];
 
   // Convert the subject to UTF-8.
-  if (!empty($structure->ctype_parameters['charset'])) {
-    $email['headers']['subject'] = drupal_convert_to_utf8($email['headers']['subject'], $structure->ctype_parameters['charset']);
+  // Convert the subject and recipient fields to UTF-8.
+  if (isset($email['headers']['subject'])) {
+    $email['subject'] = drupal_convert_to_utf8($email['headers']['subject'], $charset);
+  }
+
+  $raw_emails = drupal_convert_to_utf8($email['headers']['from'], $charset);
+  $email['from'] = _og_mailinglist_extract_emails($raw_emails);
+  $raw_emails = drupal_convert_to_utf8($email['headers']['to'], $charset);
+  $email['to'] = _og_mailinglist_extract_emails($raw_emails);
+
+  if (isset($email['headers']['cc'])) {
+    $raw_emails = drupal_convert_to_utf8($email['headers']['cc'], $charset);
+    $email['cc'] = _og_mailinglist_extract_emails($raw_emails);
   }
 
   return $email;
@@ -1052,4 +1034,61 @@ function _og_mailinglist_nid_of_subject($subject) {
                        LIMIT 1", array(':title' => '%' . $title . '%'))->fetchField();
   }
   return $nid;
+}
+
+/**
+ * Extract email addresses and names from a comma separated string.
+ *
+ * @param $addresses
+ *   "@param" is a comma separated string of email addresses as it is found in
+ *   email TO or CC fields, e.g John Smith <john@example.com>, joe@example.com
+ *
+ * @return
+ *   "@return" return an associative array of emails as keys and names as
+ *   values. Using keys makes it impossible to have duplicates.
+ */
+function _og_mailinglist_extract_emails($addresses) {
+  $emails = array();
+  foreach (explode(',', $addresses) as $email) {
+    if (preg_match("@([^<]*)<(.*)>@is", $email, $matches)) {
+      $name = trim($matches[1]);
+      $address = trim($matches[2]);
+      $emails[$address] = $name;
+    }
+    else {
+      $emails[trim($email)] = '';
+    }
+  }
+  return $emails;
+}
+
+/**
+ * Extract group names from an array of email addresses as keys.
+ *
+ * @param $addresses
+ *   "@param" is an array of email addresses, where addresses are held as keys.
+ *   This is what is returned from _og_mailinglist_extract_emails().
+ *   E.g array('john@example.com' => 'John Smith', 'joe@example.com' => '')
+ *
+ * @return
+ *   "@return" return an associative array of usernames as keys and emails as
+ *   values.
+ */
+function _og_mailinglist_extract_group_names(&$addresses) {
+  // Regex borrowed from valid_email_address().
+  // Case insensitivity is needed because in domain names case does not matter.
+  $server = variable_get("og_mailinglist_server_string", $_SERVER['SERVER_NAME']);
+  $regex = "/([a-z0-9_\-\.\+\^!#\$%&*+\/\=\?\`\|\{\}~\']+)@" . $server . "/i";
+
+  $out = array();
+  foreach ($addresses as $email => $name) {
+    // Parse the group name from the email.
+    if (preg_match($regex, $email, $matches)) {
+      // Strip enclosing quotes sometimes added by MS Outlook.
+      $group_name = trim($matches[1], '"\' ');
+
+      $out[$group_name] = $email;
+    }
+  }
+  return $out;
 }
