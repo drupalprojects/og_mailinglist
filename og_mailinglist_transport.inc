@@ -44,7 +44,7 @@ function _og_mailinglist_process_email($raw_email, $group_name = NULL) {
     $email['original_email_text'] = $raw_email;
 
     // Extract all the needed info from the email into a simple array.
-    $email = _og_mailinglist_parse_email($email);
+    _og_mailinglist_parse_email($email);
 
     // If the x-BeenThere header is set, this is an email that was sent out and
     // looped back to the server. Reject it.
@@ -260,7 +260,8 @@ function _og_mailinglist_process_email($raw_email, $group_name = NULL) {
         . "> " . $commentedbody;
 
       // Send it off.
-      if (!mail($email['headers']['from'], t("Error processing message"), $body, implode("\n", $head))) {
+      $from = _og_mailinglist_compose_recipients($email['from'], TRUE);
+      if (!mail($from, t("Error processing message"), $body, implode("\n", $head))) {
         throw new Exception("Mail error");
       }
 
@@ -282,6 +283,7 @@ function _og_mailinglist_process_email($raw_email, $group_name = NULL) {
  * Save new comment that came through email.
  */
 function og_mailinglist_save_comment(&$email, &$group_nodes) {
+  global $user;
   $nid = $email['nid'];
   $email['node'] = $node = node_load($nid);
 
@@ -294,10 +296,6 @@ function og_mailinglist_save_comment(&$email, &$group_nodes) {
   if (empty($email)) {
     exit(0);
   }
-
-  // set the user account to this poster (comment_save checks the global user rights)
-  global $user;
-  $user = user_load($email['userid']);
 
   // check that this user has rights to post comments
   if (!user_access('post comments')) {
@@ -362,12 +360,11 @@ function og_mailinglist_save_comment(&$email, &$group_nodes) {
 
   _og_mailinglist_email_comment_email($email, $node, $comment);
 
-  $sender = user_load($email['userid']);
   $group_node = node_load($email['groupid']);
   // Report activity to watchdog.
   watchdog('og_mailinglist', "Posted comment for @mailfrom to group @group_name for nid=@nid with cid=@cid",
     array(
-      '@mailfrom' => $sender->name,
+      '@mailfrom' => $user->name,
       '@group_name' => $group_node->title,
       '@nid' => $node->nid,
       '@cid' => $cid,
@@ -378,7 +375,8 @@ function og_mailinglist_save_comment(&$email, &$group_nodes) {
 /**
  * Save new nodes that came through email.
  */
-function og_mailinglist_save_node($email) {
+function og_mailinglist_save_node(&$email, &$group_nodes) {
+  global $user;
 
   // Let other modules alter the new node or delay posting for another time
   // (e.g. a moderation module might want to delay posting for a time).
@@ -414,13 +412,16 @@ function og_mailinglist_save_node($email) {
     }
   }
 
+  // Get node type.
+  $node_type = variable_get('og_mailinglist_default_content_type', 'article');
+
   // Create the new node
   $node = new stdClass();
-  $node->type = variable_get('og_mailinglist_default_content_type', 'article');
+  $node->type = $node_type;
   node_object_prepare($node);
 
   $node->title = $email['headers']['subject'];
-  $node->uid = $email['userid'];
+  $node->uid = $user->uid;
   $node->language = LANGUAGE_NONE;
   $node->created = REQUEST_TIME;
   $node->body[$node->language][0]['value'] = $mailbody;
@@ -451,12 +452,11 @@ function og_mailinglist_save_node($email) {
   // Send off email.
   _og_mailinglist_email_node_email($email, $node);
 
-  $sender = user_load($email['userid']);
   $group_node = node_load($email['groupid']);
   // Report activity to watchdog.
   watchdog('og_mailinglist', "Posted node for @mailfrom to group @group_name with nid=@nid.",
     array(
-      '@mailfrom' => $sender->name,
+      '@mailfrom' => $user->name,
       '@group_name' => $group_node->title,
       '@nid' => $node->nid,
     )
@@ -476,8 +476,7 @@ function _og_mailinglist_email_node_email($email, $node) {
   $email['new_email_text'] = _og_mailinglist_check_base64($email['new_email_text'], $headers);
 
   // Send it off.
-  $sender_account = user_load($email['userid']);
-  _og_mailinglist_send_email($headers, $email['new_email_text'], $node, NULL, $sender_account);
+  _og_mailinglist_send_email($headers, $email['new_email_text'], $node, NULL);
 
   // If the sender's subscription type isn't email, give him a thread subscription.
   if (og_mailinglist_get_group_subscription_type($node->og_groups[0], $node->uid) != "email") {
@@ -498,8 +497,7 @@ function _og_mailinglist_email_comment_email($email, $node, $comment) {
   $email['new_email_text'] = _og_mailinglist_check_base64($email['new_email_text'], $headers);
 
   // Send it off.
-  $sender_account = user_load($email['userid']);
-  _og_mailinglist_send_email($headers, $email['new_email_text'], $node, $comment, $sender_account);
+  _og_mailinglist_send_email($headers, $email['new_email_text'], $node, $comment);
 }
 
 function _og_mailinglist_parse_email(&$email) {
@@ -508,11 +506,11 @@ function _og_mailinglist_parse_email(&$email) {
     'decode_bodies' => TRUE,
     'decode_headers' => TRUE,
   );
- 
+
   // Decode the email message.
   $decoder = new Mail_mimeDecode($email['original_email_text']);
   $structure = $decoder->decode($params);
-  $email['structure'] = $structure;
+  $email['structure'] = clone $structure;
 
   // Copy headers to the $email array.
   $email['headers'] = array_copy($structure->headers);
@@ -582,8 +580,6 @@ function _og_mailinglist_parse_email(&$email) {
     $raw_emails = drupal_convert_to_utf8($email['headers']['cc'], $charset);
     $email['cc'] = _og_mailinglist_extract_emails($raw_emails);
   }
-
-  return $email;
 }
 // TODO fix attachments for filefield
 
@@ -960,7 +956,9 @@ function _og_mailinglist_add_footer($email, $footer) {
   return $email;
 }
 
-function _og_mailinglist_send_email($headers, $body, $node, $comment = NULL, $sender_account) {
+function _og_mailinglist_send_email($headers, $body, $node, $comment = NULL) {
+  global $user;
+
   $mailer = og_mailinglist_create_mailer();
   $mailer->ClearAddresses();
   foreach ($headers as $key => $value) {
@@ -1005,7 +1003,7 @@ function _og_mailinglist_send_email($headers, $body, $node, $comment = NULL, $se
         }
         else {
           $mailer->From = $value;
-          $mailer->FromName = ($sender_account->realname) ? $sender_account->realname : $sender_account->name;
+          $mailer->FromName = ($user->realname) ? $user->realname : $user->name;
         }
         break;
       case 'content-type':
@@ -1129,4 +1127,23 @@ function _og_mailinglist_extract_group_names(&$addresses) {
     }
   }
   return $out;
+}
+
+/*
+ * Compose recipients string from an array of recipients.
+ */
+function _og_mailinglist_compose_recipients($recipients, $first_only = FALSE) {
+  $out = array();
+  foreach ($recipients as $mail => $username) {
+    if ($username) {
+      $out[] = $username . ' <' . $mail . '>';
+    }
+    else {
+      $out[] = '<' . $mail . '>';
+    }
+    if ($first_only) {
+      break;
+    }
+  }
+  return implode($out, ', ');
 }
