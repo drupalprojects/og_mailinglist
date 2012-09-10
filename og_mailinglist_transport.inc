@@ -84,6 +84,7 @@ function _og_mailinglist_process_email($raw_email, $group_name = NULL) {
 
     // Get the user id.
     global $user;
+    $anonymous = clone $user;
     $user = user_load_by_mail(key($email['from']));
 
     // If site is using multiple_email, check for alternative emails.
@@ -93,6 +94,7 @@ function _og_mailinglist_process_email($raw_email, $group_name = NULL) {
 
     if (!$user) {
       $exception = t("Could not locate the user account for !mailfrom. For security reasons, please post from the email account you are registered with.", array('!mailfrom' => key($email['from'])));
+      $user = $anonymous;
       throw new Exception($exception);
     }
 
@@ -251,7 +253,6 @@ function _og_mailinglist_process_email($raw_email, $group_name = NULL) {
       $head[] = 'In-Reply-To: ' . $email['headers']['message-id'];
       $head[] = 'X-BeenThere: ' . $server;
       $errormsg = $e->getMessage();
-      $msgdate = $email['headers']['date'];
       $commentedbody = '> ' . str_replace("\n", "\n> ", $email['text']);
       $body = t("Hi, sorry about this but we were unable to handle your email correctly for the following reason:")
         . "\n\n"
