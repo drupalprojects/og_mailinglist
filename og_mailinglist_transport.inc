@@ -357,7 +357,10 @@ function og_mailinglist_save_comment(&$email, &$group_nodes, $node) {
 
   _og_mailinglist_email_comment_email($email, $node, $group_nodes, $comment);
 
-  og_mailinglist_log_email_sent('email', $node->nid, $comment->cid, $email['headers']['message-id'], $email['headers']['in-reply-to'], $email['headers']['references'], $parent_message_id);
+  $in_reply_to = isset($email['headers']['in-reply-to']) ? $email['headers']['in-reply-to'] : '';
+  $references = isset($email['headers']['references']) ? $email['headers']['references'] : '';
+
+  og_mailinglist_log_email_sent('email', $node->nid, $comment->cid, $email['headers']['message-id'], $in_reply_to, $references, $parent_message_id);
 
   // Report activity to watchdog.
   $group_list = array();
@@ -780,7 +783,7 @@ function _og_mailinglist_sanitise_filename($filename) {
 // Turn structure back into a plain text email using recursion.
 function _og_mailinglist_encode_email($structure, $boundary = "", $email = "") {
   foreach ($structure as $part) {
-    if (empty($boundary)) {
+    if (empty($boundary) and isset($part->ctype_parameters['boundary'])) {
       $boundary = $part->ctype_parameters['boundary'];
     }
 
@@ -794,14 +797,16 @@ function _og_mailinglist_encode_email($structure, $boundary = "", $email = "") {
     }
     else {
       // Non-multipart emails don't have boundaries
-      if ($boundary) {
+      if (isset($boundary) and $boundary) {
         $last_line = substr(strrchr(trim($email), "\n"), 1);
         if (strcmp(trim($last_line), trim("--" . $boundary)) != 0) {
           $email .= "--" . $boundary . "\n";
         }
       }
 
-      $email .= _og_mailinglist_encode_email_headers($part->headers) . "\n";
+      if (isset($part->headers)) {
+        $email .= _og_mailinglist_encode_email_headers($part->headers) . "\n";
+      }
       // Encode the body as base64 if necessary
       if (isset($part->headers['content-transfer-encoding']) and
         $part->headers['content-transfer-encoding'] == "base64") {
@@ -980,16 +985,17 @@ function _og_mailinglist_send_email($headers, $body, $node, $comment = NULL) {
         $mailer->Subject = $value;
         break;
       case 'to':
-        if (preg_match("/(^<)*<(.*?)>/", $value, $matches)) {
-          $mailer->AddAddress($matches[1], $matches[2]);
+        if (preg_match("/([^<]*)<(.+)>/", $value, $matches)) {
+          print_r($matches);
+          $mailer->AddAddress($matches[2], $matches[1]);
         }
         else {
           $mailer->AddAddress($value);
         }
         break;
       case 'cc':
-        if (preg_match("/(^<)*<(.*?)>/", $value, $matches)) {
-          $mailer->AddCC($matches[1], $matches[2]);
+        if (preg_match("/([^<]*)<(.+)>/", $value, $matches)) {
+          $mailer->AddCC($matches[2], $matches[1]);
         }
         else {
           $mailer->AddCC($value);
@@ -1001,7 +1007,7 @@ function _og_mailinglist_send_email($headers, $body, $node, $comment = NULL) {
         }
         break;
       case 'from':
-        if (preg_match("/([^<]*)<(.*?)>/", $value, $matches)) {
+        if (preg_match("/([^<]*)<(.+)>/", $value, $matches)) {
           $mailer->From = $matches[2];
           $mailer->FromName = $matches[1];
         }
@@ -1017,6 +1023,10 @@ function _og_mailinglist_send_email($headers, $body, $node, $comment = NULL) {
         if (preg_match("/charset=(.*)/s", $value, $matches)) {
           $mailer->CharSet = $matches[1];
         }
+        break;
+      case 'received':
+        // An array of lines of where the email has been.
+        // I think it is okay to drop it.
         break;
       default:
         $mailer->AddCustomHeader($key . ':' . $value);
@@ -1087,7 +1097,7 @@ function _og_mailinglist_extract_emails($addresses) {
   $emails = array();
   foreach (explode(',', $addresses) as $email) {
     if (preg_match("@([^<]*)<(.*)>@is", $email, $matches)) {
-      $name = trim($matches[1]);
+      $name = trim($matches[1], "\"' ");
       $address = trim($matches[2]);
       $emails[$address] = $name;
     }
@@ -1120,10 +1130,7 @@ function _og_mailinglist_extract_group_names(&$addresses) {
   foreach ($addresses as $email => $name) {
     // Parse the group name from the email.
     if (preg_match($regex, $email, $matches)) {
-      // Strip enclosing quotes sometimes added by MS Outlook.
-      $group_name = trim($matches[1], '"\' ');
-
-      $out[$group_name] = $email;
+      $out[$matches[1]] = $email;
     }
   }
   return $out;
