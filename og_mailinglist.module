@@ -178,7 +178,7 @@ function og_mailinglist_unsubscribe_thread($node) {
 function og_mailinglist_node_insert($node) {
   $is_group = !empty($node->og_group_ref);
 
-  if ($node->status and $is_group) {
+  if ($node->status and !isset($node->og_mailinglist_from_email) and $is_group) {
     // First we prepare gids list.
     $gids = array();
     foreach ($node->og_group_ref[LANGUAGE_NONE] as $group) {
@@ -235,7 +235,7 @@ function og_mailinglist_comment_publish($comment) {
   $gids = og_mailinglist_get_groups($node);
 
   // Check if the node is published.
-  if ($node->status and !empty($gids)) {
+  if ($node->status and !isset($comment->og_mailinglist_from_email) and !empty($gids)) {
     og_mailinglist_send_comment_email($comment, $node, $gids);
   }
 }
