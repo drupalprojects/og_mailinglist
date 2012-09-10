@@ -355,7 +355,7 @@ function og_mailinglist_save_comment(&$email, &$group_nodes, $node) {
 
   _og_mailinglist_email_comment_email($email, $node, $group_nodes, $comment);
 
-  og_mailinglist_log_email_sent('email', $nid, $comment->cid, $email['headers']['message-id'], $email['headers']['in-reply-to'], $email['headers']['references'], $parent_message_id);
+  og_mailinglist_log_email_sent('email', $node->nid, $comment->cid, $email['headers']['message-id'], $email['headers']['in-reply-to'], $email['headers']['references'], $parent_message_id);
 
   // Report activity to watchdog.
   $group_list = array();
@@ -1012,11 +1012,8 @@ function _og_mailinglist_send_email($headers, $body, $node, $comment = NULL) {
         $mailer->ContentType = $value;
 
         // Parse out the charset if one is set.
-        preg_match("/charset=(.*)/s", $value, $matches);
-        $charset = $matches[1];
-        // If we succeed, set that for the mailer than proceed.
-        if (!empty($charset)) {
-          $mailer->CharSet = $charset;
+        if (preg_match("/charset=(.*)/s", $value, $matches)) {
+          $mailer->CharSet = $matches[1];
         }
         break;
       default:
