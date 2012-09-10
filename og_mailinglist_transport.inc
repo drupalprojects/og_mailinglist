@@ -92,7 +92,7 @@ function _og_mailinglist_process_email($raw_email, $group_name = NULL) {
     }
 
     if (!$user) {
-      $exception = t("Could not locate the user account for !mailfrom. For security reasons, please post from the email account you are registered with.", array('!mailfrom' => $mailfrom));
+      $exception = t("Could not locate the user account for !mailfrom. For security reasons, please post from the email account you are registered with.", array('!mailfrom' => key($email['from'])));
       throw new Exception($exception);
     }
 
@@ -851,7 +851,7 @@ function _og_mailinglist_rewrite_headers(&$email, &$group_nodes, &$node, $new_no
   }
 
   // TODO: This one here looks like a slight hack.
-  $group_node = current($group_nodes);
+  $group_node = reset($group_nodes);
 
   $group_name = _og_mailinglist_get_group_name($group_node);
   $server = variable_get("og_mailinglist_server_string", $_SERVER['SERVER_NAME']);
