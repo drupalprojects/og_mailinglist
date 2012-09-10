@@ -250,7 +250,6 @@ function _og_mailinglist_process_email($raw_email, $group_name = NULL) {
       $head[] = 'X-BeenThere: ' . $server;
       $errormsg = $e->getMessage();
       $msgdate = $email['headers']['date'];
-      $msgfrom = $email['from'];
       $commentedbody = '> ' . str_replace("\n", "\n> ", $email['text']);
       $body = t("Hi, sorry about this but we were unable to handle your email correctly for the following reason:")
         . "\n\n"
@@ -335,14 +334,8 @@ function og_mailinglist_save_comment(&$email, &$group_nodes, $node) {
   $filter = variable_get('og_mailinglist_default_filter_format', 'plain_text');
   $comment->comment_body[$comment->language][0]['format'] = $filter;
 
-  // Get the cid that'll be used. Yes, this isn't a very pretty way to do this.
-  // If someone else creates a comment between now and when the comment is
-  // actually created, two emails will be sent out for this comment.
-  $cid = 1 + db_query("SELECT cid FROM {comment} ORDER BY cid DESC LIMIT 1")->fetchField();
-
   // Log that comment came from email so og_mailinglist_phpmailer doesn't send an email as well.
   $parent_message_id = _og_mailinglist_get_thread_parent_messageid($email['headers']['in-reply-to'], $email['headers']['references']);
-  og_mailinglist_log_email_sent('email', $nid, $cid, $email['headers']['message-id'], $email['headers']['in-reply-to'], $email['headers']['references'], $parent_message_id);
 
   // If enabled, set comment parent = cid of in-reply-to for comment threading
   if (variable_get('og_mailinglist_thread_comments', FALSE)) {
@@ -361,6 +354,8 @@ function og_mailinglist_save_comment(&$email, &$group_nodes, $node) {
   comment_save($comment);
 
   _og_mailinglist_email_comment_email($email, $node, $group_nodes, $comment);
+
+  og_mailinglist_log_email_sent('email', $nid, $comment->cid, $email['headers']['message-id'], $email['headers']['in-reply-to'], $email['headers']['references'], $parent_message_id);
 
   // Report activity to watchdog.
   $group_list = array();
