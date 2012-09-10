@@ -67,7 +67,9 @@ function _og_mailinglist_process_email($raw_email, $group_name = NULL) {
     
     // Add all possible group_names from TO and CC fields.
     $group_names += _og_mailinglist_extract_group_names($email['to']);
-    $group_names += _og_mailinglist_extract_group_names($email['cc']);
+    if (isset($email['cc'])) {
+      $group_names += _og_mailinglist_extract_group_names($email['cc']);
+    }
 
     // Did we actually get email text back? If not, throw an exception.
     if ($email['text'] == "") {
