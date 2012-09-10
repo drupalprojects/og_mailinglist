@@ -254,10 +254,10 @@ function _og_mailinglist_add_recipients($mailer, $node, $group_node, &$messaged_
     $subscribers = _og_mailinglist_get_subscribers($node, $group_node, $new_node);
     $are_recipients = FALSE;
     // Add emails to BCC
-    foreach ($subscribers as $uid => $email) {
-      if (!in_array($uid, $messaged_users)) {
+    foreach ($subscribers as $email => $name) {
+      if (!in_array($email, $messaged_users)) {
         $mailer->AddBCC($email);
-        $messaged_users[] = $uid;
+        $messaged_users[] = $email;
         $are_recipients = TRUE;
       }
     }

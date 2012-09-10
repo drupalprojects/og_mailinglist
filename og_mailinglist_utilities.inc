@@ -21,15 +21,13 @@ function _og_mailinglist_get_subscribers($node, $group_node, $new_node = FALSE) 
     og_mailinglist_save_group_thread_subscriptions($group_node->nid, $node->nid);
   }
 
-  $subscribers = og_mailinglist_get_thread_subscriptions($node->nid);
+  $subscribers = og_mailinglist_get_thread_subscriptions($node->nid, TRUE);
 
   $debug_emails = variable_get('og_mailinglist_test_email_address', '');
   if (!empty($debug_emails)) {
     $emails = explode(",", $debug_emails);
-    $fake_uid = 999999999999;
     foreach ($emails as $email) {
-      $subscribers[$fake_uid] = trim($email, " ");
-      $fake_uid += 1;
+      $subscribers[trim($email)] = '';
     }
   }
 

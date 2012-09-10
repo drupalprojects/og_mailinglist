@@ -44,7 +44,7 @@ function og_mailinglist_get_group_subscriptions($gid) {
  * @return array of UIDs and email addresses that are subscribed to this thread.
  *  Format = key (UID) => value (email address)
  */
-function og_mailinglist_get_thread_subscriptions($nid) {
+function og_mailinglist_get_thread_subscriptions($nid, $email_as_key = FALSE) {
   $query = db_select('og_mailinglist_thread_subscription', 'ogmt');
   $query->join('users', 'u', 'ogmt.uid = u.uid');
   $query->condition('ogmt.nid', $nid);
@@ -53,8 +53,17 @@ function og_mailinglist_get_thread_subscriptions($nid) {
   $result = $query->execute();
 
   $emails = array();
-  foreach ($result as $user) {
-    $emails[$user->uid] = $user->mail;
+ 
+  // For easier use later we might want the list with email as array key.
+  if ($email_as_key) {
+    foreach ($result as $user) {
+      $emails[$user->mail] = '';
+    }
+  }
+  else {
+    foreach ($result as $user) {
+      $emails[$user->uid] = $user->mail;
+    }
   }
 
   return $emails;

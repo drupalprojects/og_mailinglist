@@ -67,9 +67,7 @@ function _og_mailinglist_process_email($raw_email, $group_name = NULL) {
     
     // Add all possible group_names from TO and CC fields.
     $group_names += _og_mailinglist_extract_group_names($email['to']);
-    if (isset($email['cc'])) {
-      $group_names += _og_mailinglist_extract_group_names($email['cc']);
-    }
+    $group_names += _og_mailinglist_extract_group_names($email['cc']);
 
     // Did we actually get email text back? If not, throw an exception.
     if ($email['text'] == "") {
@@ -513,17 +511,34 @@ function _og_mailinglist_email_comment_email($email, $node, $group_nodes, $comme
   // Build new email.
   _og_mailinglist_rewrite_headers($email, $group_nodes, $node);
 
+  // Recipients
+  $recipients = array();
+  $recipients['from'] = $email['from'];
+  $recipients['to'] = $email['to'];
+  $recipients['cc'] = $email['cc'];
+  $recipients['bcc'] = array();
+
+  // Compose a title for the email.
+  $server = variable_get("og_mailinglist_server_string", $_SERVER['SERVER_NAME']);
+  foreach ($group_nodes as $group_node) {
+    $group_name = _og_mailinglist_get_group_name($group_node);
+    $group_email = $group_name . '@' . $server;
+    $recipients['to'] += array($group_email => $group_name);
+    $recipients['bcc'] += _og_mailinglist_get_subscribers($node, $group_node, FALSE);
+  }
+
+  // Add footer.
   $footer = _og_mailinglist_build_footer($node);
-  $email = _og_mailinglist_add_footer($email, $footer);
-  $headers = $email['headers'];
-  unset($email['structure']->headers);
+  _og_mailinglist_add_footer($email, $footer);
+
+  // Encode email.
   $email['new_email_text'] = _og_mailinglist_encode_email(array($email['structure']));
 
   // Check if entire body should be encoded as base64
-  $email['new_email_text'] = _og_mailinglist_check_base64($email['new_email_text'], $headers);
+  $email['new_email_text'] = _og_mailinglist_check_base64($email['new_email_text'], $email['headers']);
 
   // Send it off.
-  _og_mailinglist_send_email($headers, $email['new_email_text'], $node, $comment);
+  _og_mailinglist_send_email($email['headers'], $recipients, $email['new_email_text'], $node, $comment);
 }
 
 function _og_mailinglist_parse_email(&$email) {
@@ -602,6 +617,7 @@ function _og_mailinglist_parse_email(&$email) {
   $email['to'] = _og_mailinglist_extract_emails($raw_emails);
   unset($email['headers']['to']);
 
+  $email['cc'] = array();
   if (isset($email['headers']['cc'])) {
     $raw_emails = drupal_convert_to_utf8($email['headers']['cc'], $charset);
     $email['cc'] = _og_mailinglist_extract_emails($raw_emails);
@@ -857,17 +873,15 @@ function _og_mailinglist_encode_email_headers($array) {
 
 // Keep mime-version, date, subject, from, to, and content-type
 function _og_mailinglist_rewrite_headers(&$email, &$group_nodes, &$node, $new_node = FALSE) {
-  $headers = array_copy($email['headers']);
-
   // Header values which we want to keep. All lowercase here.
   $copy_headers = array('content-type', 'content-transfer-encoding',
-    'date', 'from', 'in-reply-to', 'message-id', 'mime-version', 'references',
+    'date', 'in-reply-to', 'message-id', 'mime-version', 'references',
     'subject');
 
   // Let's delete unnecessary header fields.
-  foreach ($headers as $key => $value) {
+  foreach ($email['headers'] as $key => $value) {
     if (!in_array(strtolower($key), $copy_headers)) {
-      unset($headers[$key]);
+      unset($email['headers'][$key]);
     }
   }
 
@@ -878,29 +892,24 @@ function _og_mailinglist_rewrite_headers(&$email, &$group_nodes, &$node, $new_no
   $server = variable_get("og_mailinglist_server_string", $_SERVER['SERVER_NAME']);
   $group_email = $group_name . '@' . $server;
 
-  $headers['to'] = $group_email;
-  $headers['bcc'] = _og_mailinglist_get_subscribers($node, $group_node, $new_node);
-
   // Add a reply-to header directed to the group if enabled.
   if (variable_get('og_mailinglist_reply_to_group', FALSE)) {
-    $headers['reply-to'] = $group_email;
+    $email['headers']['reply-to'] = $group_email;
   }
 
   // Group node URL
   $url = url("node/" . $group_node->nid, array('absolute' => TRUE));
 
   // Add list headers.
-  $headers['List-Id'] = "<" . $group_email . ">";
-  $headers['List-Post'] = "<mailto:" . $group_email . ">";
-  $headers['List-Archive'] = $url;
+  $email['headers']['List-Id'] = "<" . $group_email . ">";
+  $email['headers']['List-Post'] = "<mailto:" . $group_email . ">";
+  $email['headers']['List-Archive'] = $url;
 
   // Thread-URL header.
-  $headers['X-Thread-Url'] = $url;
+  $email['headers']['X-Thread-Url'] = $url;
 
   // Set x-BeenThere header
-  $headers['X-BeenThere'] = $group_email;
-
-  $email['headers'] = $headers;
+  $email['headers']['X-BeenThere'] = $group_email;
 }
 
 function _og_mailinglist_check_base64($body, $headers) {
@@ -912,7 +921,7 @@ function _og_mailinglist_check_base64($body, $headers) {
   return $body;
 }
 
-function _og_mailinglist_add_footer($email, $footer) {
+function _og_mailinglist_add_footer(&$email, $footer) {
   $headers = $email['headers'];
   $structure = $email['structure'];
 
@@ -977,15 +986,50 @@ function _og_mailinglist_add_footer($email, $footer) {
   }
 
   $email['structure'] = $structure;
-
-  return $email;
+  $email['headers'] = $structure->headers;
+  unset($email['structure']->headers);
 }
 
-function _og_mailinglist_send_email($headers, $body, $node, $comment = NULL) {
+function _og_mailinglist_send_email($headers, $recipients, $body, $node, $comment = NULL) {
   global $user;
 
   $mailer = og_mailinglist_create_mailer();
   $mailer->ClearAddresses();
+
+  foreach ($recipients as $key => $value) {
+    switch ($key) {
+      case 'from':
+        $mailer->From = key($value);
+        $name = reset($value);
+        if (!$name) {
+          $name = $user->realname ? $user->realname : $user->name;
+        }
+        $mailer->FromName = $name;
+        break;
+      case 'to':
+        foreach ($value as $email => $name) {
+          if ($name)
+            $mailer->AddAddress($email, $name);
+          else
+            $mailer->AddAddress($email);
+        }
+        break;
+      case 'cc':
+        foreach ($value as $email => $name) {
+          if ($name)
+            $mailer->AddCC($email, $name);
+          else
+            $mailer->AddCC($email);
+        }
+        break;
+      case 'bcc':
+        foreach ($value as $email => $name) {
+          $mailer->AddBCC($email);
+        }
+        break;
+    }
+  }
+
   foreach ($headers as $key => $value) {
     if (empty($value)) {
       continue;
@@ -999,38 +1043,6 @@ function _og_mailinglist_send_email($headers, $body, $node, $comment = NULL) {
         break;
       case 'subject':
         $mailer->Subject = $value;
-        break;
-      case 'to':
-        if (preg_match("/([^<]*)<(.+)>/", $value, $matches)) {
-          print_r($matches);
-          $mailer->AddAddress($matches[2], $matches[1]);
-        }
-        else {
-          $mailer->AddAddress($value);
-        }
-        break;
-      case 'cc':
-        if (preg_match("/([^<]*)<(.+)>/", $value, $matches)) {
-          $mailer->AddCC($matches[2], $matches[1]);
-        }
-        else {
-          $mailer->AddCC($value);
-        }
-        break;
-      case 'bcc':
-        foreach ($value as $recipient) {
-          $mailer->AddBCC($recipient);
-        }
-        break;
-      case 'from':
-        if (preg_match("/([^<]*)<(.+)>/", $value, $matches)) {
-          $mailer->From = $matches[2];
-          $mailer->FromName = $matches[1];
-        }
-        else {
-          $mailer->From = $value;
-          $mailer->FromName = ($user->realname) ? $user->realname : $user->name;
-        }
         break;
       case 'content-type':
         $mailer->ContentType = $value;
