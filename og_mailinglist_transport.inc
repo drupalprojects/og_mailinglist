@@ -251,7 +251,7 @@ function _og_mailinglist_process_email($raw_email, $group_name = NULL) {
       $errormsg = $e->getMessage();
       $msgdate = $email['headers']['date'];
       $msgfrom = $email['from'];
-      $commentedbody = '> ' . str_replace("\n", "\n> ", $email['mailbody']);
+      $commentedbody = '> ' . str_replace("\n", "\n> ", $email['text']);
       $body = t("Hi, sorry about this but we were unable to handle your email correctly for the following reason:")
         . "\n\n"
         . $errormsg
@@ -1047,10 +1047,10 @@ function _og_mailinglist_send_email($headers, $body, $node, $comment = NULL) {
  * @param $headers
  *  Headers of the email to be parsed.
  */
-function og_mailinglist_parse_nid($headers) {
+function og_mailinglist_parse_nid($email) {
   $nid = "";
   // Check the in-reply-to header.
-  $parent_message_id = _og_mailinglist_get_thread_parent_messageid($headers['in-reply-to'], $headers['references']);
+  $parent_message_id = _og_mailinglist_get_thread_parent_messageid($email['headers']['in-reply-to'], $email['headers']['references']);
   if (!empty($parent_message_id)) {
     $nid = _og_mailinglist_get_nid_from_parent_messageid($parent_message_id);
   }
@@ -1066,7 +1066,7 @@ function og_mailinglist_parse_nid($headers) {
 function _og_mailinglist_get_nid_from_subject($subject) {
   $nid = NULL;
   preg_match("/(Re:\s\[.*?\])?\s(.+)/si", $subject, $matches);
-  if ($matches[2]) {
+  if (isset($matches[2])) {
     $nid = db_query("SELECT nid
       FROM {node}
       WHERE title LIKE :title
