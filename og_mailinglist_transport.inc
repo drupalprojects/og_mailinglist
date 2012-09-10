@@ -30,7 +30,7 @@ function og_mailinglist_post() {
 
   // If the Maillog module has been set to turn off emails, return.
   if (!variable_get('maillog_send', TRUE)) {
-    watchdog('WATCHDOG_INFO', 'This site is using Maillog and has disabled this site from sending emails so this email was not processed.');
+    watchdog('WATCHDOG_INFO', 'This site is using Maillog and has disabled this site from sending emails so this email was not processed.', array(), WATCHDOG_INFO);
     return;
   }
 
@@ -374,8 +374,8 @@ function og_mailinglist_save_comment(&$email, &$group_nodes, $node) {
       '@group_list' => implode($group_list, ', '),
       '@nid' => $node->nid,
       '@cid' => $comment->cid,
-    )
-  );
+    ),
+    WATCHDOG_INFO);
 }
 
 /**
@@ -463,34 +463,45 @@ function og_mailinglist_save_node(&$email, &$group_nodes) {
       '@username' => $user->name,
       '@email' => $user->mail,
       '@group_list' => implode($group_list, ', '),
-    )
-  );
+    ),
+    WATCHDOG_INFO);
 }
 
 function _og_mailinglist_email_node_email(&$email, &$node, &$group_nodes) {
   // Build new email.
   _og_mailinglist_rewrite_headers($email, $group_nodes, $node, TRUE);
 
+  // Recipients
+  $recipients = array();
+  $recipients['from'] = $email['from'];
+  $recipients['to'] = $email['to'];
+  $recipients['cc'] = $email['cc'];
+  $recipients['bcc'] = array();
+
+  // Compose a title for the email.
   $server = variable_get("og_mailinglist_server_string", $_SERVER['SERVER_NAME']);
   $subject_start = '';
   foreach ($group_nodes as $group_node) {
     $group_name = _og_mailinglist_get_group_name($group_node);
     $group_email = $group_name . '@' . $server;
     $subject_start .= '[' . $group_name . ']';
+    $recipients['to'] += array($group_email => $group_name);
+    $recipients['bcc'] += _og_mailinglist_get_subscribers($node, $group_node, TRUE);
   }
   $email['headers']['subject'] = $subject_start . ' ' . $node->title;
 
+  // Set footer.
   $footer = _og_mailinglist_build_footer($node);
-  $email = _og_mailinglist_add_footer($email, $footer);
-  $headers = $email['structure']->headers;
-  unset($email['structure']->headers);
+  _og_mailinglist_add_footer($email, $footer);
+
+  // Encode email.
   $email['new_email_text'] = _og_mailinglist_encode_email(array($email['structure']));
 
   // Check if entire body should be encoded as base64
-  $email['new_email_text'] = _og_mailinglist_check_base64($email['new_email_text'], $headers);
+  $email['new_email_text'] = _og_mailinglist_check_base64($email['new_email_text'], $email['headers']);
 
   // Send it off.
-  _og_mailinglist_send_email($headers, $email['new_email_text'], $node, NULL);
+  _og_mailinglist_send_email($email['headers'], $recipients, $email['new_email_text'], $node, NULL);
 
   // If the sender's subscription type isn't email, give him a thread subscription.
   if (og_mailinglist_get_group_subscription_type($node->og_group_ref[$node->language][0], $node->uid) != "email") {
@@ -708,9 +719,11 @@ function _og_mailinglist_save_file($attachment, $validators = array()) {
 
   // Check for validation errors.
   if (!empty($errors)) {
-    watchdog('mailhandler', 'The selected file %name could not be uploaded.', array('%name' => $file->filename), WATCHDOG_WARNING);
+    watchdog('mailhandler', 'The selected file %name could not be uploaded.',
+      array('%name' => $file->filename),
+      WATCHDOG_WARNING);
     while ($errors) {
-      watchdog('mailhandler', array_shift($errors));
+      watchdog('mailhandler', array_shift($errors), array(), WATCHDOG_ERROR);
     }
     return 0;
   }
@@ -719,7 +732,9 @@ function _og_mailinglist_save_file($attachment, $validators = array()) {
   // This overcomes open_basedir restrictions for future file operations.
   $file->filepath = $file->destination;
   if (!file_move($attachment['filepath'], $file->filepath)) {
-    watchdog('mailhandler', 'Upload error. Could not move file %file to destination %destination.', array('%file' => $file->filename, '%destination' => $file->filepath), WATCHDOG_ERROR);
+    watchdog('mailhandler', 'Upload error. Could not move file %file to destination %destination.',
+      array('%file' => $file->filename, '%destination' => $file->filepath),
+      WATCHDOG_ERROR);
     return 0;
   }
 
@@ -1040,8 +1055,8 @@ function _og_mailinglist_send_email($headers, $body, $node, $comment = NULL) {
   $success = $mailer->Send();
 
   if (!$success) {
-    watchdog('og_mailinglist', "OG_Mailinglist couldn't send an email.", array(),
-             WATCHDOG_ERROR);
+    watchdog('og_mailinglist', "OG_Mailinglist couldn't send an email.",
+      array(), WATCHDOG_ERROR);
   }
 
 }
