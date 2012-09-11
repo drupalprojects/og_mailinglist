@@ -297,7 +297,7 @@ function og_mailinglist_save_comment(&$email, &$group_nodes, $node) {
     return;
   }
 
-  // check that this user has rights to post comments
+  // Check that this user has rights to post comments.
   if (!user_access('post comments')) {
     throw new Exception(t("You do not have rights to post comments in the system."));
   }
@@ -309,7 +309,7 @@ function og_mailinglist_save_comment(&$email, &$group_nodes, $node) {
 
   $mailbody = $email['text'];
 
-  // Create an object representing the comment
+  // Create an object representing the comment.
   $comment = new stdClass();
   $comment->cid = 0;
   $comment->nid = $node->nid;
@@ -338,7 +338,7 @@ function og_mailinglist_save_comment(&$email, &$group_nodes, $node) {
   // Log that comment came from email so og_mailinglist_phpmailer doesn't send an email as well.
   $parent_message_id = _og_mailinglist_get_thread_parent_messageid($email['headers']);
 
-  // If enabled, set comment parent = cid of in-reply-to for comment threading
+  // If enabled, set comment parent = cid of in-reply-to for comment threading.
   if (variable_get('og_mailinglist_thread_comments', FALSE)) {
     $comment->thread = '01/';
     $comment->pid = db_query("SELECT cid FROM {og_mailinglist_source} WHERE message_id = :message_id", array(':message_id' => $email['headers']['in-reply-to']))->fetchField();
