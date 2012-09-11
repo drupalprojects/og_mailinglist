@@ -927,13 +927,13 @@ function _og_mailinglist_add_footer(&$email, $footer) {
 
   // If message is 7/8bit text/plain and uses us-ascii charecter set, just
   // append the footer.
-  if (preg_match('/^text\/plain/i', $headers['content-type']) &&
-      isset($structure->body)) {
+  if (isset($headers['content-type']) and isset($structure->body) and
+    preg_match('/^text\/plain/i', $headers['content-type'])) {
     $structure->body .= "\n" . $footer;
   }
   // If message is already multipart, append a new part with footer to the end.
-  elseif (preg_match('/^multipart\/(mixed|related)/i', $headers['content-type'])
-             && isset($structure->parts)) {
+  elseif (isset($headers['content-type']) and isset($structure->parts) and
+    preg_match('/^multipart\/(mixed|related)/i', $headers['content-type'])) {
     $structure->parts[] = (object) array(
       "headers" => array(
         "content-type" => 'text/plain; charset="us-ascii"',
@@ -958,9 +958,10 @@ function _og_mailinglist_add_footer(&$email, $footer) {
 
     // Copy email, remove headers from copy, rewrite the content-type, add
     // email copy as parts.
-    $content_type = $structure->headers['content-type'];
     $str_clone = clone $structure;
-    $str_clone->headers = array('content-type' => $content_type);
+    if (isset($structure->headers['content-type'])) {
+      $str_clone->headers = array('content-type' => $structure->headers['content-type']);
+    }
 
     $structure->headers['content-type'] = "multipart/mixed; boundary=\"" .
         $boundary . "\"";
