@@ -486,6 +486,9 @@ function _og_mailinglist_email_node_email(&$email, &$node, &$group_nodes) {
     $recipients['to'] += array($group_email => $group_name);
     $recipients['bcc'] += _og_mailinglist_get_subscribers($node, $group_node, TRUE);
   }
+  // Remove sender from BCC.
+  unset($recipients['bcc'][key($recipients['from'])]);
+
   $email['headers']['subject'] = $subject_start . ' ' . $node->title;
 
   // Set footer.
@@ -526,6 +529,8 @@ function _og_mailinglist_email_comment_email($email, $node, $group_nodes, $comme
     $recipients['to'] += array($group_email => $group_name);
     $recipients['bcc'] += _og_mailinglist_get_subscribers($node, $group_node, FALSE);
   }
+  // Remove sender from BCC.
+  unset($recipients['bcc'][key($recipients['from'])]);
 
   // Add footer.
   $footer = _og_mailinglist_build_footer($node);
@@ -802,7 +807,7 @@ function _og_mailinglist_sanitise_filename($filename) {
   // above reserved characters to sanitise filename
   // from php.net/manual/en/function.preg-replace.php#80431
 
-  // Define characters that are  illegal on any of the 3 major OS's
+  // Define characters that are illegal on any of the 3 major OS's
   $reserved = preg_quote('\/:*?"<>|', '/');
 
   // Perform cleanup
@@ -829,7 +834,7 @@ function _og_mailinglist_encode_email($structure, $boundary = "", $email = "") {
     }
     else {
       // Non-multipart emails don't have boundaries
-      if (isset($boundary) and $boundary) {
+      if ($boundary) {
         $last_line = substr(strrchr(trim($email), "\n"), 1);
         if (strcmp(trim($last_line), trim("--" . $boundary)) != 0) {
           $email .= "--" . $boundary . "\n";
