@@ -907,15 +907,15 @@ function _og_mailinglist_rewrite_headers(&$email, &$group_nodes, &$node, $new_no
   $url = url("node/" . $group_node->nid, array('absolute' => TRUE));
 
   // Add list headers.
-  $email['headers']['List-Id'] = "<" . $group_email . ">";
-  $email['headers']['List-Post'] = "<mailto:" . $group_email . ">";
-  $email['headers']['List-Archive'] = $url;
+  $email['headers']['list-id'] = "<" . $group_email . ">";
+  $email['headers']['list-post'] = "<mailto:" . $group_email . ">";
+  $email['headers']['list-archive'] = $url;
 
   // Thread-URL header.
-  $email['headers']['X-Thread-Url'] = $url;
+  $email['headers']['x-thread-url'] = $url;
 
   // Set x-BeenThere header
-  $email['headers']['X-BeenThere'] = $group_email;
+  $email['headers']['x-beenthere'] = $group_email;
 }
 
 function _og_mailinglist_check_base64($body, $headers) {
