@@ -354,11 +354,12 @@ function og_mailinglist_save_comment(&$email, &$group_nodes, $node) {
   comment_submit($comment);
   comment_save($comment);
 
+  // Send off the email.
   _og_mailinglist_email_comment_email($email, $node, $group_nodes, $comment);
 
+  // Log that this comment came by email.
   $in_reply_to = isset($email['headers']['in-reply-to']) ? $email['headers']['in-reply-to'] : '';
   $references = isset($email['headers']['references']) ? $email['headers']['references'] : '';
-
   og_mailinglist_log_email_sent('email', $node->nid, $comment->cid, $email['headers']['message-id'], $in_reply_to, $references, $parent_message_id);
 
   // Report activity to watchdog.
@@ -443,11 +444,11 @@ function og_mailinglist_save_node(&$email, &$group_nodes) {
 
   node_save($node);
 
-  // Log that this comment came from email.
-  og_mailinglist_log_email_sent('email', $node->nid, 0, $email['headers']['message-id'], 0, 0, $email['headers']['message-id']);
-
   // Send off email.
   _og_mailinglist_email_node_email($email, $node, $group_nodes);
+
+  // Log that this node came from email.
+  og_mailinglist_log_email_sent('email', $node->nid, 0, $email['headers']['message-id'], 0, 0, $email['headers']['message-id']);
 
   $group_list = array();
   foreach ($group_nodes as $gid => $group_node) {
