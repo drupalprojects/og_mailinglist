@@ -928,18 +928,24 @@ function _og_mailinglist_check_base64($body, $headers) {
 }
 
 function _og_mailinglist_add_footer(&$email, $footer) {
-  $headers = $email['headers'];
   $structure = $email['structure'];
+
+  if (isset($email['headers']['content-type'])) {
+    $content_type = $email['headers']['content-type'];
+  }
+  else {
+    $content_type = '';
+  }
 
   // If message is 7/8bit text/plain and uses us-ascii charecter set, just
   // append the footer.
-  if (isset($headers['content-type']) and isset($structure->body) and
-    preg_match('/^text\/plain/i', $headers['content-type'])) {
+  if (isset($structure->body)
+    and preg_match('/^text\/plain/i', $content-type)) {
     $structure->body .= "\n" . $footer;
   }
   // If message is already multipart, append a new part with footer to the end.
-  elseif (isset($headers['content-type']) and isset($structure->parts) and
-    preg_match('/^multipart\/(mixed|related)/i', $headers['content-type'])) {
+  elseif (isset($structure->parts)
+    and preg_match('/^multipart\/(mixed|related)/i', $content-type)) {
     $structure->parts[] = (object) array(
       "headers" => array(
         "content-type" => 'text/plain; charset="us-ascii"',
@@ -959,18 +965,22 @@ function _og_mailinglist_add_footer(&$email, $footer) {
   else {
     // Else, move existing fields into new MIME entity surrounded by new multipart
     // and append footer field to the end.
-    $structure->headers['mime-version'] = "1.0";
-    $boundary = "Drupal-OG-Mailinglist--" . rand(100000000, 9999999999999);
-
     // Copy email, remove headers from copy, rewrite the content-type, add
     // email copy as parts.
     $str_clone = clone $structure;
     if (isset($structure->headers['content-type'])) {
       $str_clone->headers = array('content-type' => $structure->headers['content-type']);
     }
+    else {
+      $str_clone->headers = array();
+    }
 
-    $structure->headers['content-type'] = "multipart/mixed; boundary=\"" .
-        $boundary . "\"";
+    // Set correct MIME version and content type to headers.
+    $email['headers']['mime-version'] = "1.0";
+    $boundary = "Drupal-OG-Mailinglist--" . rand(100000000, 9999999999999);
+    $content_type = "multipart/mixed; boundary=\"" . $boundary . "\"";
+    $email['headers']['content-type'] = $content_type;
+
     $structure->ctype_primary = "multipart";
     $structure->ctype_secondary = "mixed";
     $structure->ctype_parameters = array('boundary' => $boundary);
@@ -993,8 +1003,6 @@ function _og_mailinglist_add_footer(&$email, $footer) {
   }
 
   $email['structure'] = $structure;
-  $email['headers'] = $structure->headers;
-  unset($email['structure']->headers);
 }
 
 function _og_mailinglist_send_email($headers, $recipients, $body, $node, $comment = NULL) {
