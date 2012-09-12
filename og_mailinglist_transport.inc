@@ -69,6 +69,11 @@ function _og_mailinglist_process_email($raw_email, $group_name = NULL) {
     $group_names += _og_mailinglist_extract_group_names($email['to']);
     $group_names += _og_mailinglist_extract_group_names($email['cc']);
 
+    // No emails found.
+    if (!count($group_names)) {
+      throw new Exception(t("There were no possible group emails belonging to this server."));
+    }
+
     // Did we actually get email text back? If not, throw an exception.
     if ($email['text'] == "") {
       throw new Exception(t("Could not parse message body from the email."));
