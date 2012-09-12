@@ -540,7 +540,7 @@ function _og_mailinglist_email_comment_email($email, $node, $group_nodes, $comme
   // Remove sender from BCC.
   unset($recipients['bcc'][key($recipients['from'])]);
 
-  $email['headers']['subject'] = 'Re: ' . $subject_start . ' ' . $comment->title;
+  $email['headers']['subject'] = 'Re: ' . $subject_start . ' ' . $comment->subject;
 
   // Add footer.
   $footer = _og_mailinglist_build_footer($node);
@@ -949,12 +949,12 @@ function _og_mailinglist_add_footer(&$email, $footer) {
   // If message is 7/8bit text/plain and uses us-ascii charecter set, just
   // append the footer.
   if (isset($structure->body)
-    and preg_match('/^text\/plain/i', $content-type)) {
+    and preg_match('/^text\/plain/i', $content_type)) {
     $structure->body .= "\n" . $footer;
   }
   // If message is already multipart, append a new part with footer to the end.
   elseif (isset($structure->parts)
-    and preg_match('/^multipart\/(mixed|related)/i', $content-type)) {
+    and preg_match('/^multipart\/(mixed|related)/i', $content_type)) {
     $structure->parts[] = (object) array(
       "headers" => array(
         "content-type" => 'text/plain; charset="us-ascii"',
