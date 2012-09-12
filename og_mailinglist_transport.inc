@@ -529,14 +529,18 @@ function _og_mailinglist_email_comment_email($email, $node, $group_nodes, $comme
 
   // Compose a title for the email.
   $server = variable_get("og_mailinglist_server_string", $_SERVER['SERVER_NAME']);
+  $subject_start = '';
   foreach ($group_nodes as $group_node) {
     $group_name = _og_mailinglist_get_group_name($group_node);
     $group_email = $group_name . '@' . $server;
+    $subject_start .= '[' . $group_name . ']';
     $recipients['to'] += array($group_email => $group_name);
     $recipients['bcc'] += _og_mailinglist_get_subscribers($node, $group_node, FALSE);
   }
   // Remove sender from BCC.
   unset($recipients['bcc'][key($recipients['from'])]);
+
+  $email['headers']['subject'] = 'Re: ' . $subject_start . ' ' . $comment->title;
 
   // Add footer.
   $footer = _og_mailinglist_build_footer($node);
