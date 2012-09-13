@@ -157,10 +157,11 @@ function _og_mailinglist_process_email($raw_email, $group_name = NULL) {
     }
 
     if (empty($group_nodes)) {
-      throw new Exception(t("You (email: !mailfrom, account page: !account_page) are not a member of any of these groups. Please join the group via the web site before posting.",
+      throw new Exception(t("You (email: !mailfrom, account page: !account_page) are not a member of any of the following groups: !group_names. Please join a group via the web site before posting.",
         array(
           '!mailfrom' => $user->mail,
           '!account_page' => url("user/" . $user->uid, array('absolute' => TRUE)),
+          '!group_names' => '"' . implode('", "', $group_names_list) . '"',
         )
       ));
     }
