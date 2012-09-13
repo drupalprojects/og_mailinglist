@@ -951,7 +951,7 @@ function _og_mailinglist_add_footer(&$email, $footer) {
     $content_type = '';
   }
 
-  // If message is 7/8bit text/plain and uses us-ascii charecter set, just
+  // If message is 7/8bit text/plain and uses us-ascii character set, just
   // append the footer.
   if (isset($structure->body)
     and preg_match('/^text\/plain/i', $content_type)) {
@@ -1019,6 +1019,22 @@ function _og_mailinglist_add_footer(&$email, $footer) {
   $email['structure'] = $structure;
 }
 
+/*
+ * Encode $value to be used in email header if it contains non-ASCII characters.
+ *
+ * @param $value
+ *   $value is a string which may or may not contain non-ASCII characters.
+ *
+ * @return
+ *   Returns UTF-8 base64 string or plain ASCII string as it suits.
+ */
+function _og_mailinglist_encode($value) {
+  if (!mb_detect_encoding($value, 'ASCII', true)) {
+    return "=?UTF-8?B?".base64_encode($value)."?=";
+  }
+  return $value;
+}
+
 function _og_mailinglist_send_email($headers, $recipients, $body, $node, $comment = NULL) {
   global $user;
 
@@ -1033,12 +1049,12 @@ function _og_mailinglist_send_email($headers, $recipients, $body, $node, $commen
         if (!$name) {
           $name = $user->realname ? $user->realname : $user->name;
         }
-        $mailer->FromName = $name;
+        $mailer->FromName = _og_mailinglist_encode($name);
         break;
       case 'to':
         foreach ($value as $email => $name) {
           if ($name)
-            $mailer->AddAddress($email, $name);
+            $mailer->AddAddress($email, _og_mailinglist_encode($name));
           else
             $mailer->AddAddress($email);
         }
@@ -1046,7 +1062,7 @@ function _og_mailinglist_send_email($headers, $recipients, $body, $node, $commen
       case 'cc':
         foreach ($value as $email => $name) {
           if ($name)
-            $mailer->AddCC($email, $name);
+            $mailer->AddCC($email, _og_mailinglist_encode($name));
           else
             $mailer->AddCC($email);
         }
@@ -1071,7 +1087,7 @@ function _og_mailinglist_send_email($headers, $recipients, $body, $node, $commen
         $mailer->MessageID = $value;
         break;
       case 'subject':
-        $mailer->Subject = $value;
+        $mailer->Subject = _og_mailinglist_encode($value);
         break;
       case 'content-type':
         $mailer->ContentType = $value;
@@ -1086,7 +1102,7 @@ function _og_mailinglist_send_email($headers, $recipients, $body, $node, $commen
         // I think it is okay to drop it.
         break;
       default:
-        $mailer->AddCustomHeader($key . ':' . $value);
+        $mailer->AddCustomHeader(capitalize_headers($key, " -") . ':' . $value);
     }
   }
 
