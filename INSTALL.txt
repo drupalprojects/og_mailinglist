@@ -75,6 +75,10 @@ Drupal installation.
 * saving, navigate to admin/og/og_mailinglist and configure per your server
 * setup.
 
+* After creating a content type for group content you have to go to
+* admin/config/group/mailinglist/content_types page and save,
+* otherwise your content will be posted as stories, which might give errors.
+
 * If you're not using Mailgun, to setup og_mailinglist for incoming email, follow
 * the installation instructions for your Mail Transfer Agent in the INSTALL.txt file
 * found in its subdirectory (e.g. exim_og_mailinglist).

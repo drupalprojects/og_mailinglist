@@ -127,7 +127,9 @@ function og_mailinglist_admin_settings() {
   $node_types = node_get_types();
   $n_types = array();
   foreach ($node_types as $type) {
-    $n_types[$type->type] = $type->name;
+    if (og_is_group_post_type($type->type)) {
+      $n_types[$type->type] = $type->name;
+    }
   }
   $form['og_mailinglist_default_content_type'] = array(
     '#title' => t('Default content type'),
