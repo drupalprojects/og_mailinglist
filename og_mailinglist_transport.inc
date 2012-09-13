@@ -502,6 +502,7 @@ function _og_mailinglist_email_node_email(&$email, &$node, &$group_nodes) {
   _og_mailinglist_add_footer($email, $footer);
 
   // Encode email.
+  unset($email['structure']->headers);
   $email['new_email_text'] = _og_mailinglist_encode_email(array($email['structure']));
 
   // Check if entire body should be encoded as base64
@@ -547,6 +548,7 @@ function _og_mailinglist_email_comment_email($email, $node, $group_nodes, $comme
   _og_mailinglist_add_footer($email, $footer);
 
   // Encode email.
+  unset($email['structure']->headers);
   $email['new_email_text'] = _og_mailinglist_encode_email(array($email['structure']));
 
   // Check if entire body should be encoded as base64
@@ -828,42 +830,45 @@ function _og_mailinglist_sanitise_filename($filename) {
 }
 
 // Turn structure back into a plain text email using recursion.
-function _og_mailinglist_encode_email($structure, $boundary = "", $email = "") {
-  foreach ($structure as $part) {
-    if (empty($boundary) and isset($part->ctype_parameters['boundary'])) {
-      $boundary = $part->ctype_parameters['boundary'];
+function _og_mailinglist_encode_email($structure, $boundary = NULL) {
+  $email = '';
+
+  // Set the boundary if empty.
+  if (empty($boundary) and isset($part->ctype_parameters['boundary'])) {
+    $boundary = $part->ctype_parameters['boundary'];
+  }
+
+  foreach ($structure as $key => $part) {
+    // Start with the boundary, if one is present.
+    if ($boundary) {
+      $email .= "--" . $boundary . "\n";
+    }
+
+    // Add headers when present.
+    if (isset($part->headers)) {
+      $email .= _og_mailinglist_encode_email_headers($part->headers) . "\n";
     }
 
     if (isset($part->parts)) {
-      if (isset($part->headers)) {
-        $email .= _og_mailinglist_encode_email_headers($part->headers) . "\n";
-      }
-      $email .= "--" . $part->ctype_parameters['boundary'] . "\n";
-      $email = _og_mailinglist_encode_email($part->parts, $part->ctype_parameters['boundary'], $email);
-      $email .= "--" . $part->ctype_parameters['boundary'] . "--\n";
+      // Add nested parts.
+      $email .= _og_mailinglist_encode_email($part->parts, $part->ctype_parameters['boundary']);
     }
-    else {
-      // Non-multipart emails don't have boundaries
-      if ($boundary) {
-        $last_line = substr(strrchr(trim($email), "\n"), 1);
-        if (strcmp(trim($last_line), trim("--" . $boundary)) != 0) {
-          $email .= "--" . $boundary . "\n";
-        }
-      }
-
-      if (isset($part->headers)) {
-        $email .= _og_mailinglist_encode_email_headers($part->headers) . "\n";
-      }
-      // Encode the body as base64 if necessary
+    elseif (isset($part->body)) {
+      // Encode the body as base64 if necessary.
       if (isset($part->headers['content-transfer-encoding']) and
         $part->headers['content-transfer-encoding'] == "base64") {
         $email .= wordwrap(base64_encode($part->body), 76, "\n", TRUE);
         $email .= "\n";
       }
-      elseif (isset($part->body)) {
+      else {
         $email .= $part->body . "\n";
       }
     }
+  }
+
+  // Add the ending boundary only to the last part.
+  if ($boundary) {
+    $email .= "--" . $boundary . "--\n";
   }
 
   return $email;
