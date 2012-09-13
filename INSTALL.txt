@@ -26,14 +26,15 @@ Right now the only fully supported MTAs are Exim, QMail and Postfix. If you use
 another MTA, look in the issue queue for issues on other MTAs and offer help or
 start a new one.
 
-For both methods, OG Mailinglist also requires,
+For both methods, OG Mailinglist also requires:
 
-* Organic Groups - This module assumes you are using a group-oriented web site.
+* Organic Groups 2.x - This module assumes you have a group-oriented web site.
   This module allows for one list per group.
 
 * PHPMailer 5
 
 * The PHP libraries mimeDecode and Curl.
+
 
 INSTALLATION INSTRUCTIONS:
 
@@ -95,6 +96,7 @@ https://github.com/KyleAMathews/phpmailer/commit/78cdf9743cc58f7e804207bd8aedd49
 * your input filter(s) will need to allow both the <span> and <div> HTML tags.
 
 * Congratulations.  You're running og_mailinglist!
+
 
 FAQ
 Q: I have an existing OG site that I want to install OG Mailinglist on but I
