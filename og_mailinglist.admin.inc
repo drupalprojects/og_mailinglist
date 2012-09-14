@@ -73,7 +73,7 @@ function og_mailinglist_content_types_settings() {
     '#title' => t('Exclude the following content types'),
     '#type' => 'select',
     '#multiple' => TRUE,
-    '#default_value' => variable_get('og_mailinglist_exclude_content_types', 'group'),
+    '#default_value' => variable_get('og_mailinglist_exclude_content_types', array()),
     '#options' => $node_types,
     '#description' => t('Do not send emails on creation of these content types.'),
   );
