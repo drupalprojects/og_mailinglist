@@ -421,9 +421,16 @@ function og_mailinglist_comment($comment, $op) {
       return;
     }
 
-    // Check that the node is published.
     $node = node_load($comment->nid);
     $group_node = _og_mailinglist_load_group($node);
+
+    // If this content type doesn't use email notifications, then return.
+    $excluded_content_types = variable_get('og_mailinglist_exclude_content_types', array());
+    if (in_array($node->type, $excluded_content_types)) {
+      return;
+    }
+
+    // Check that the node is published.
     if ($node->status && is_object($group_node)) {
       // User might not be subscribed to thread. Subscribe them now if not
       // already subscribed.
