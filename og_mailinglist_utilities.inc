@@ -298,7 +298,7 @@ function _og_mailinglist_get_group_name($group_node) {
   // TODO: A hack to ensure this really is a name. Sometimes for viewing it
   // gets passed through og_mailinglist_field_formatter_prepare_view()
   if (strpos($group_name, '@') !== FALSE)  {
-    $group_name = substr($group_name, 0, strpos($group_name, '@') - 1);
+    $group_name = substr($group_name, 0, strpos($group_name, '@'));
   }
   return $group_name;
 }
