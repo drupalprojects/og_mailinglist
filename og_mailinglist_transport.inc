@@ -256,6 +256,9 @@ function _og_mailinglist_process_email($raw_email, $group_name = NULL) {
       $head[] = 'References: ' . $email['headers']['message-id'];
       $head[] = 'In-Reply-To: ' . $email['headers']['message-id'];
       $head[] = 'X-BeenThere: ' . $server;
+      $head[] = 'MIME-Version: 1.0';
+      $head[] = 'Content-Type: text/plain; charset="utf-8"';
+      $head[] = 'Content-Transfer-Encoding: 8bit';
       $errormsg = $e->getMessage();
       $commentedbody = '> ' . str_replace("\n", "\n> ", $email['text']);
       $body = t("Hi, sorry about this but we were unable to handle your email correctly for the following reason:")
@@ -952,8 +955,7 @@ function _og_mailinglist_add_footer(&$email, $footer) {
     $content_type = '';
   }
 
-  // If message is 7/8bit text/plain and uses us-ascii character set, just
-  // append the footer.
+  // If message is 7/8bit text/plain, just append the footer.
   if (isset($structure->body)
     and preg_match('/^text\/plain/i', $content_type)) {
     $structure->body .= "\n" . $footer;
@@ -963,15 +965,15 @@ function _og_mailinglist_add_footer(&$email, $footer) {
     and preg_match('/^multipart\/(mixed|related)/i', $content_type)) {
     $structure->parts[] = (object) array(
       "headers" => array(
-        "content-type" => 'text/plain; charset="us-ascii"',
+        "content-type" => 'text/plain; charset="utf-8"',
         "mime-version" => '1.0',
-        "content-transfer-encoding" => '7bit',
+        "content-transfer-encoding" => '8bit',
         "content-disposition" => 'inline',
       ),
       "ctype_primary" => 'text',
       "ctype_secondary" => 'plain',
       "ctype_parameters" => array(
-        "charset" => 'us-ascii',
+        "charset" => 'utf-8',
       ),
       "disposition" => 'inline',
       "body" => $footer,
@@ -1002,15 +1004,15 @@ function _og_mailinglist_add_footer(&$email, $footer) {
     $structure->parts = array($str_clone);
     $structure->parts[] = (object) array(
       "headers" => array(
-        "content-type" => 'text/plain; charset="us-ascii"',
+        "content-type" => 'text/plain; charset="utf-8"',
         "mime-version" => '1.0',
-        "content-transfer-encoding" => '7bit',
+        "content-transfer-encoding" => '8bit',
         "content-disposition" => 'inline',
       ),
       "ctype_primary" => 'text',
       "ctype_secondary" => 'plain',
       "ctype_parameters" => array(
-        "charset" => 'us-ascii',
+        "charset" => 'utf-8',
       ),
       "disposition" => 'inline',
       "body" => $footer,
