@@ -353,6 +353,51 @@ function og_mailinglist_update_6005() {
   }
 }
 
+/**
+ * Rename OGM tables, add email fields to all group types.
+ */
+function og_mailinglist_update_7000(&$sandbox) {
+  // Rename database tables.
+  db_rename_table('og_mailinglist_thread', 'og_mailinglist_thread_subscription');
+  db_rename_table('og_mailinglist_subscription', 'og_mailinglist_group_subscription');
+
+  // Add email fields to all group types.
+  add_email_field_to_groups();
+}
+
+/**
+ * Migrate group_email data to fields.
+ */
+function og_mailinglist_update_7001(&$sandbox) {
+  if (!isset($sandbox['progress'])) {
+    $sandbox['progress'] = 0;
+    $sandbox['last_nid'] = 0;
+    $sandbox['limit'] = 4;
+    $sandbox['max'] = db_query('SELECT COUNT(nid) FROM {og_mailinglist}')->fetchField() - 1;
+  }
+
+  // Convert data over to fields.
+  $result = db_query("SELECT * FROM {og_mailinglist} WHERE nid > :last_nid LIMIT :limit",
+    array(':last_nid' => $sandbox['last_nid'], ':limit' => $sandbox['limit']))->execute();
+
+  $gids = array();
+  $emails = array();
+  foreach ($result as $row) {
+    $gids[] = $row->nid;
+    $emails[$row->nid] = $row->group_email;
+  }
+  $group_nodes = node_load_multiple($gids);
+
+  foreach ($group_nodes as $group) {
+      $group->group_email[LANGUAGE_NONE][0]['value'] = $emails[$group->nid];
+      node_save($group);
+      $sandbox['progress']++;
+  }
+
+  $sandbox['#finished'] = empty($sandbox['max']) ? 1 : ($sandbox['progress'] / $sandbox['max']);
+  $sandbox['last_nid'] = $group->nid;
+}
+
 /*
  * Add the email field to all og groups.
  */
