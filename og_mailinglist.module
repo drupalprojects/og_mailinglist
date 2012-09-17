@@ -199,13 +199,43 @@ function og_mailinglist_node_insert($node) {
       return;
     }
 
+    // Only send email to the list if the node is published.
+    if ($node->status == 1) {
+      // If this content type doesn't use email notifications, then return.
+      $excluded_content_types = variable_get('og_mailinglist_exclude_content_types', array());
+      if (in_array($node->type, $excluded_content_types)) {
+        return;
+      }
+
+      // Send emails.
+      // This email either starts a new thread or starts a new group,
+      // therefore it goes only to the creator.
+      og_mailinglist_send_node_email($node, $gids);
+    }
+  }
+}
+
+/**
+ * Implements hook_node_update().
+ */
+function og_mailinglist_node_update($node) {
+  // Only act when content is set to published and is group content.
+  if ($node->original->status == 0 and $node->status == 1
+    and og_is_group_content_type('node', $node->type)) {
+
     // If this content type doesn't use email notifications, then return.
     $excluded_content_types = variable_get('og_mailinglist_exclude_content_types', array());
     if (in_array($node->type, $excluded_content_types)) {
       return;
     }
 
-    // Send emails
+    // First we prepare gids list.
+    $gids = array();
+    foreach ($node->og_group_ref[LANGUAGE_NONE] as $group) {
+      $gids[] = $group['target_id'];
+    }
+
+    // Send emails.
     // This email either starts a new thread or starts a new group,
     // therefore it goes only to the creator.
     og_mailinglist_send_node_email($node, $gids);
@@ -213,8 +243,8 @@ function og_mailinglist_node_insert($node) {
 }
 
 /**
-  * Implements hook_comment_insert().
-  */
+ * Implements hook_comment_insert().
+ */
 function og_mailinglist_comment_insert($comment) {
   // User might not be subscribed to thread. Subscribe them now.
   // It is better to subscribe them here, since publish might take some time
