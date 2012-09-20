@@ -354,21 +354,41 @@ function og_mailinglist_update_6005() {
 }
 
 /**
- * Rename OGM tables, add email fields to all group types.
+ * Rename OGM tables.
  */
 function og_mailinglist_update_7000(&$sandbox) {
   // Rename database tables.
   db_rename_table('og_mailinglist_thread', 'og_mailinglist_thread_subscription');
   db_rename_table('og_mailinglist_subscription', 'og_mailinglist_group_subscription');
+}
 
-  // Add email fields to all group types.
-  add_email_field_to_groups();
+/**
+ * Add email fields to all group types.
+ */
+function og_mailinglist_update_7001(&$sandbox) {
+  require_once 'og_mailinglist.fields.inc';
+
+  // Get all group node types and add group_email field.
+  $types = array();
+  foreach (node_type_get_types('types') as $type => $name) {
+    // Unlike in add_email_field_to_groups() here we check group type as in D6.
+    if (variable_get('og_content_type_usage_' . $type, 'omitted') == 'group') {
+      og_create_field(OG_MAILINGLIST_EMAIL_FIELD, 'node', $type);
+      $types[] = $type;
+    }
+  }
+
+  return t('Added @email field to the following group node types: @types',
+    array(
+      '@email' => OG_MAILINGLIST_EMAIL_FIELD,
+      '@types' => implode(', ', $types),
+  ));
 }
 
 /**
  * Migrate group_email data to fields.
  */
-function og_mailinglist_update_7001(&$sandbox) {
+function og_mailinglist_update_7002(&$sandbox) {
   if (!isset($sandbox['progress'])) {
     $sandbox['progress'] = 0;
     $sandbox['last_nid'] = 0;
@@ -377,8 +397,11 @@ function og_mailinglist_update_7001(&$sandbox) {
   }
 
   // Convert data over to fields.
-  $result = db_query("SELECT * FROM {og_mailinglist} WHERE nid > :last_nid LIMIT :limit",
-    array(':last_nid' => $sandbox['last_nid'], ':limit' => $sandbox['limit']))->execute();
+  $query = db_select('og_mailinglist', 'ogm');
+  $query->fields('ogm');
+  $query->condition('nid', $sandbox['last_nid'], '>');
+  $query->range(0, $sandbox['limit']);
+  $result = $query->execute();
 
   $gids = array();
   $emails = array();
