@@ -242,7 +242,7 @@ function _og_mailinglist_add_sender($mailer, $node, $group_node, $comment = NULL
     $mailer->AddAddress($group_email, $group_node->title);
   }
   catch (phpmailerException $e) {
-    watchdog('og_mailinglist', 'PHPMailer error: !error', array('!error' => $e->errorMessage()), NULL, WATCHDOG_ERROR);
+    watchdog('og_mailinglist', 'PHPMailer error: !error', array('!error' => $e->errorMessage()), WATCHDOG_ERROR);
   }
   catch (Exception $e) {
     watchdog('og_mailinglist', $e->getMessage(), NULL, WATCHDOG_ERROR);
