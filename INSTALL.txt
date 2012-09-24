@@ -114,9 +114,8 @@ more on this.
 
 Q: Users want to be able to post from email accounts other than the one they
 registered with on the site, is this possible?
-A: No. It was possible in 6.x but since there is no Mailalias module anymore the
-support has been removed. This feature could be reimplemented using
-http://drupal.org/project/multiple_email module.
+A: Yes. You could use Multiple E-mail Addresses module:
+http://drupal.org/project/multiple_email
 
 Q: I can't get mimeDecode to install or work.
 A: mimeDecode depends on PHP PEAR, which should be installed on any
