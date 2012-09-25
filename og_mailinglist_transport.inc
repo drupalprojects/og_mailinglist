@@ -404,20 +404,6 @@ function og_mailinglist_save_node(&$email, &$group_nodes) {
 
   $mailbody = $email['text'];
 
-  // Is the group public? If not, we need to set the node as private.
-  // The og_private table stores a 1 if the group is private and 0 if it's public.
-  // node_save() expects the opposite so we'll invert the value of $is_private.
-  // TODO: Check whether it actually works.
-  $is_public = TRUE;
-  if (defined("OG_CONTENT_ACCESS_FIELD")) {
-    // TODO: if possible, get rid of node_load() here
-    $access = field_get_items('node', node_load($email['groupid']), OG_CONTENT_ACCESS_FIELD);
-    // TODO: There is also OG_CONTENT_ACCESS_DEFAULT case.
-    if ($access == OG_CONTENT_ACCESS_PRIVATE) {
-      $is_public = FALSE;
-    }
-  }
-
   // Create the new node
   $node = new stdClass();
   $node->type = variable_get('og_mailinglist_default_content_type', 'article');
@@ -433,8 +419,6 @@ function og_mailinglist_save_node(&$email, &$group_nodes) {
   // Custom value to keep the e-mail from being sent twice.
   $node->og_mailinglist_from_email = TRUE;
 
-  // TODO: This needs love.
-  //$node->og_public = $is_public;
   foreach ($group_nodes as $gid => $group_node) {
     $node->og_group_ref[$node->language][]['target_id'] = $gid;
   }
