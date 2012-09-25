@@ -173,6 +173,50 @@ function og_mailinglist_unsubscribe_thread($node) {
 }
 
 /**
+ * Callback function for OGM Block and user/%/og_mailinglist page form.
+ */
+function og_mailinglist_subscriptions_settings_form_submit($form, &$form_state) {
+  if (isset($form_state['values']['uid'])) {
+    $uid = $form_state['values']['uid'];
+  }
+  else {
+    global $user;
+    $uid = $user->uid;
+  }
+  unset($form_state['values']['uid']);
+
+  foreach ($form_state['values'] as $gid => $settings) {
+    if (is_numeric($gid)) {
+      og_mailinglist_update_group_subcription_type($gid, $uid, $settings['subscription-type']);
+
+      if ($settings['subscription-type'] != "email") {
+        og_mailinglist_delete_group_threads($gid, $uid);
+      }
+
+      // If they choose to leave the group.
+      if ($settings['leave-group']) {
+        if (isset($form[$gid]['#title'])) {
+          $group_link = $form[$gid]['#title'];
+        }
+        else {
+          $group_link = l($form_state['build_info']['args'][0]->title, 'node/' . $gid);
+        }
+        if (og_ungroup($gid, 'user', $uid)) {
+          drupal_set_message(t("You are no longer in the @group_link group.",
+            array('@group_link' => $group_link)));
+        }
+        else {
+          drupal_set_message(t("It is impossible to remove you from the group !group_link since you own that group.",
+            array('!group_link' => $group_link)));
+        }
+      }
+    }
+  }
+
+  drupal_set_message(t('Your group subscriptions were updated.'));
+}
+
+/**
  * Implements hook_node_insert().
  */
 function og_mailinglist_node_insert($node) {
