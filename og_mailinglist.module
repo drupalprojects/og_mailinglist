@@ -207,7 +207,7 @@ function og_mailinglist_subscriptions_settings_form_submit($form, &$form_state) 
         }
         else {
           drupal_set_message(t("It is impossible to remove you from the group !group_link since you own that group.",
-            array('!group_link' => $group_link)));
+            array('!group_link' => $group_link)), 'error');
         }
       }
     }
