@@ -91,11 +91,13 @@ https://github.com/KyleAMathews/phpmailer/commit/78cdf9743cc58f7e804207bd8aedd49
 * INSTALL.txt file found in its subdirectory (e.g. exim_og_mailinglist).
 
 * To hide quoted parts of email messages, enable the provided input filter "Hide
-* quoted text from comments created via email" at /admin/config/content/formats
-* and rearrange the filters to set this one first. Note, that for this to work,
-* your input filter(s) will need to allow both the <span> and <div> HTML tags.
+* quotations in emails" at /admin/config/content/formats and drag it to be the
+* first. It should be followed with "Limit allowed HTML tags" filter which
+* needs to have whitelisted at least the following HTML tags: <div> <p> <br>
+* Then go to admin/config/group/mailinglist/content_types and set your filter
+* to be the default one for nodes/comments created from emails.
 
-* Congratulations.  You're running og_mailinglist!
+* Congratulations. You're running og_mailinglist!
 
 
 FAQ

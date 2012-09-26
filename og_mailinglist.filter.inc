@@ -107,7 +107,7 @@ function _og_mailinglist_filter_quotes($text, $filter) {
     $start = $quote['start'];
     $end = $quote['end'];
     $quote_length = $end - $start + 1;
-    
+
     $quote_text = '';
     // First we append text before the quote.
     for (; $current_line < $start; $current_line++) {
