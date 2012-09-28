@@ -393,7 +393,7 @@ function og_mailinglist_update_7002(&$sandbox) {
     $sandbox['progress'] = 0;
     $sandbox['last_nid'] = 0;
     $sandbox['limit'] = 4;
-    $sandbox['max'] = db_query('SELECT COUNT(nid) FROM {og_mailinglist}')->fetchField() - 1;
+    $sandbox['max'] = db_query('SELECT COUNT(nid) FROM {og_mailinglist}')->fetchField();
   }
 
   // Convert data over to fields.
