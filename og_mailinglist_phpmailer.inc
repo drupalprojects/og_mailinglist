@@ -40,8 +40,14 @@ function og_mailinglist_send_comment_email($comment, $node, $gids) {
       ->condition('ogms.cid', $comment->pid)
       ->execute()->fetchAll();
 
-    $in_reply_to = $data->message_id;
-    $references = $data->references_header . " " . $in_reply_to;
+    if ($data) {
+      $in_reply_to = $data->message_id;
+      $references = $data->references_header . " " . $in_reply_to;
+    }
+    else {
+      $in_reply_to = $parent_message_id;
+      $references = $parent_message_id;
+    }
   }
   else {
     $in_reply_to = $parent_message_id;
