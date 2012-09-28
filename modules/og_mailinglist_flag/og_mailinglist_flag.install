@@ -21,8 +21,8 @@ function og_mailinglist_flag_add_flags() {
   $result = db_query("SELECT DISTINCT uid FROM {og_mailinglist_thread_subscription}");
 
   $uids = array();
-  foreach ($result as $info) {
-    $uids[] = $info['uid'];
+  foreach ($result as $data) {
+    $uids[] = $data->uid;
   }
 
   // Loop through users fetching all their subscriptions from past month
@@ -33,14 +33,13 @@ function og_mailinglist_flag_add_flags() {
                          FROM {node} n
                          INNER JOIN {og_mailinglist_thread_subscription} o
                          ON n.nid = o.nid
-                         WHERE o.uid = :o.uid", array(':o.uid' => $account->uid));
+                         WHERE o.uid = :uid", array(':uid' => $account->uid));
 
     $nids = array();
-    foreach ($result as $info) {
-      $nids[] = $info['nid'];
-    }
-    foreach ($nids as $nid) {
-      flag('flag', 'follow_node', $nid, $account);
+    foreach ($result as $data) {
+      flag('flag', 'follow_node', $data->nid, $account);
     }
   }
+
+  drupal_set_message(t('Flags were successfully set to correct state.'));
 }
