@@ -68,11 +68,6 @@ function _og_mailinglist_process_email($raw_email, $group_name = NULL) {
     $group_names += _og_mailinglist_extract_group_names($email['to']);
     $group_names += _og_mailinglist_extract_group_names($email['cc']);
 
-    // No emails found.
-    if (!count($group_names)) {
-      throw new Exception(t("There were no possible group emails belonging to this server."));
-    }
-
     // Did we actually get email text back? If not, throw an exception.
     if ($email['text'] == "") {
       throw new Exception(t("Could not parse message body from the email."));
@@ -129,9 +124,62 @@ function _og_mailinglist_process_email($raw_email, $group_name = NULL) {
       throw new Exception(t("Could not locate groups with names !group_names",
         array('!group_names' => '"' . implode('", "', $group_names_list) . '"')));
     }
+    $to_gids = array_keys($result['node']);
+
+    // Check if this user is member of at least one of these groups
+    // (for security).
+    foreach ($to_gids as $key => $gid) {
+      if (!og_is_member('node', $gid, 'user', $user)) {
+        unset($to_gids[$key]);
+      }
+    }
+
+    // See if the email is a comment to an existing node or a new node.
+    // If the email is a comment to a node, we should be able to get the
+    // node ID of the original node.
+    $email['nid'] = og_mailinglist_parse_nid($email);
+
+    // User might be subscribed to the thread.
+    if (empty($to_gids) and $email['nid']) {
+      // See also og_mailinglist_get_thread_subscriptions()
+      $query = db_select('og_mailinglist_thread_subscription', 'ogmt');
+      $query->condition('ogmt.uid', $user->uid);
+      $query->addField('ogmt', 'uid');
+      $result = $query->execute();
+
+      if (empty($result)) {
+        throw new Exception(t("You are not a member of any of the groups you tried to post to and you are not subscribed to the current thread."));
+      }
+    }
+    elseif (empty($to_gids)) {
+        throw new Exception(t("You are not a member of any of the groups you tried to post to."));
+    }
+
+    if ($email['nid']) {
+      $node = node_load($email['nid']);
+      $group_refs = field_get_items('node', $node, 'og_group_ref');
+
+      // Check if user is member of at least one group.
+      $member_of_one = FALSE;
+      $gids = array();
+      foreach ($group_refs as $ref) {
+        $gids[] = $ref['target_id'];
+      }
+      // Mark groups to be added to node.
+      $new_gids = array();
+      foreach ($to_gids as $gid) {
+        if (!in_array($gid, $gids)) {
+          $new_gids[] = $gid;
+          $gids[] = $gid;
+        }
+      }
+    }
+    else {
+      $new_gids = $to_gids;
+      $gids = $to_gids;
+    }
 
     // Load group nodes.
-    $gids = array_keys($result['node']);
     $group_nodes = node_load_multiple($gids);
     $email['group_nodes'] = $group_nodes;
 
@@ -143,39 +191,17 @@ function _og_mailinglist_process_email($raw_email, $group_name = NULL) {
       }
     }
     if (empty($group_nodes)) {
-      throw new Exception(t("None of the groups are published."));
+      throw new Exception(t("None of the group nodes are published."));
     }
 
-    // Check if this user is a member of these groups (for security).
-    foreach ($group_nodes as $gid => $group_node) {
-      if (!og_is_member('node', $group_node->nid, 'user', $user)) {
-        unset($group_nodes[$gid]);
-        // TODO also check if person is subscribed to this thread -- if they are,
-        // let them comment by email.
-      }
-    }
-
-    if (empty($group_nodes)) {
-      throw new Exception(t("You (email: !mailfrom, account page: !account_page) are not a member of any of the following groups: !group_names. Please join a group via the web site before posting.",
-        array(
-          '!mailfrom' => $user->mail,
-          '!account_page' => url("user/" . $user->uid, array('absolute' => TRUE)),
-          '!group_names' => '"' . implode('", "', $group_names_list) . '"',
-        )
-      ));
-    }
-
-    // Additional check that user has access to publish content
+    // Additional check that user has access to publish content.
+    // It forbids users from commenting as well. TODO: Maybe it should not?
     $node_type = variable_get('og_mailinglist_default_content_type', 'article');
     if (!user_access('create ' . $node_type . ' content', $user)) {
       throw new Exception(t("You do not have permission to post using group content type @type. Please contact the site administrator.",
         array('@type' => $node_type)));
     }
 
-    // See if the email is a comment to an existing node or a new node.
-    // If the email is a comment to a node, we should be able to get the
-    // node ID of the original node.
-    $email['nid'] = og_mailinglist_parse_nid($email);
     // Create the new content in Drupal.
     if (!empty($email['nid'])) { // a new comment
       /* Two checks first before creating the comment.
@@ -231,6 +257,14 @@ function _og_mailinglist_process_email($raw_email, $group_name = NULL) {
         unset($email['structure']->headers['references']);
         og_mailinglist_save_node($email, $group_nodes);
         exit(0); // So we don't save a comment as well.
+      }
+
+      // If there are new groups add these to the thread.
+      if (!empty($new_gids)) {
+        foreach ($new_gids as $gid) {
+          $node->og_group_ref[$node->language][]['target_id'] = $gid;
+        }
+        node_save($node);
       }
 
       // If we got this far, the email is definitely intended as a new comment.
@@ -375,11 +409,10 @@ function og_mailinglist_save_comment(&$email, $group_nodes, $node) {
   foreach ($group_nodes as $gid => $group_node) {
     $group_list[] = $group_node->title . ' (gid' . $gid . ')';
   }
-  watchdog('og_mailinglist', "Posted comment %subject for @mailfrom to groups: @group_list",
+  watchdog('og_mailinglist', "Posted comment: %subject to groups: %group_list",
     array(
       '%subject' => $comment->subject,
-      '@mailfrom' => $user->name,
-      '@group_list' => implode($group_list, ', '),
+      '%group_list' => implode($group_list, ', '),
     ),
     WATCHDOG_INFO, l(t('view'), 'comment/' . $comment->cid, array('fragment' => 'comment-' . $comment->cid)));
 }
@@ -446,10 +479,9 @@ function og_mailinglist_save_node(&$email, $group_nodes) {
     $group_list[] = $group_node->title . ' (gid' . $gid . ')';
   }
   // Report activity to watchdog.
-  watchdog('og_mailinglist', 'Posted node %title for %username to groups: %group_list.',
+  watchdog('og_mailinglist', 'Posted node: %title to groups: %group_list.',
     array(
       '%title' => $node->title,
-      '%username' => $user->name,
       '%group_list' => implode($group_list, ', '),
     ),
     WATCHDOG_INFO, l(t('view'), 'node/' . $node->nid));
