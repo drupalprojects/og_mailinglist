@@ -927,32 +927,6 @@ function _og_mailinglist_rewrite_headers(&$email, $group_nodes, $node, $new_node
       unset($email['headers'][$key]);
     }
   }
-
-  // TODO: This one here looks like a slight hack.
-  $group_node = reset($group_nodes);
-
-  $group_name = _og_mailinglist_get_group_name($group_node);
-  $server = variable_get("og_mailinglist_server_string", $_SERVER['SERVER_NAME']);
-  $group_email = $group_name . '@' . $server;
-
-  // Add a reply-to header directed to the group if enabled.
-  if (variable_get('og_mailinglist_reply_to_group', FALSE)) {
-    $email['headers']['reply-to'] = $group_email;
-  }
-
-  // Group node URL
-  $url = url("node/" . $group_node->nid, array('absolute' => TRUE));
-
-  // Add list headers.
-  $email['headers']['list-id'] = "<" . $group_email . ">";
-  $email['headers']['list-post'] = "<mailto:" . $group_email . ">";
-  $email['headers']['list-archive'] = $url;
-
-  // Thread-URL header.
-  $email['headers']['x-thread-url'] = $url;
-
-  // Set x-BeenThere header
-  $email['headers']['x-beenthere'] = $group_email;
 }
 
 function _og_mailinglist_check_base64($body, $headers) {
