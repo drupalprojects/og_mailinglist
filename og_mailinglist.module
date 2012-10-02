@@ -448,7 +448,7 @@ function og_mailinglist_hook_info() {
 function og_mailinglist_theme() {
   return array(
     'og_mailinglist_attached_files' => array(
-      'variables' => array('node' => NULL),
+      'variables' => array('node' => NULL, 'comment' => NULL),
     ),
     'og_mailinglist_user_signature' => array(
       'variables' => array('user' => NULL),

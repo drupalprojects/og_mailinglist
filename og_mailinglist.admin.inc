@@ -44,7 +44,7 @@ function og_mailinglist_email_settings() {
 /**
  * Admin settings form for OGM content types
  */
-function og_mailinglist_content_types_settings() {
+function og_mailinglist_content_types_settings($form, &$form_state) {
   $default_content_type = variable_get('og_mailinglist_default_content_type', 'none^set');
   $node_types = array('none^set' => t('- None -'));
   foreach (node_type_get_names() as $type => $name) {
@@ -70,8 +70,8 @@ function og_mailinglist_content_types_settings() {
     '#suffix' => '</div>',
   );
 
-  $file_fields = array('no^field' => t('- None -'));
-  $image_fields = array('no^field' => t('- None -'));
+  $node_file_fields = array('no^field' => t('- None -'));
+  $node_image_fields = array('no^field' => t('- None -'));
   $content_type = isset($form_state['values']['og_mailinglist_default_content_type']) ? $form_state['values']['og_mailinglist_default_content_type'] : $default_content_type;
   if ($content_type != 'none^set') {
     $fields_info = field_info_instances('node', $default_content_type);
@@ -79,26 +79,55 @@ function og_mailinglist_content_types_settings() {
       $field_info = field_info_field($field_name);
       $type = $field_info['type'];
       if ($type == 'file') {
-        $file_fields[$field_name] = $value['field_name'];
+        $node_file_fields[$field_name] = $value['field_name'];
       }
       elseif ($type == 'image') {
-        $image_fields[$field_name] = $value['field_name'];
+        $node_image_fields[$field_name] = $value['field_name'];
       }
     }
   }
 
-  $form['og_mailinglist_fields']['wrapper']['og_mailinglist_file_field'] = array(
-    '#title' => t('Field for files'),
-    '#description' => t('Field where incoming files will be stored. Will be used for images too when Image field is not set.'),
+  $comment_file_fields = count($node_file_fields) > 1 ? array('no^field' => t('- None -'), 'attach^to^node' => t('- Attach to node -')) : array('no^field' => t('- None -'));
+  $comment_image_fields = count($node_image_fields) > 1 ? array('no^field' => t('- None -'), 'attach^to^node' => t('- Attach to node -')) : array('no^field' => t('- None -'));
+  if ($content_type != 'none^set') {
+    $fields_info = field_info_instances('comment', 'comment_node_' . $default_content_type);
+    foreach ($fields_info  as $field_name => $value) {
+      $field_info = field_info_field($field_name);
+      $type = $field_info['type'];
+      if ($type == 'file') {
+        $comment_file_fields[$field_name] = $value['field_name'];
+      }
+      elseif ($type == 'image') {
+        $comment_image_fields[$field_name] = $value['field_name'];
+      }
+    }
+  }
+
+  $form['og_mailinglist_fields']['wrapper']['og_mailinglist_node_file_field'] = array(
+    '#title' => t('Field for files in node'),
+    '#description' => t('Field where incoming files will be stored. Will be used for images too when image field is not set.'),
     '#type' => 'select',
-    '#options' => $file_fields,
-    '#default_value' => variable_get('og_mailinglist_file_field', ''),
+    '#options' => $node_file_fields,
+    '#default_value' => variable_get('og_mailinglist_node_file_field', ''),
   );
-  $form['og_mailinglist_fields']['wrapper']['og_mailinglist_image_field'] = array(
-    '#title' => t('Field for images'),
+  $form['og_mailinglist_fields']['wrapper']['og_mailinglist_node_image_field'] = array(
+    '#title' => t('Field for images in node'),
     '#type' => 'select',
-    '#options' => $image_fields,
-    '#default_value' => variable_get('og_mailinglist_image_field', ''),
+    '#options' => $node_image_fields,
+    '#default_value' => variable_get('og_mailinglist_node_image_field', ''),
+  );
+  $form['og_mailinglist_fields']['wrapper']['og_mailinglist_comment_file_field'] = array(
+    '#title' => t('Field for files in comment/reply'),
+    '#description' => t('Field where incoming files for email replies will be stored. Will be used for images too when image field is not set.'),
+    '#type' => 'select',
+    '#options' => $comment_file_fields,
+    '#default_value' => variable_get('og_mailinglist_comment_file_field', ''),
+  );
+  $form['og_mailinglist_fields']['wrapper']['og_mailinglist_comment_image_field'] = array(
+    '#title' => t('Field for images in comment/reply'),
+    '#type' => 'select',
+    '#options' => $comment_image_fields,
+    '#default_value' => variable_get('og_mailinglist_comment_image_field', ''),
   );
 
   $filter_list = array();

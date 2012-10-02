@@ -389,6 +389,11 @@ function og_mailinglist_save_comment(&$email, $group_nodes, $node) {
     $comment->pid = 0;
   }
 
+  // Add attachments if any.
+  if (!empty($email['attachments'])) {
+    _og_mailinglist_save_files('comment', $comment, $email['attachments']);
+  }
+
   // Let other modules alter the comment object before saving.
   drupal_alter('og_mailinglist_save_comment', $comment);
 
@@ -455,13 +460,9 @@ function og_mailinglist_save_node(&$email, $group_nodes) {
   }
 
   // Add attachments if any.
-  // TODO fix this someday. Best idea -- save mail objects w/ attachments.
-  // On cron scoop them up and add them to nodes/comments
-  //if (isset($email['attachments'])) {
-  //  $nodeattachments = _og_mailinglist_save_attachments_temp_dir($email['attachments']);
-  //  $node->og_mailinglist_attachments = $nodeattachments;
-  //  _og_mailinglist_save_files($node);
-  //}
+  if (!empty($email['attachments'])) {
+    _og_mailinglist_save_files('node', $node, $email['attachments']);
+  }
 
   // Let other modules alter the node object before saving.
   drupal_alter('og_mailinglist_save_node', $node);
@@ -703,7 +704,7 @@ function _og_mailinglist_parse_email($raw_email) {
 function _og_mailinglist_parse_attachment($part) {
   $info['data'] = $part->body;
   $info['filemime'] = $part->ctype_primary . "/" . $part->ctype_secondary;
-  $info['filename'] = $part->ctype_parameters['name'];
+  $info['filename'] = mb_decode_mimeheader($part->ctype_parameters['name']);
 
   return $info;
 }
@@ -719,145 +720,116 @@ function _og_mailinglist_parse_content($part) {
   return $content;
 }
 
-function _og_mailinglist_save_files($node) {
+function _og_mailinglist_save_files($entity_type, &$entity, $attachments) {
   global $user;
 
-  // If $node->og_mailinglist_attachments is empty or upload not installed just return
-  if (!$node->og_mailinglist_attachments || !module_exists('upload')) {
-    return;
-  }
-
-  // If user doesn't have upload permission then don't bother processing
+  // If user doesn't have upload permission then don't bother processing.
   if (!(user_access('upload files'))) {
-    //echo "didn't have permissions?\n\n";
     return;
   }
 
-  // Convert $node->og_mailinglist_attachments to $node->files ready for upload to use
-  foreach ($node->og_mailinglist_attachments as $filekey => $attachment) {
+  $image_field = _og_mailinglist_get_field($entity_type, 'image');
+  $file_field = _og_mailinglist_get_field($entity_type, 'file');
 
-    $limits = _upload_file_limits($user);
-    $validators = array(
-      'file_validate_extensions' => array($limits['extensions']),
-      'file_validate_image_resolution' => array($limits['resolution']),
-      'file_validate_size' => array($limits['file_size'], $limits['user_size']),
-    );
+  if (!$image_field and !$file_field) {
+    return;
+  }
 
-    if ($file = _og_mailinglist_save_file($attachment, $validators)) {
-      // Create the $node->files elements
-      $file->list = variable_get('upload_list_default', 1);
-      $file->description = $file->filename;
-      $node->files[$file->fid] = $file;
+  foreach ($attachments as $attachment) {
+    $filename = _og_mailinglist_sanitise_filename($attachment['filename']);
+
+    // Save the data to a temporary file.
+    $file = file_save_data($attachment['data'], 'temporary://' . $filename);
+
+    // If file is an image and image field is present.
+    $image_errors = file_validate_is_image($file);
+    if ($image_field and count($image_errors) == 0) {
+      $field = $image_field;
+    }
+    else {
+      $field = $file_field;
+    }
+    
+    $errors = file_validate($file, $field->validators);
+    if (count($errors)) {
+      $error = reset($errors);
+      // Find a better way to report these errors.
+      drupal_set_message($error, NULL, 'error');
+      file_delete($file);
+      continue;
     }
 
-  }
-
-  // Destroy $node->og_mailinglist_attachments now we have created $node->files
-  unset($node->og_mailinglist_attachments);
-
-}
-
-
-// This started as a copy of file_save_upload
-//function _og_mailinglist_node_file($attachment, $source, $validators = array(), $dest = FALSE, $replace = FILE_EXISTS_RENAME) {
-function _og_mailinglist_save_file($attachment, $validators = array()) {
-  global $user;
-
-  // Add in our check of the the file name length.
-  $validators['file_validate_name_length'] = array();
-
-  // Build the list of non-munged extensions.
-  // @todo: this should not be here. we need to figure out the right place.
-  $extensions = '';
-  foreach ($user->roles as $rid => $name) {
-    $extensions .= ' ' . variable_get("upload_extensions_$rid",
-    variable_get('upload_extensions_default', 'jpg jpeg gif png txt html doc xls pdf ppt pps odt ods odp'));
-  }
-
-  // Begin building file object.
-  $file = new stdClass();
-  $file->filename = file_munge_filename(trim(basename($attachment['filename']), '.'), $extensions);
-  $file->uri = $attachment['filepath'];
-  $file->filemime = file_get_mimetype($file->filename);
-
-  // Rename potentially executable files, to help prevent exploits.
-  if (preg_match('/\.(php|pl|py|cgi|asp|js)$/i', $file->filename) && (substr($file->filename, -4) != '.txt')) {
-    $file->filemime = 'text/plain';
-    $file->uri .= '.txt';
-    $file->filename .= '.txt';
-  }
-
-  // Create temporary name/path for newly uploaded files.
-  //if (!$dest) {
-  $dest = file_destination(file_create_path($file->filename), FILE_EXISTS_RENAME);
-  //}
-  //$file->source = $source;
-  $file->destination = $dest;
-  $file->filesize = $attachment['filesize'];
-
-  // Call the validation functions.
-  $errors = array();
-  foreach ($validators as $function => $args) {
-    array_unshift($args, $file);
-    $errors = array_merge($errors, call_user_func_array($function, $args));
-  }
-
-  // Check for validation errors.
-  if (!empty($errors)) {
-    watchdog('mailhandler', 'The selected file %name could not be uploaded.',
-      array('%name' => $file->filename),
-      WATCHDOG_WARNING);
-    while ($errors) {
-      watchdog('mailhandler', array_shift($errors), array(), WATCHDOG_ERROR);
+    $filename = file_munge_filename($file->filename, $field->extensions);
+    // TODO: decide whether to use private:// based on group privacy.
+    $path = 'public://';
+    if ($field->directory) {
+      $path .= 'public://' . $field->directory . '/' . $filename;
+      $dir = 'public://' . $field->directory;
+      if (!file_prepare_directory($dir))  {
+        drupal_set_message(t('Directory cannot be made writable'), NULL, 'error');
+      }
     }
-    return 0;
+    else {
+      $path = 'public://' . $filename;
+    }
+
+    $file = file_move($file, $path);
+    $file->display = 1;
+
+    if ($entity_type == $field->type) {
+      $entity->{$field->name}[LANGUAGE_NONE][$file->fid] = (array) $file;
+    }
+    elseif ($entity_type == 'comment' and $field->type == 'node') {
+      if (!isset($node)) {
+        $node = node_load($entity->nid);
+      }
+      $node->{$field->name}[LANGUAGE_NONE][$file->fid] = (array) $file;
+    }
   }
 
-  // Move uploaded files from PHP's tmp_dir to Drupal's temporary directory.
-  // This overcomes open_basedir restrictions for future file operations.
-  $file->uri = $file->destination;
-  if (!file_move($attachment['filepath'], $file->uri)) {
-    watchdog('mailhandler', 'Upload error. Could not move file %file to destination %destination.',
-      array('%file' => $file->filename, '%destination' => $file->uri),
-      WATCHDOG_ERROR);
-    return 0;
+  if (isset($node)) {
+    node_save($node);
   }
-
-  // If we made it this far it's safe to record this file in the database.
-  $file->uid = $user->uid;
-  $file->status = FILE_STATUS_PERMANENT;
-  $file->timestamp = REQUEST_TIME;
-  drupal_write_record('files', $file);
-
-  // Return the results of the save operation
-  return $file;
-
-}
-
-function _og_mailinglist_save_attachments_temp_dir($attachments) {
-  // Parse each mime part in turn
-  foreach ($attachments as $info) {
-    // Save the data to temporary file
-    $temp_file = tempnam(file_directory_temp(), 'mail');
-    $filepath = file_save_data($info['data'], $temp_file);
-
-    // Add the item to the attachments array, and sanitise filename
-    $node_attachments[] = array(
-      'filename' => _og_mailinglist_sanitise_filename($info['filename']),
-      'filepath' => $filepath,
-      'filemime' => strtolower($info['filemime']),
-      'filesize' => strlen($info['data']),
-    );
-  }
-  file_save_data("hello world", file_directory_path() . "/temp");
-
-  // Return the attachments
-  return $node_attachments;
-
 }
 
 /**
- * Take a raw attachment filename, decode and strip out invalid characters.
+ * Get file or image field object.
+ *
+ * @param string $entity_type
+ *   Either 'node' or 'comment'.
+ * @param string $file_type
+ *   Either 'image' or 'file'.
+ * @return
+ *   A customized object containing field properties.
+ */
+function _og_mailinglist_get_field($entity_type, $file_type) {
+  $field = new stdClass();
+  $field->name = variable_get('og_mailinglist_' . $entity_type . '_' . $file_type . '_field', 'no^field');
+
+  if ($field->name == 'no^field') {
+    return;
+  }
+
+  if ($field->name == 'attach^to^node') {
+    $entity_type = 'node';
+    $field->name = variable_get('og_mailinglist_' . $entity_type . '_' . $file_type . '_field', 'no^field');
+  }
+
+  $bundle = $entity_type == 'comment' ? 'comment_node_' : '';
+  $bundle .= variable_get('og_mailinglist_default_content_type', 'article');
+
+  $field->type = $entity_type;
+  $field->info = field_info_field($field->name);
+  $field->instance = field_info_instance($entity_type, $field->name, $bundle);
+  $field->validators = file_field_widget_upload_validators($field->info, $field->instance);
+  $field->extensions = $field->instance['settings']['file_extensions'];
+  $field->directory = $field->instance['settings']['file_directory'];
+
+  return $field;
+}
+
+/**
+ * Take a raw attachment filename and strip out invalid characters.
  *
  * Replaces all characters up through space and all past - along with the
  * above reserved characters to sanitise filename from
@@ -870,9 +842,6 @@ function _og_mailinglist_save_attachments_temp_dir($attachments) {
  *   to save the file.
  */
 function _og_mailinglist_sanitise_filename($filename) {
-  // Decode multibyte encoded filename
-  $filename = mb_decode_mimeheader($filename);
-
   // Define characters that are illegal on any of the 3 major OS's
   $reserved = preg_quote('\/:*?"<>|', '/');
 

@@ -202,7 +202,17 @@ function _og_mailinglist_build_subject($group_nodes) {
  *   HTML code for files links or an empty string.
  */
 function theme_og_mailinglist_attached_files($variables) {
-  $node = $variables['node'];
+  if (isset($variables['comment'])) {
+    $entity = $variables['comment'];
+    $entity_type = 'comment';
+  }
+  elseif (isset($variables['node'])) {
+    $entity = $variables['node'];
+    $entity_type = 'node';
+  }
+  else {
+    return;
+  }
 
   $image_field = variable_get('og_mailinglist_image_field', '');
   $file_field = variable_get('og_mailinglist_file_field', '');
@@ -210,9 +220,9 @@ function theme_og_mailinglist_attached_files($variables) {
   $html = '';
 
   if ($image_field) {
-    $images = field_get_items('node', $node, $image_field);
+    $images = field_get_items($entity_type, $entity, $image_field);
     if (count($images)) {
-      $html .= 'Attached images <br />';
+      $html .= 'Attached images: <br />';
       foreach ($images as $image) {
         $html .= link($image->filename, $image->filepath);
         drupal_set_message('<pre>' . print_r($image, TRUE) . '</pre>');
@@ -221,7 +231,7 @@ function theme_og_mailinglist_attached_files($variables) {
   }
 
   if ($file_field) {
-    $files = field_get_items('node', $node, $file_field);
+    $files = field_get_items($entity_type, $entity, $file_field);
     if (count($files)) {
       $html .= 'Attached files: <br />';
       foreach ($files as $file) {
