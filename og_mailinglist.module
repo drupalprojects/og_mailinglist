@@ -441,3 +441,20 @@ function og_mailinglist_hook_info() {
 
   return $hooks;
 }
+
+/**
+ * Implements hook_theme().
+ */
+function og_mailinglist_theme() {
+  return array(
+    'og_mailinglist_attached_files' => array(
+      'variables' => array('node' => NULL),
+    ),
+    'og_mailinglist_user_signature' => array(
+      'variables' => array('user' => NULL),
+    ),
+    'og_mailinglist_mail_footer' => array(
+      'variables' => array('node' => NULL),
+    ),
+  );
+}

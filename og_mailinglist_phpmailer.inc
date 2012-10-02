@@ -4,8 +4,9 @@
  *  Sending mail using PHPMailer class.
  */
 
-require_once 'og_mailinglist_utilities.inc';
 require_once 'og_mailinglist_api.inc';
+require_once 'og_mailinglist_common.inc';
+require_once 'og_mailinglist_utilities.inc';
 
 /**
  * Sends emails for comments.
@@ -20,78 +21,78 @@ require_once 'og_mailinglist_api.inc';
  *  Group IDs of groups where $node belongs.
  */
 function og_mailinglist_send_comment_email($comment, $node, $gids) {
+  global $user;
+
   // Check if comment arrived via email so it's already sent.
   if (_og_mailinglist_email_already_sent($comment->nid, $comment->cid)) {
     return;
   }
 
-  // TODO: Maybe we should sort $gids here, this would ensure that the
-  // main group for certain group collections is always the same,
-  // older groups would be preferred. But this may already be the case.
+  // Load parent group nodes.
   $group_nodes = node_load_multiple($gids);
 
-  // Add custom headers.
-  $parent_message_id = _og_mailinglist_get_messageid_from_nid($node->nid);
+  // Add default values.
+  $headers = array();
+  $recipients = array('to' => array(), 'cc' => array(), 'bcc' => array());
+  $recipients['from'] = _og_mailinglist_sender();
+
+  // Set Message-ID.
+  $server = variable_get("og_mailinglist_server_string", $_SERVER['SERVER_NAME']);
+  $headers['message-id'] = format_string('<node-@nid-comment-@cid@@server>',
+    array('@nid' => $node->nid, '@cid' => $comment->cid, '@server' => $server));
+
   // If the comment is in reply to another comment, set the in-reply-to header
   // to that comment's message-id, else to the parent post's message-id.
-  if ($comment->pid != 0) {
-    $data = db_select('og_mailinglist_source', 'ogms')
-      ->fields('ogms', array('message_id', 'references_header'))
-      ->condition('ogms.cid', $comment->pid)
-      ->execute()->fetchAll();
-
-    if ($data) {
-      $in_reply_to = $data->message_id;
-      $references = $data->references_header . " " . $in_reply_to;
-    }
-    else {
-      $in_reply_to = $parent_message_id;
-      $references = $parent_message_id;
-    }
-  }
-  else {
-    $in_reply_to = $parent_message_id;
-    $references = $parent_message_id; // TODO, this should really also reference each message-id that came before it in order. Easy enough to do w/ a query.
-  }
+  $parent_message_id = _og_mailinglist_get_messageid_from_nid($node->nid);
+  $headers += _og_mailinglist_references_headers($node->nid, $comment->cid, $parent_message_id);
 
   // Decorate subject.
-  $subject = 'Re: ' . og_mailinglist_build_subject($group_nodes) . ' ' . $node->title;
+  $groups_list = _og_mailinglist_build_subject($group_nodes);
+  $headers['subject'] = 'Re: ' . $groups_list . ' ' . $node->title;
 
   // Decorate body.
-  $body = og_mailinglist_prepare_web_content($comment->comment_body[LANGUAGE_NONE][0]['value']);
+  $body = field_get_items('comment', $comment, 'comment_body');
+  $html = check_markup($body[0]['value']);
 
-  // Add the user's signature.
-  $body .= og_mailinglist_build_user_signature($comment->uid);
+  // Add the user's signature and footer.
+  $html .= theme('og_mailinglist_attached_files', array('node' => $node));
+  $html .= theme('og_mailinglist_user_signature', array('user' => $user));
+  $html .= theme('og_mailinglist_mail_footer', array('node' => $node));
 
-  // Add the footer
-  $body .= og_mailinglist_build_web_footer($node);
-  $body_plain_text = drupal_html_to_text($body);
-
-  $messaged_users = array();
+  $text = drupal_html_to_text($html);
 
   foreach ($group_nodes as $group_node) {
-    $mailer = og_mailinglist_create_mailer();
-    if (!$mailer) {
-      return;
-    }
-    $mailer->Subject = $subject;
-    $mailer->Body = $body;
-    $mailer->isHTML = TRUE;
-    $mailer->AltBody = $body_plain_text;
-    og_mailinglist_add_email_headers($mailer, $node, $group_node, $comment, $in_reply_to, $references);
-    _og_mailinglist_add_sender($mailer, $node, $group_node, $comment);
-    $are_recipients = _og_mailinglist_add_recipients($mailer, $node, $group_node, $messaged_users, FALSE);
-
-    if ($are_recipients) {
-      $success = $mailer->Send();
-    }
-    else {
-      return;
-    }
+    $recipients['to'] += _og_mailinglist_reciever($group_node);
   }
+
+  // Users who already got this email since they are members of other groups.
+  $already_mailed = array();
+  $already_mailed += $recipients['from'];
+
+  foreach ($group_nodes as $group_node) {
+    $recipients['bcc'] = _og_mailinglist_get_subscribers($node, $group_node, TRUE);
+
+    // Remove possible double entries.
+    foreach ($already_mailed as $email => $name) {
+      unset($recipients['bcc'][$email]);
+    }
+    $already_mailed += $recipients['bcc'];
+
+    // Add list headers.
+    $list_headers = _og_mailinglist_list_headers($group_node);
+    foreach ($list_headers as $key => $value) {
+      $headers[$key] = $value;
+    }
+
+    // Send off the email.
+    $success = _og_mailinglist_send_email($headers, $recipients, $text, $html);
+  }
+
+  // We log the message only once.
   if ($success) {
     // In case of multiple groups and emails log it only once.
-    og_mailinglist_log_email_sent('web', $node->nid, $comment->cid, $mailer->MessageID, $in_reply_to, $references, $parent_message_id);
+    og_mailinglist_log_email_sent('web', $node->nid, $comment->cid,
+      $parent_message_id, $headers);
   }
   else {
     watchdog('og_mailinglist', "OG_Mailinglist couldn't send a new comment email.", NULL, WATCHDOG_ERROR);
@@ -102,15 +103,28 @@ function og_mailinglist_send_comment_email($comment, $node, $gids) {
  * Master function for sending an email for a new node.
  */
 function og_mailinglist_send_node_email($node, $gids) {
+  global $user;
+
   // Check if node arrived via email so already sent.
   if (_og_mailinglist_email_already_sent($node->nid)) {
     return;
   }
 
+  // Load parent group nodes.
   $group_nodes = node_load_multiple($gids);
 
+  // Add default values.
+  $headers = array();
+  $recipients = array('to' => array(), 'cc' => array(), 'bcc' => array());
+
+  // Set Message-ID.
+  $server = variable_get("og_mailinglist_server_string", $_SERVER['SERVER_NAME']);
+  $headers['message-id'] = format_string('<node-@nid-comment-0@@server>',
+    array('@nid' => $node->nid, '@server' => $server));
+
   // Decorate subject.
-  $subject = og_mailinglist_build_subject($group_nodes) . " " . $node->title;
+  $groups_list = _og_mailinglist_build_subject($group_nodes);
+  $subject = $groups_list . ' ' . $node->title;
 
   // Prepare node body for viewing.
   $rendered_body = node_view($node);
@@ -120,169 +134,62 @@ function og_mailinglist_send_node_email($node, $gids) {
     drupal_set_message(t('Message body is empty. Node was created but no e-mail was sent.'), 'error');
     return;
   }
-  $body = $rendered_body['body'][0]['#markup'];
 
-  // Add the user's signature.
-  $body .= og_mailinglist_build_user_signature($node->uid);
+  $html = $rendered_body['body'][0]['#markup'];
 
-  // Add the footer.
-  $body .= og_mailinglist_build_web_footer($node, 0, TRUE);
-
-  $group_emails = _og_mailinglist_get_group_emails($group_nodes);
+  // Add the user's signature and footer.
+  $html .= theme('og_mailinglist_user_signature', array('user' => $user));
+  $html .= theme('og_mailinglist_mail_footer', array('node' => $node));
 
   // Let other modules alter outgoing node emails.
   $data = array(
     'subject' => $subject,
-    'body' => $body,
-    'group_mail' => $group_emails[0],
-    'group_mails' => $group_emails,
+    'body' => $html,
+    'group_nodes' => $group_nodes,
     'title' => $node->title,
     'nid' => $node->nid,
     'node' => $node,
   );
 
   drupal_alter('og_mailinglist_new_node', $data);
+  $headers['subject'] = $data['subject'];
+  $html = $data['body'];
+  $text = drupal_html_to_text($html);
+  $group_nodes = $data['group_nodes'];
 
-  // Keep track of users who already got this email since they are members of
-  // other groups.
-  $messaged_users = array();
+  $recipients['from'] = _og_mailinglist_sender();
+  foreach ($group_nodes as $group_node) {
+    $recipients['to'] += _og_mailinglist_reciever($group_node);
+  }
+
+  // Users who already got this email since they are members of other groups.
+  $already_mailed = array();
+  $already_mailed += $recipients['from'];
 
   foreach ($group_nodes as $group_node) {
-    $mailer = og_mailinglist_create_mailer();
-    if (!$mailer) {
-      return;
-    }
-    $mailer->Subject = $data['subject'];
-    $mailer->isHTML = TRUE;
-    $mailer->Body = $data['body'];
-    $mailer->AltBody = drupal_html_to_text($data['body']);
-    og_mailinglist_add_email_headers($mailer, $node, $group_node);
-    _og_mailinglist_add_sender($mailer, $node, $group_node);
-    $are_recipients = _og_mailinglist_add_recipients($mailer, $node, $group_node, $messaged_users, TRUE);
+    $recipients['bcc'] = _og_mailinglist_get_subscribers($node, $group_node, TRUE);
 
-    // Add attachments if any.
-    if (isset($node->files)) {
-      foreach ($node->files as $file) {
-        $file = (object) $file;
-        $mailer->AddAttachment($_SERVER['DOCUMENT_ROOT'] . base_path() .
-                               $file->filepath, $file->filename);
-      }
+    // Remove possible double entries.
+    foreach ($already_mailed as $email => $name) {
+      unset($recipients['bcc'][$email]);
+    }
+    $already_mailed += $recipients['bcc'];
+
+    // Add list headers.
+    $list_headers = _og_mailinglist_list_headers($group_node);
+    foreach ($list_headers as $key => $value) {
+      $headers[$key] = $value;
     }
 
-    if ($are_recipients) {
-      $success = $mailer->Send();
-    }
-    else {
-      return;
-    }
+    // Send off the email.
+    $success = _og_mailinglist_send_email($headers, $recipients, $text, $html);
   }
+
   if ($success) {
-    og_mailinglist_log_email_sent('web', $node->nid, 0, $mailer->MessageID, 0, 0, $mailer->MessageID);
+    og_mailinglist_log_email_sent('web', $node->nid, 0, $headers['message-id'], 0, 0, $headers['message-id']);
   }
   else {
     watchdog('og_mailinglist', "OG_Mailinglist couldn't send a new node email for node.", NULL, WATCHDOG_ERROR);
   }
 }
 
-/**
- * Add needed email headers.
- */
-function og_mailinglist_add_email_headers($mailer, $node, $group_node, $comment = Null, $in_reply_to = Null, $references = Null) {
-  $group_name = _og_mailinglist_get_group_name($group_node);
-  $server = variable_get('og_mailinglist_server_string', $_SERVER['SERVER_NAME']);
-  $group_email = $group_name . '@' . $server;
-
-  $mailer->AddCustomHeader($mailer->HeaderLine("List-Id", "<" . $group_email . ">"));
-  $mailer->AddCustomHeader($mailer->HeaderLine("List-Post", "<mailto:" . $group_email . ">"));
-  $mailer->AddCustomHeader($mailer->HeaderLine("List-Archive",
-    url("node/" . $group_node->nid, array('absolute' => TRUE))));
-  $mailer->AddCustomHeader($mailer->HeaderLine("X-Thread-Url",
-    url('node/' . $node->nid)));
-  $mailer->AddCustomHeader($mailer->HeaderLine("X-BeenThere", $group_email));
-
-  // Add in-reply-to / references
-  if (!empty($in_reply_to)) {
-    $mailer->AddCustomHeader($mailer->HeaderLine("In-Reply-To", $in_reply_to));
-  }
-  if (!empty($references)) {
-    $mailer->AddCustomHeader($mailer->HeaderLine("References", $references));
-  }
-
-  // Add a reply-to header directed to the group if enabled.
-  if (variable_get('og_mailinglist_reply_to_group', FALSE)) {
-    $mailer->AddCustomHeader($mailer->HeaderLine("reply-to", "<" . $group_email . ">"));
-  }
-
-  // Set Message-ID.
-  $comment_id = (!empty($comment)) ? $comment->cid : 0;
-  $mailer->MessageID = "<node-" . $node->nid . "-comment-" . $comment_id . "@" . $server . ">";
-}
-
-function _og_mailinglist_add_sender($mailer, $node, $group_node, $comment = NULL) {
-  $group_name = _og_mailinglist_get_group_name($group_node);
-  $server = variable_get('og_mailinglist_server_string', $_SERVER['SERVER_NAME']);
-  $group_email = $group_name . '@' . $server;
-
-  if (!empty($comment->uid)) {
-    $author = user_load($comment->uid);
-  }
-  else {
-    $author = user_load($node->uid);
-  }
-
-  if (isset($author->realname)) {
-    $author_name = $author->realname;
-  }
-  else {
-    $author_name = $author->name;
-  }
-
-  if ($author->uid == 0) {
-    $author->mail = "anonymous@" . $server;
-    $author_name = t("anonymous");
-  }
-
-  try {
-    $mailer->From = $author->mail;
-    $mailer->FromName = $author_name;
-    $mailer->AddAddress($group_email, $group_node->title);
-  }
-  catch (phpmailerException $e) {
-    watchdog('og_mailinglist', 'PHPMailer error: !error', array('!error' => $e->errorMessage()), WATCHDOG_ERROR);
-  }
-  catch (Exception $e) {
-    watchdog('og_mailinglist', $e->getMessage(), NULL, WATCHDOG_ERROR);
-  }
-}
-
-function _og_mailinglist_add_recipients($mailer, $node, $group_node, &$messaged_users, $new_node = FALSE) {
-  try {
-    $subscribers = _og_mailinglist_get_subscribers($node, $group_node, $new_node);
-    $are_recipients = FALSE;
-    // Add emails to BCC
-    foreach ($subscribers as $email => $name) {
-      if (!in_array($email, $messaged_users)) {
-        $mailer->AddBCC($email);
-        $messaged_users[] = $email;
-        $are_recipients = TRUE;
-      }
-    }
-    return $are_recipients;
-  }
-  catch (phpmailerException $e) {
-    watchdog('og_mailinglist', 'PHPMailer error: !error', array('!error' => $e->errorMessage()), WATCHDOG_ERROR);
-  }
-  catch (Exception $e) {
-    watchdog('og_mailinglist', $e->getMessage(), array(), WATCHDOG_ERROR);
-  }
-}
-
-function _og_mailinglist_get_group_emails($group_nodes) {
-  $server = variable_get('og_mailinglist_server_string', $_SERVER['SERVER_NAME']);
-  $mails = array();
-  foreach ($group_nodes as $group_node) {
-    $group_name = _og_mailinglist_get_group_name($group_node);
-    $mails[] = $group_name . '@' . $server;
-  }
-  return $mails;
-}

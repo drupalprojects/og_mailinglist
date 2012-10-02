@@ -4,8 +4,10 @@
  *  Recieves group email, posts as node or comment and sends it out again.
  */
 
-require_once 'og_mailinglist_utilities.inc';
 require_once 'og_mailinglist_api.inc';
+require_once 'og_mailinglist_common.inc';
+require_once 'og_mailinglist_utilities.inc';
+
 og_mailinglist_mimeDecode_load_library();
 og_mailinglist_phpmailer_load_library();
 
@@ -39,12 +41,9 @@ function og_mailinglist_post() {
 
 function _og_mailinglist_process_email($raw_email, $group_name = NULL) {
   try {
-    $email = array();
-
-    $email['original_email_text'] = $raw_email;
 
     // Extract all the needed info from the email into a simple array.
-    _og_mailinglist_parse_email($email);
+    $email = _og_mailinglist_parse_email($raw_email);
 
     // If the x-BeenThere header is set, this is an email that was sent out and
     // looped back to the server. Reject it.
@@ -136,8 +135,8 @@ function _og_mailinglist_process_email($raw_email, $group_name = NULL) {
     $group_nodes = node_load_multiple($gids);
     $email['group_nodes'] = $group_nodes;
 
-    // Check if the group is published.
-    // If it's not published, it's effectively not there.
+    // Check if groups are published.
+    // If a group is not published, it's effectively not there.
     foreach ($group_nodes as $gid => $group_node) {
       if ($group_node->status === 0) {
         unset($group_nodes[$gid]);
@@ -270,7 +269,7 @@ function _og_mailinglist_process_email($raw_email, $group_name = NULL) {
         . $commentedbody;
 
       // Send it off.
-      $from = _og_mailinglist_compose_recipients($email['from'], TRUE);
+      $from = reset($email['from']) . ' <' . key($email['from']) . '>';
       if (!mail($from, t("Error processing message"), $body, implode("\n", $head))) {
         throw new Exception("Mail error");
       }
@@ -292,7 +291,7 @@ function _og_mailinglist_process_email($raw_email, $group_name = NULL) {
 /**
  * Save new comment that came through email.
  */
-function og_mailinglist_save_comment(&$email, &$group_nodes, $node) {
+function og_mailinglist_save_comment(&$email, $group_nodes, $node) {
   global $user;
   $email['node'] = $node;
 
@@ -389,7 +388,7 @@ function og_mailinglist_save_comment(&$email, &$group_nodes, $node) {
 /**
  * Save new nodes that came through email.
  */
-function og_mailinglist_save_node(&$email, &$group_nodes) {
+function og_mailinglist_save_node(&$email, $group_nodes) {
   global $user;
 
   // Let other modules alter the new node or delay posting for another time
@@ -459,102 +458,142 @@ function og_mailinglist_save_node(&$email, &$group_nodes) {
     WATCHDOG_INFO);
 }
 
-function _og_mailinglist_email_node_email(&$email, &$node, &$group_nodes) {
+function _og_mailinglist_email_node_email(&$email, $node, $group_nodes) {
+  global $user;
+
   // Build new email.
   _og_mailinglist_rewrite_headers($email, $group_nodes, $node, TRUE);
 
-  // Recipients
+  // Recipients.
   $recipients = array();
-  $recipients['from'] = $email['from'];
+  $recipients['from'] = _og_mailinglist_sender();
   $recipients['to'] = $email['to'];
   $recipients['cc'] = $email['cc'];
   $recipients['bcc'] = array();
 
-  // Compose a title for the email.
-  $server = variable_get("og_mailinglist_server_string", $_SERVER['SERVER_NAME']);
-  $subject_start = '';
   foreach ($group_nodes as $group_node) {
-    $group_name = _og_mailinglist_get_group_name($group_node);
-    $group_email = $group_name . '@' . $server;
-    $subject_start .= '[' . $group_name . ']';
-    $recipients['to'] += array($group_email => $group_name);
-    $recipients['bcc'] += _og_mailinglist_get_subscribers($node, $group_node, TRUE);
+    $recipients['to'] += _og_mailinglist_reciever($group_node);
   }
-  // Remove sender from BCC.
-  unset($recipients['bcc'][key($recipients['from'])]);
 
-  $email['headers']['subject'] = $subject_start . ' ' . $node->title;
+  // Users who already got this email since they are members of other groups.
+  $already_mailed = array();
+  $already_mailed += $recipients['from'];
+  $already_mailed += $recipients['to'];
+  $already_mailed += $recipients['cc'];
+
+  // Decorate subject.
+  $groups_list = _og_mailinglist_build_subject($group_nodes);
+  $headers['subject'] = $groups_list . ' ' . $node->title;
 
   // Set footer.
-  $footer = _og_mailinglist_build_footer($node);
+  $footer = theme('og_mailinglist_attached_files', array('node' => $node));
+  $footer .= theme('og_mailinglist_user_signature', array('user' => $user));
+  $footer .= theme('og_mailinglist_mail_footer', array('node' => $node));
   _og_mailinglist_add_footer($email, $footer);
 
   // Encode email.
   unset($email['structure']->headers);
-  $email['new_email_text'] = _og_mailinglist_encode_email(array($email['structure']));
+  $body = _og_mailinglist_encode_email(array($email['structure']));
 
   // Check if entire body should be encoded as base64
-  $email['new_email_text'] = _og_mailinglist_check_base64($email['new_email_text'], $email['headers']);
+  $body = _og_mailinglist_check_base64($body, $email['headers']);
 
-  // Send it off.
-  _og_mailinglist_send_email($email['headers'], $recipients, $email['new_email_text'], $node, NULL);
+  foreach ($group_nodes as $group_node) {
+    $recipients['bcc'] = _og_mailinglist_get_subscribers($node, $group_node, TRUE);
+
+    // Remove possible double entries.
+    foreach ($already_mailed as $address => $name) {
+      unset($recipients['bcc'][$address]);
+    }
+    $already_mailed += $recipients['bcc'];
+
+    // Add list headers.
+    $list_headers = _og_mailinglist_list_headers($group_node);
+    foreach ($list_headers as $key => $value) {
+      $headers[$key] = $value;
+    }
+
+    // Send off the email.
+    $success = _og_mailinglist_send_email($email['headers'], $recipients, $body);
+  }
 
   // If the sender's subscription type isn't email, give him a thread subscription.
-  if (og_mailinglist_get_group_subscription_type($node->og_group_ref[$node->language][0], $node->uid) != "email") {
+  if (og_mailinglist_get_group_subscription_type($node->og_group_ref[LANGUAGE_NONE][0], $node->uid) != "email") {
     og_mailinglist_save_thread_subscriptions($node->nid, array($node->uid));
   }
 }
 
 function _og_mailinglist_email_comment_email($email, $node, $group_nodes, $comment) {
+  global $user;
+
   // Build new email.
   _og_mailinglist_rewrite_headers($email, $group_nodes, $node);
 
-  // Recipients
+  // Recipients.
   $recipients = array();
-  $recipients['from'] = $email['from'];
+  $recipients['from'] = _og_mailinglist_sender();
   $recipients['to'] = $email['to'];
   $recipients['cc'] = $email['cc'];
   $recipients['bcc'] = array();
 
-  // Compose a title for the email.
-  $server = variable_get("og_mailinglist_server_string", $_SERVER['SERVER_NAME']);
-  $subject_start = '';
   foreach ($group_nodes as $group_node) {
-    $group_name = _og_mailinglist_get_group_name($group_node);
-    $group_email = $group_name . '@' . $server;
-    $subject_start .= '[' . $group_name . ']';
-    $recipients['to'] += array($group_email => $group_name);
-    $recipients['bcc'] += _og_mailinglist_get_subscribers($node, $group_node, FALSE);
+    $recipients['to'] += _og_mailinglist_reciever($group_node);
   }
-  // Remove sender from BCC.
-  unset($recipients['bcc'][key($recipients['from'])]);
 
-  $email['headers']['subject'] = 'Re: ' . $subject_start . ' ' . $comment->subject;
+  // Users who already got this email since they are members of other groups.
+  $already_mailed = array();
+  $already_mailed += $recipients['from'];
+  $already_mailed += $recipients['to'];
+  $already_mailed += $recipients['cc'];
 
-  // Add footer.
-  $footer = _og_mailinglist_build_footer($node);
+  // Decorate subject.
+  $groups_list = _og_mailinglist_build_subject($group_nodes);
+  $email['headers']['subject'] = 'Re: ' . $groups_list . ' ' . $comment->subject;
+
+  // Set footer.
+  $footer = theme('og_mailinglist_attached_files', array('comment' => $comment));
+  $footer .= theme('og_mailinglist_user_signature', array('user' => $user));
+  $footer .= theme('og_mailinglist_mail_footer', array('node' => $node, 'comment' => $comment));
   _og_mailinglist_add_footer($email, $footer);
 
   // Encode email.
   unset($email['structure']->headers);
-  $email['new_email_text'] = _og_mailinglist_encode_email(array($email['structure']));
+  $body = _og_mailinglist_encode_email(array($email['structure']));
 
   // Check if entire body should be encoded as base64
-  $email['new_email_text'] = _og_mailinglist_check_base64($email['new_email_text'], $email['headers']);
+  $body = _og_mailinglist_check_base64($body, $email['headers']);
 
-  // Send it off.
-  _og_mailinglist_send_email($email['headers'], $recipients, $email['new_email_text'], $node, $comment);
+  foreach ($group_nodes as $group_node) {
+    $recipients['bcc'] = _og_mailinglist_get_subscribers($node, $group_node, TRUE);
+
+    // Remove possible double entries.
+    foreach ($already_mailed as $address => $name) {
+      unset($recipients['bcc'][$address]);
+    }
+    $already_mailed += $recipients['bcc'];
+
+    // Add list headers.
+    $list_headers = _og_mailinglist_list_headers($group_node);
+    foreach ($list_headers as $key => $value) {
+      $email['headers'][$key] = $value;
+    }
+
+    // Send off the email.
+    $success = _og_mailinglist_send_email($email['headers'], $recipients, $body);
+  }
 }
 
-function _og_mailinglist_parse_email(&$email) {
+function _og_mailinglist_parse_email($raw_email) {
   $params = array(
     'include_bodies' => TRUE,
     'decode_bodies' => TRUE,
     'decode_headers' => TRUE,
   );
+  $email = array();
+  $email['attachments'] = array();
 
   // Decode the email message.
-  $decoder = new Mail_mimeDecode($email['original_email_text']);
+  $decoder = new Mail_mimeDecode($raw_email);
   $structure = $decoder->decode($params);
   $email['structure'] = clone $structure;
 
@@ -628,8 +667,9 @@ function _og_mailinglist_parse_email(&$email) {
     $email['cc'] = _og_mailinglist_extract_emails($raw_emails);
     unset($email['headers']['cc']);
   }
+
+  return $email;
 }
-// TODO fix attachments for filefield
 
 function _og_mailinglist_parse_attachment($part) {
   $info['data'] = $part->body;
@@ -650,7 +690,7 @@ function _og_mailinglist_parse_content($part) {
   return $content;
 }
 
-function _og_mailinglist_save_files(&$node) {
+function _og_mailinglist_save_files($node) {
   global $user;
 
   // If $node->og_mailinglist_attachments is empty or upload not installed just return
@@ -679,11 +719,6 @@ function _og_mailinglist_save_files(&$node) {
       $file->list = variable_get('upload_list_default', 1);
       $file->description = $file->filename;
       $node->files[$file->fid] = $file;
-
-      // This is a temporary line to get upload_save to work (see upload.module line 413)
-      // upload_save checks for either the presence of an old_vid, or the session variable, to determine
-      // if a new upload has been supplied and create a new entry in the database
-      $node->old_vid = 1;
     }
 
   }
@@ -713,13 +748,13 @@ function _og_mailinglist_save_file($attachment, $validators = array()) {
   // Begin building file object.
   $file = new stdClass();
   $file->filename = file_munge_filename(trim(basename($attachment['filename']), '.'), $extensions);
-  $file->filepath = $attachment['filepath'];
+  $file->uri = $attachment['filepath'];
   $file->filemime = file_get_mimetype($file->filename);
 
   // Rename potentially executable files, to help prevent exploits.
   if (preg_match('/\.(php|pl|py|cgi|asp|js)$/i', $file->filename) && (substr($file->filename, -4) != '.txt')) {
     $file->filemime = 'text/plain';
-    $file->filepath .= '.txt';
+    $file->uri .= '.txt';
     $file->filename .= '.txt';
   }
 
@@ -751,17 +786,17 @@ function _og_mailinglist_save_file($attachment, $validators = array()) {
 
   // Move uploaded files from PHP's tmp_dir to Drupal's temporary directory.
   // This overcomes open_basedir restrictions for future file operations.
-  $file->filepath = $file->destination;
-  if (!file_move($attachment['filepath'], $file->filepath)) {
+  $file->uri = $file->destination;
+  if (!file_move($attachment['filepath'], $file->uri)) {
     watchdog('mailhandler', 'Upload error. Could not move file %file to destination %destination.',
-      array('%file' => $file->filename, '%destination' => $file->filepath),
+      array('%file' => $file->filename, '%destination' => $file->uri),
       WATCHDOG_ERROR);
     return 0;
   }
 
   // If we made it this far it's safe to record this file in the database.
   $file->uid = $user->uid;
-  $file->status = ~FILE_STATUS_PERMANENT;
+  $file->status = FILE_STATUS_PERMANENT;
   $file->timestamp = REQUEST_TIME;
   drupal_write_record('files', $file);
 
@@ -795,6 +830,12 @@ function _og_mailinglist_save_attachments_temp_dir($attachments) {
 /**
  * Take a raw attachment filename, decode and strip out invalid characters.
  *
+ * Replaces all characters up through space and all past - along with the
+ * above reserved characters to sanitise filename from
+ * http://php.net/manual/en/function.preg-replace.php#80431
+ *
+ * @param $filename
+ *   A filename to be sanitised.
  * @return
  *   A sanitised filename that should be ok for use by modules that want
  *   to save the file.
@@ -803,17 +844,13 @@ function _og_mailinglist_sanitise_filename($filename) {
   // Decode multibyte encoded filename
   $filename = mb_decode_mimeheader($filename);
 
-  // Replaces all characters up through space and all past ~ along with the
-  // above reserved characters to sanitise filename
-  // from php.net/manual/en/function.preg-replace.php#80431
-
   // Define characters that are illegal on any of the 3 major OS's
   $reserved = preg_quote('\/:*?"<>|', '/');
 
-  // Perform cleanup
+  // Perform cleanup.
   $filename = preg_replace("/([\\x00-\\x20\\x7f-\\xff{$reserved}])/e", "_", $filename);
 
-  // Return the cleaned up filename
+  // Return the cleaned up filename.
   return $filename;
 }
 
@@ -880,7 +917,7 @@ function _og_mailinglist_encode_email_headers($array) {
 }
 
 // Keep mime-version, date, subject, from, to, and content-type
-function _og_mailinglist_rewrite_headers(&$email, &$group_nodes, &$node, $new_node = FALSE) {
+function _og_mailinglist_rewrite_headers(&$email, $group_nodes, $node, $new_node = FALSE) {
   // Header values which we want to keep. All lowercase here.
   $copy_headers = array('content-type', 'content-transfer-encoding',
     'date', 'in-reply-to', 'message-id', 'mime-version', 'references',
@@ -1006,105 +1043,6 @@ function _og_mailinglist_add_footer(&$email, $footer) {
   $email['structure'] = $structure;
 }
 
-/*
- * Encode $value to be used in email header if it contains non-ASCII characters.
- *
- * @param $value
- *   $value is a string which may or may not contain non-ASCII characters.
- *
- * @return
- *   Returns UTF-8 base64 string or plain ASCII string as it suits.
- */
-function _og_mailinglist_encode($value) {
-  if (!mb_detect_encoding($value, 'ASCII', true)) {
-    return "=?UTF-8?B?".base64_encode($value)."?=";
-  }
-  return $value;
-}
-
-function _og_mailinglist_send_email($headers, $recipients, $body, $node, $comment = NULL) {
-  global $user;
-
-  $mailer = og_mailinglist_create_mailer();
-  $mailer->ClearAddresses();
-
-  foreach ($recipients as $key => $value) {
-    switch ($key) {
-      case 'from':
-        $mailer->From = key($value);
-        $name = reset($value);
-        if (!$name) {
-          $name = $user->realname ? $user->realname : $user->name;
-        }
-        $mailer->FromName = _og_mailinglist_encode($name);
-        break;
-      case 'to':
-        foreach ($value as $email => $name) {
-          if ($name)
-            $mailer->AddAddress($email, _og_mailinglist_encode($name));
-          else
-            $mailer->AddAddress($email);
-        }
-        break;
-      case 'cc':
-        foreach ($value as $email => $name) {
-          if ($name)
-            $mailer->AddCC($email, _og_mailinglist_encode($name));
-          else
-            $mailer->AddCC($email);
-        }
-        break;
-      case 'bcc':
-        foreach ($value as $email => $name) {
-          $mailer->AddBCC($email);
-        }
-        break;
-    }
-  }
-
-  foreach ($headers as $key => $value) {
-    if (empty($value)) {
-      continue;
-    }
-    switch (strtolower($key)) {
-      case 'date':
-        $mailer->MessageDate = $value;
-        break;
-      case 'message-id':
-        $mailer->MessageID = $value;
-        break;
-      case 'subject':
-        $mailer->Subject = _og_mailinglist_encode($value);
-        break;
-      case 'content-type':
-        $mailer->ContentType = $value;
-
-        // Parse out the charset if one is set.
-        if (preg_match("/charset=(.*)/s", $value, $matches)) {
-          $mailer->CharSet = $matches[1];
-        }
-        break;
-      case 'received':
-        // An array of lines of where the email has been.
-        // I think it is okay to drop it.
-        break;
-      default:
-        $mailer->AddCustomHeader(capitalize_headers($key, " -") . ':' . $value);
-    }
-  }
-
-  $body = trim($body);
-  $mailer->Body = $body;
-
-  $success = $mailer->Send();
-
-  if (!$success) {
-    watchdog('og_mailinglist', "OG_Mailinglist couldn't send an email.",
-      array(), WATCHDOG_ERROR);
-  }
-
-}
-
 /**
  * Try to parse nid from the email.
  *
@@ -1180,7 +1118,7 @@ function _og_mailinglist_extract_emails($addresses) {
  *   "@return" return an associative array of usernames as keys and emails as
  *   values.
  */
-function _og_mailinglist_extract_group_names(&$addresses) {
+function _og_mailinglist_extract_group_names($addresses) {
   // Regex borrowed from valid_email_address().
   // Case insensitivity is needed because in domain names case does not matter.
   $server = variable_get("og_mailinglist_server_string", $_SERVER['SERVER_NAME']);
@@ -1194,23 +1132,4 @@ function _og_mailinglist_extract_group_names(&$addresses) {
     }
   }
   return $out;
-}
-
-/*
- * Compose recipients string from an array of recipients.
- */
-function _og_mailinglist_compose_recipients($recipients, $first_only = FALSE) {
-  $out = array();
-  foreach ($recipients as $mail => $username) {
-    if ($username) {
-      $out[] = $username . ' <' . $mail . '>';
-    }
-    else {
-      $out[] = '<' . $mail . '>';
-    }
-    if ($first_only) {
-      break;
-    }
-  }
-  return implode($out, ', ');
 }

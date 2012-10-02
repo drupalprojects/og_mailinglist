@@ -1,0 +1,326 @@
+<?php
+/**
+ * @file
+ * This file holds functions common to both transport and phpmailer code.
+ */
+
+/**
+ * Create the mailer object and send out the email.
+ *
+ * @param $headers
+ *   An associative array of header names and values.
+ * @param $recipients
+ *   Array with 'from', 'to', 'cc' and 'bcc' keys which all may contain another
+ *   array of 'email' => 'Display name'
+ * @param $body
+ *   Plain text version of the body of email. Might contain encoded MIME.
+ */
+function _og_mailinglist_send_email($headers, $recipients, $body, $html = NULL) {
+  $mailer = og_mailinglist_create_mailer();
+  $mailer->ClearAddresses();
+
+  try {
+
+  foreach ($recipients as $key => $value) {
+    switch ($key) {
+      case 'from':
+        // Even if array in 'from' contains more values we use only the first.
+        $mailer->From = key($value);
+        $mailer->FromName = _og_mailinglist_encode(reset($value));
+        break;
+      case 'to':
+        foreach ($value as $email => $name) {
+          if ($name)
+            $mailer->AddAddress($email, _og_mailinglist_encode($name));
+          else
+            $mailer->AddAddress($email);
+        }
+        break;
+      case 'cc':
+        foreach ($value as $email => $name) {
+          if ($name)
+            $mailer->AddCC($email, _og_mailinglist_encode($name));
+          else
+            $mailer->AddCC($email);
+        }
+        break;
+      case 'bcc':
+        foreach ($value as $email => $name) {
+          $mailer->AddBCC($email);
+        }
+        break;
+    }
+  }
+
+  foreach ($headers as $key => $value) {
+    if (empty($value)) {
+      continue;
+    }
+    switch (strtolower($key)) {
+      case 'date':
+        $mailer->MessageDate = $value;
+        break;
+      case 'message-id':
+        $mailer->MessageID = $value;
+        break;
+      case 'subject':
+        $mailer->Subject = _og_mailinglist_encode($value);
+        break;
+      case 'content-type':
+        $mailer->ContentType = $value;
+
+        // Parse out the charset if one is set.
+        if (preg_match("/charset=(.*)/s", $value, $matches)) {
+          $mailer->CharSet = $matches[1];
+        }
+        break;
+      case 'received':
+        // An array of lines of where the email has been.
+        // I think it is okay to drop it.
+        break;
+      default:
+        $mailer->AddCustomHeader(capitalize_headers($key, " -") . ':' . $value);
+    }
+  }
+
+  if ($html) {
+    $mailer->Body = trim($html);
+    $mailer->isHTML = TRUE;
+    $mailer->AltBody = trim($body);
+  }
+  else {
+    $mailer->Body = trim($body);
+  }
+
+  $success = $mailer->Send();
+
+  }
+  catch (phpmailerException $e) {
+    watchdog('og_mailinglist', 'PHPMailer error: !error',
+      array('!error' => $e->errorMessage()), WATCHDOG_ERROR);
+  }
+  catch (Exception $e) {
+    watchdog('og_mailinglist', $e->getMessage(), NULL, WATCHDOG_ERROR);
+  }
+
+  return $success;
+}
+
+/**
+ * Compose email headers for outgoing emails.
+ */
+function _og_mailinglist_list_headers($group_node) {
+  $headers = array();
+
+  $group_name = _og_mailinglist_get_group_name($group_node);
+  $server = variable_get("og_mailinglist_server_string", $_SERVER['SERVER_NAME']);
+  $group_email = $group_name . '@' . $server;
+
+  // Add a reply-to header directed to the group if enabled.
+  if (variable_get('og_mailinglist_reply_to_group', FALSE)) {
+    $headers['reply-to'] = $group_email;
+  }
+
+  // Group node URL
+  $url = url("node/" . $group_node->nid, array('absolute' => TRUE));
+
+  // Add list headers.
+  $headers['precedence'] = 'list';
+  $headers['list-id'] = '<' . $group_email . '>';
+  $headers['list-post'] = '<mailto:' . $group_email . '>';
+  $headers['list-archive'] = $url;
+#  $headers['list-help'] = '<' . ;
+#  $headers['list-owner'] = '<' . ;
+#  $headers['list-subscribe'] = '<' . ;
+#  $headers['list-unsubscribe'] = '<' . ;
+
+  $headers['x-thread-url'] = $url;
+  $headers['x-beenthere'] = $group_email;
+
+  return $headers;
+}
+
+/**
+ * Compose references list for emails which are in the thread before this email.
+ *
+ * @param $nid
+ *   Integer, node ID.
+ * @param $cid
+ *   Integer, current comment's ID or the parent comment's ID.
+ * @param $cid_is_pid
+ *   A boolean indicating whether the previous value $cid is actually already
+ *   the parent, which means message-id for the $cid needs to be included.
+ */
+function _og_mailinglist_references_headers($nid, $pid, $parent_message_id = NULL) {
+  $headers = array();
+
+  if ($pid != 0) {
+    $data = db_select('og_mailinglist_source', 'ogms')
+      ->fields('ogms', array('message_id', 'references_header'))
+      ->condition('ogms.cid', $pid)
+      ->execute()->fetchAll();
+
+    if ($data) {
+      $headers['in-reply-to'] = $data->message_id;
+      $headers['references'] = $data->references_header . " " . $data->message_id;
+    }
+  }
+  else {
+    if (empty($parent_message_id)) {
+      $parent_message_id = _og_mailinglist_get_messageid_from_nid($nid);
+    }
+    $headers['in-reply-to'] = $parent_message_id;
+    $headers['references'] = '<' . $parent_message_id . '>';
+  }
+
+  return $headers;
+}
+
+/**
+ * Build group names list for email subject line.
+ *
+ * @param $group_nodes
+ *   An array of group nodes of which the subject is to be compiled.
+ * @return
+ *   A string containing group names for mail subject line, eg [group][new].
+ */
+function _og_mailinglist_build_subject($group_nodes) {
+  $title_groups = '';
+  foreach ($group_nodes as $group_node) {
+    $group_name = _og_mailinglist_get_group_name($group_node);
+    $title_groups .= '[' . $group_name . ']';
+  }
+  return $title_groups;
+}
+
+/**
+ * Returns HTML for possible files links.
+ *
+ * @param $variables
+ *   An array containing 'node' => $node object.
+ * @return
+ *   HTML code for files links or an empty string.
+ */
+function theme_og_mailinglist_attached_files($variables) {
+  $node = $variables['node'];
+
+  $image_field = variable_get('og_mailinglist_image_field', '');
+  $file_field = variable_get('og_mailinglist_file_field', '');
+
+  $html = '';
+
+  if ($image_field) {
+    $images = field_get_items('node', $node, $image_field);
+    if (count($images)) {
+      $html .= 'Attached images <br />';
+      foreach ($images as $image) {
+        $html .= link($image->filename, $image->filepath);
+        drupal_set_message('<pre>' . print_r($image, TRUE) . '</pre>');
+      }
+    }
+  }
+
+  if ($file_field) {
+    $files = field_get_items('node', $node, $file_field);
+    if (count($files)) {
+      $html .= 'Attached files: <br />';
+      foreach ($files as $file) {
+        $html .= link($file->filename, $file->filepath);
+        drupal_set_message('<pre>' . print_r($file, TRUE) . '</pre>');
+      }
+    }
+  }
+
+  return $html;
+}
+
+/**
+ * Returns HTML for user signature.
+ *
+ * @param $variables
+ *   An array containing 'user' => $user object.
+ * @return
+ *   HTML code for user signature or an empty string.
+ */
+function theme_og_mailinglist_user_signature($variables) {
+  $user = $variables['user'];
+  if (!$user) {
+    return;
+  }
+
+  if (variable_get('og_mailinglist_add_signatures', 1)) {
+    if (!empty($user->signature)) {
+      return check_markup($user->signature, $user->signature_format);
+    }
+  }
+  return '';
+}
+
+/**
+ * Returns HTML for email footer.
+ *
+ * @param $variables
+ *   An array containing 'node' => $node object.
+ * @return
+ *   HTML code for footer.
+ */
+function theme_og_mailinglist_mail_footer($variables) {
+  $node = $variables['node'];
+  if (!$node) {
+    return;
+  }
+
+  $absolute = array('absolute' => TRUE);
+  $full = url("node/" . $node->nid, $absolute);
+  $subscriptions = url("og_mailinglist/subscriptions", $absolute);
+  $unsubscribe = url("og_mailinglist/unsubscribe/" . $node->nid, $absolute);
+
+  $footer = "--\n"
+    . t('Full post: @link', array('@link' => $full))
+    . "\n"
+    . t('Manage my subscriptions: @link', array('@link' => $subscriptions))
+    . "\n"
+    . t('Stop emails for this post: @link', array('@link' => $unsubscribe));
+  return $footer;
+}
+
+/**
+ * Compose an array of sender information.
+ */
+function _og_mailinglist_sender() {
+  global $user;
+
+  if ($user->uid == 0) {
+    $server = variable_get('og_mailinglist_server_string', $_SERVER['SERVER_NAME']);
+    return array('anonymous@' . $server => t('Anonymous'));
+  }
+
+  $name = isset($user->realname) ? $user->realname : $user->name;
+  return array($user->mail => $name);
+}
+
+/**
+ * Compose an array of reciever information.
+ */
+function _og_mailinglist_reciever($group_node) {
+  $group_name = _og_mailinglist_get_group_name($group_node);
+  $server = variable_get('og_mailinglist_server_string', $_SERVER['SERVER_NAME']);
+  $group_email = $group_name . '@' . $server;
+  return array($group_email => $group_node->title);
+}
+
+/*
+ * Encode $value to be used in email header if it contains non-ASCII characters.
+ *
+ * @param $value
+ *   $value is a string which may or may not contain non-ASCII characters.
+ *
+ * @return
+ *   Returns UTF-8 base64 string or plain ASCII string as it suits.
+ */
+function _og_mailinglist_encode($value) {
+  if (!mb_detect_encoding($value, 'ASCII', true)) {
+    return "=?UTF-8?B?".base64_encode($value)."?=";
+  }
+  return $value;
+}

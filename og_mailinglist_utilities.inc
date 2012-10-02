@@ -34,39 +34,6 @@ function _og_mailinglist_get_subscribers($node, $group_node, $new_node = FALSE) 
   return $subscribers;
 }
 
-function og_mailinglist_build_subject($group_nodes) {
-  $title_groups = '';
-  foreach ($group_nodes as $group_node) {
-    $group_name = _og_mailinglist_get_group_name($group_node);
-    $title_groups .= '[' . $group_name . ']';
-  }
-  return $title_groups;
-}
-
-function og_mailinglist_build_user_signature($uid) {
-  if (variable_get('og_mailinglist_add_signatures', 1)) {
-    $account = user_load($uid);
-    if (!empty($account->signature)) {
-      return check_markup($account->signature, $account->signature_format);
-    }
-  }
-  return '';
-}
-
-function _og_mailinglist_build_footer($node) {
-  $absolute = array('absolute' => TRUE);
-  $full = url("node/" . $node->nid, $absolute);
-  $subscriptions = url("og_mailinglist/subscriptions", $absolute);
-  $unsubscribe = url("og_mailinglist/unsubscribe/" . $node->nid, $absolute);
-  $footer = "--\n"
-    . t('Full post: @link', array('@link' => $full))
-    . "\n"
-    . t('Manage my subscriptions: @link', array('@link' => $subscriptions))
-    . "\n"
-    . t('Stop emails for this post: @link', array('@link' => $unsubscribe));
-  return $footer;
-}
-
 /**
  * Build HTML using default input filter.
  */
@@ -79,21 +46,6 @@ function _og_mailinglist_email_already_sent($nid, $cid = 0) {
                FROM {og_mailinglist_source}
                WHERE nid = :nid
                AND cid = :cid", array(':nid' => $nid, ':cid' => $cid))->fetchField());
-}
-
-
-/**
- * Render HTML for the email footer.
- */
-function og_mailinglist_build_web_footer($node, $cid = 0) {
-  $footer = _og_mailinglist_build_footer($node);
-  $footer = og_mailinglist_prepare_web_content($footer);
-
-  // Pull out footer from the <p> tags that check_markup wraps the content with.
-  preg_match("/<p>(.+)<\/p>/s", $footer, $match);
-  $footer = $match[1] . "<br />";
-
-  return "\n" . $footer;
 }
 
 function dd_log($data, $label = "") {
