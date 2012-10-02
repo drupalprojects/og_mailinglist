@@ -45,19 +45,62 @@ function og_mailinglist_email_settings() {
  * Admin settings form for OGM content types
  */
 function og_mailinglist_content_types_settings() {
-  $node_types = node_type_get_names();
-  foreach ($node_types as $type => $name) {
-    if (!og_is_group_content_type('node', $type)) {
-      unset($node_types[$type]);
+  $default_content_type = variable_get('og_mailinglist_default_content_type', 'none^set');
+  $node_types = array('none^set' => t('- None -'));
+  foreach (node_type_get_names() as $type => $name) {
+    if (og_is_group_content_type('node', $type)) {
+      $node_types[$type] = $name;
     }
   }
   $form['og_mailinglist_default_content_type'] = array(
     '#title' => t('Default content type'),
     '#type' => 'select',
-    '#default_value' => variable_get('og_mailinglist_default_content_type', 'article'),
+    '#default_value' => $default_content_type,
     '#options' => $node_types,
     '#description' => t('Choose the default content type to be created from new emails.'),
+    '#ajax' => array(
+      'event' => 'change',
+      'callback' => 'og_mailinglist_admin_dropdown_content_fields',
+      'wrapper' => 'content-fields-wrapper',
+    ),
   );
+
+  $form['og_mailinglist_fields']['wrapper'] = array(
+    '#prefix' => '<div id="content-fields-wrapper">',
+    '#suffix' => '</div>',
+  );
+
+  $file_fields = array('no^field' => t('- None -'));
+  $image_fields = array('no^field' => t('- None -'));
+  $content_type = isset($form_state['values']['og_mailinglist_default_content_type']) ? $form_state['values']['og_mailinglist_default_content_type'] : $default_content_type;
+  if ($content_type != 'none^set') {
+    $fields_info = field_info_instances('node', $default_content_type);
+    foreach ($fields_info  as $field_name => $value) {
+      $field_info = field_info_field($field_name);
+      $type = $field_info['type'];
+      if ($type == 'file') {
+        $file_fields[$field_name] = $value['field_name'];
+      }
+      elseif ($type == 'image') {
+        $image_fields[$field_name] = $value['field_name'];
+      }
+    }
+  }
+
+  $form['og_mailinglist_fields']['wrapper']['og_mailinglist_file_field'] = array(
+    '#title' => t('Field for files'),
+    '#description' => t('Field where incoming files will be stored. Will be used for images too when Image field is not set.'),
+    '#type' => 'select',
+    '#options' => $file_fields,
+    '#default_value' => variable_get('og_mailinglist_file_field', ''),
+  );
+  $form['og_mailinglist_fields']['wrapper']['og_mailinglist_image_field'] = array(
+    '#title' => t('Field for images'),
+    '#type' => 'select',
+    '#options' => $image_fields,
+    '#default_value' => variable_get('og_mailinglist_image_field', ''),
+  );
+
   $filter_list = array();
   foreach (filter_formats() as $machine_name => $filter) {
     $filter_list[$machine_name] = $filter->name;
@@ -89,6 +132,14 @@ function og_mailinglist_content_types_settings() {
     '#description' => t('Choose the default email subscription for users joining a new group. "Email" means the user will receive an email for each new post. "No email" means the user will recieve no emails except for discussion threads they participate in. "Digest" is the same as "no email" except the user will also receive digest emails. (Users can change this later at http://example.com/user/%user/og_mailinglist)'),
   );
   return system_settings_form($form);
+}
+
+/**
+ * Function for AJAX request on admin/config/group/mailinglist/content_types
+ */
+function og_mailinglist_admin_dropdown_content_fields($form, $form_state) {
+  // Return the dropdown list including the wrapper.
+  return $form['og_mailinglist_fields']['wrapper'];
 }
 
 /**
