@@ -375,14 +375,13 @@ function og_mailinglist_save_comment(&$email, $group_nodes, $node) {
   foreach ($group_nodes as $gid => $group_node) {
     $group_list[] = $group_node->title . ' (gid' . $gid . ')';
   }
-  watchdog('og_mailinglist', "Posted comment for @mailfrom as cid=@cid to nid=@nid inside groups: @group_list",
+  watchdog('og_mailinglist', "Posted comment %subject for @mailfrom to groups: @group_list",
     array(
+      '%subject' => $comment->subject,
       '@mailfrom' => $user->name,
       '@group_list' => implode($group_list, ', '),
-      '@nid' => $node->nid,
-      '@cid' => $comment->cid,
     ),
-    WATCHDOG_INFO);
+    WATCHDOG_INFO, l(t('view'), 'comment/' . $comment->cid, array('fragment' => 'comment-' . $comment->cid)));
 }
 
 /**
@@ -447,15 +446,13 @@ function og_mailinglist_save_node(&$email, $group_nodes) {
     $group_list[] = $group_node->title . ' (gid' . $gid . ')';
   }
   // Report activity to watchdog.
-  watchdog('og_mailinglist', 'Posted node @title (@nid) for @username (@email) to groups: @group_list.',
+  watchdog('og_mailinglist', 'Posted node %title for %username to groups: %group_list.',
     array(
-      '@title' => $node->title,
-      '@nid' => $node->nid,
-      '@username' => $user->name,
-      '@email' => $user->mail,
-      '@group_list' => implode($group_list, ', '),
+      '%title' => $node->title,
+      '%username' => $user->name,
+      '%group_list' => implode($group_list, ', '),
     ),
-    WATCHDOG_INFO);
+    WATCHDOG_INFO, l(t('view'), 'node/' . $node->nid));
 }
 
 function _og_mailinglist_email_node_email(&$email, $node, $group_nodes) {
