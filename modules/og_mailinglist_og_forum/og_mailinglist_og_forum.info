@@ -1,8 +1,7 @@
 name = OG Mailinglist OG Forum
 description = "Integrates Og Mailinglist with OG Forum so that incoming emails will be placed in the default group forum."
 dependencies[] = og_mailinglist
-dependencies[] = og_forum
+dependencies[] = og_forum (>= 2.x)
 package = "Organic groups"
 core = 7.x
 
-files[] = og_mailinglist_og_forum.module

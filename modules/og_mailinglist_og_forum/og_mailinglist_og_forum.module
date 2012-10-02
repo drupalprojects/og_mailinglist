@@ -2,23 +2,24 @@
 
 /**
  * Implements hook_og_mailinglist_save_node_alter().
+ *
+ * If this is a forum post and the og_forum module is enabled, find this
+ * group's default forum container and add that to the node object.
  */
 function og_mailinglist_og_forum_og_mailinglist_save_node_alter(&$node) {
-  // If this is a forum post and the og_forum module is enabled, find this group's
-  // default forum container and add that to the node object.
-  if ($node->type == "forum" && module_exists('og_forum')) {
-    // The "t.weight <> 0" is a hack essentially. og_term doesn't give any good way
-    // of finding out which term is actually an og_forum term and which isn't.
-    // But it seems to change the weight of all legit forums to something other
-    // than 0 (-10 in most (all) cases) (I'm guessing a lot here). Anyways, don't
-    // argue with what works.
-    $forum_id = db_query("SELECT o.tid
-                                    FROM {og_term} o
-                                    JOIN {taxonomy_term_data} t
-                                    ON o.tid = t.tid
-                                    WHERE o.nid = :o.nid
-                                    AND t.weight <> :t.weight", array(':o.nid' => current($node->og_groups), ':t.weight' => 0))->fetchField();
+  if (_forum_node_check_node_type($node) && module_exists('og_forum')) {
+    $gid = $node->og_group_ref[LANGUAGE_NONE][0]['target_id'];
+    $forum_id = db_query("SELECT m.etid
+                          FROM {og_membership} m
+                          JOIN {taxonomy_term_data} t
+                          ON m.etid = t.tid
+                          WHERE m.gid = :gid
+                          AND m.entity_type = 'taxonomy_term'",
+                          array(':gid' => $gid))->fetchField();
     $term = taxonomy_term_load($forum_id);
+    $node->taxonomy_forums[LANGUAGE_NONE][0]['tid'] = $term->tid;
+    $node->forum_tid = $term->tid;
+
     if (empty($node->tid)) {
       $node->tid = $term->tid;
     }
