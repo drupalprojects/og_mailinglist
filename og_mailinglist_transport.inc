@@ -180,6 +180,7 @@ function _og_mailinglist_process_email($raw_email, $group_name = NULL) {
     }
 
     // Load group nodes.
+    sort($gids);
     $group_nodes = node_load_multiple($gids);
     $email['group_nodes'] = $group_nodes;
 
