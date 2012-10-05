@@ -207,10 +207,27 @@ function og_mailinglist_delete_thread_subscription($nid, $uid) {
   return $result;
 }
 
-/*
- * Log successful sent email.
+/**
+ * Log when email has been successfully sent.
+ *
+ * @param string $source
+ *   Indicates where the email came from, could be 'web' or 'email'.
+ * @param int $nid
+ *   Node ID.
+ * @param int $cid
+ *   Comment ID.
+ * @param string $parent_message_id
+ *   Parent email's message ID, could be something like <123.431@example.org>
+ * @param array $headers
+ *   Email headers as used in e.g _og_mailinglist_email_node_email()
+ * @return boolean
+ *   Indicates whether the logging was successful.
  */
-function og_mailinglist_log_email_sent($source, $nid, $cid = 0, $message_id = 0, $in_reply_to = 0, $references = 0, $parent_message_id = 0) {
+function og_mailinglist_log_email_sent($source, $nid, $cid = 0, $parent_message_id = 0, $headers = array()) {
+  $message_id = isset($headers['message-id']) ? $headers['message-id'] : 0;
+  $in_reply_to = isset($headers['in-reply-to']) ? $headers['in-reply-to'] : 0;
+  $references = isset($headers['references']) ? $headers['references'] : 0;
+
   $data = array(
     'nid' => $nid,
     'cid' => $cid,
@@ -292,7 +309,16 @@ function _og_mailinglist_get_thread_parent_messageid(&$headers) {
   }
 }
 
-function _og_mailinglist_get_nid_from_parent_messageid($message_id) {
+/**
+ * Get the node ID from the email's message ID.
+ *
+ * @param string $message_id
+ *   Email message ID, something like <13251.1353@example.com> or
+ *   <node-1-comment-3@example.org>
+ * @return int
+ *   Node nid of the thread.
+ */
+function _og_mailinglist_get_nid_from_messageid($message_id) {
   return db_query("SELECT nid
     FROM {og_mailinglist_source}
     WHERE message_id = :message_id",

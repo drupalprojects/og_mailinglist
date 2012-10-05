@@ -186,7 +186,7 @@ function og_mailinglist_send_node_email($node, $gids) {
   }
 
   if ($success) {
-    og_mailinglist_log_email_sent('web', $node->nid, 0, $headers['message-id'], 0, 0, $headers['message-id']);
+    og_mailinglist_log_email_sent('web', $node->nid, 0, $headers['message-id'], $headers);
   }
   else {
     watchdog('og_mailinglist', "OG_Mailinglist couldn't send a new node email for node.", NULL, WATCHDOG_ERROR);

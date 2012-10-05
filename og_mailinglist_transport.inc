@@ -407,7 +407,7 @@ function og_mailinglist_save_comment(&$email, $group_nodes, $node) {
   // Log that this comment came by email.
   $in_reply_to = isset($email['headers']['in-reply-to']) ? $email['headers']['in-reply-to'] : '';
   $references = isset($email['headers']['references']) ? $email['headers']['references'] : '';
-  og_mailinglist_log_email_sent('email', $node->nid, $comment->cid, $email['headers']['message-id'], $in_reply_to, $references, $parent_message_id);
+  og_mailinglist_log_email_sent('email', $node->nid, $comment->cid, $parent_message_id, $email['headers']);
 
   // Report activity to watchdog.
   $group_list = array();
@@ -473,7 +473,7 @@ function og_mailinglist_save_node(&$email, $group_nodes) {
   _og_mailinglist_email_node_email($email, $node, $group_nodes);
 
   // Log that this node came from email.
-  og_mailinglist_log_email_sent('email', $node->nid, 0, $email['headers']['message-id'], 0, 0, $email['headers']['message-id']);
+  og_mailinglist_log_email_sent('email', $node->nid, 0, $email['headers']['message-id'], $email['headers']);
 
   $group_list = array();
   foreach ($group_nodes as $gid => $group_node) {
@@ -1026,7 +1026,7 @@ function og_mailinglist_parse_nid($email) {
   // Check the in-reply-to header.
   $parent_message_id = _og_mailinglist_get_thread_parent_messageid($email['headers']);
   if (!empty($parent_message_id)) {
-    $nid = _og_mailinglist_get_nid_from_parent_messageid($parent_message_id);
+    $nid = _og_mailinglist_get_nid_from_messageid($parent_message_id);
   }
 
   if ($nid) {
