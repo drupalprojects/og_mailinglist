@@ -222,10 +222,9 @@ function theme_og_mailinglist_attached_files($variables) {
   if ($image_field) {
     $images = field_get_items($entity_type, $entity, $image_field);
     if (count($images)) {
-      $html .= 'Attached images: <br />';
+      $html .= 'Attached images:<br />';
       foreach ($images as $image) {
-        $html .= link($image->filename, $image->filepath);
-        drupal_set_message('<pre>' . print_r($image, TRUE) . '</pre>');
+        $html .= link($image->filename, $image->uri);
       }
     }
   }
@@ -233,9 +232,9 @@ function theme_og_mailinglist_attached_files($variables) {
   if ($file_field) {
     $files = field_get_items($entity_type, $entity, $file_field);
     if (count($files)) {
-      $html .= 'Attached files: <br />';
+      $html .= 'Attached files:<br />';
       foreach ($files as $file) {
-        $html .= link($file->filename, $file->filepath);
+        $html .= link($file->filename, $file->uri);
         drupal_set_message('<pre>' . print_r($file, TRUE) . '</pre>');
       }
     }
@@ -285,12 +284,13 @@ function theme_og_mailinglist_mail_footer($variables) {
   $subscriptions = url("og_mailinglist/subscriptions", $absolute);
   $unsubscribe = url("og_mailinglist/unsubscribe/" . $node->nid, $absolute);
 
-  $footer = "--\n"
+  $footer = '--<br />'
     . t('Full post: @link', array('@link' => $full))
-    . "\n"
+    . '<br />'
     . t('Manage my subscriptions: @link', array('@link' => $subscriptions))
-    . "\n"
-    . t('Stop emails for this post: @link', array('@link' => $unsubscribe));
+    . '<br />'
+    . t('Stop emails for this post: @link', array('@link' => $unsubscribe))
+    . '<br />';
   return $footer;
 }
 
