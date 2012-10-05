@@ -1,7 +1,7 @@
 <?php
 /**
  * @file
- * API functions for OG Mailinglist.
+ *  API functions for OG Mailinglist.
  */
 
 /**
@@ -18,16 +18,16 @@ function og_mailinglist_save_group_thread_subscriptions($gid, $nid) {
       unset($subscribers[$uid]);
     }
   }
-  // Save users to og_mailinglist_thread_subscription
   og_mailinglist_save_thread_subscriptions($nid, array_keys($subscribers));
 }
 /**
  * Returns users who are active email subscribers in a group.
  *
- * @param int $gid Group id to query for subscriptions
- *
- * @return array of UIDs and email addresses that are subscribed to this group.
- *  Format = key (UID) => value (email address)
+ * @param int $gid
+ *   Group id to query for subscriptions.
+ * @return array
+ *   Array of UIDs and email addresses that are subscribed to this group.
+ *   Format: [$uid] => $email
  */
 function og_mailinglist_get_group_subscriptions($gid) {
   $query = db_select('og_mailinglist_group_subscription', 's');
@@ -40,9 +40,17 @@ function og_mailinglist_get_group_subscriptions($gid) {
   return $emails;
 }
 
-/*
- * @return array of UIDs and email addresses that are subscribed to this thread.
- *  Format = key (UID) => value (email address)
+/**
+ * Get all subscribers of the thread.
+ *
+ * @param int $nid
+ *   Node Id of the thread.
+ * @param boolean $email_as_key
+ *   Changes the format of returned array.
+ * @return array
+ *   UIDs and email addresses that are subscribed to this thread.
+ *   If $email_as_key is TRUE, then the format is [$email] => ''
+ *   else it is [$uid] => $email.
  */
 function og_mailinglist_get_thread_subscriptions($nid, $email_as_key = FALSE) {
   $query = db_select('og_mailinglist_thread_subscription', 'ogmt');
@@ -69,8 +77,16 @@ function og_mailinglist_get_thread_subscriptions($nid, $email_as_key = FALSE) {
   return $emails;
 }
 
-/*
+/**
  * Check if a user is subscribed to a thread.
+ *
+ * @param int $nid
+ *   Node ID of the thread.
+ * @param int $uid
+ *   User ID.
+ * @return int
+ *   Return 0 if user is not subscribed to the thread, otherwise
+ *   return a positive number, supposedly 1.
  */
 function og_mailinglist_check_user_subscribed_to_thread($nid, $uid) {
   $query = db_select('og_mailinglist_thread_subscription', 'ogmt');
@@ -80,11 +96,13 @@ function og_mailinglist_check_user_subscribed_to_thread($nid, $uid) {
   return $query->execute()->fetchField();
 }
 
-/*
- * @param int $nid Node id for thread.
- * @param array $uids array of User IDs that are subscribed to this thread.
+/**
+ * Subscribe multiple users to a thread.
  *
- * @return null.
+ * @param int $nid
+ *   Node id for the thread.
+ * @param array $uids
+ *   Array of User IDs that need to be subscribed to this thread.
  */
 function og_mailinglist_save_thread_subscriptions($nid, $uids) {
   static $saved = array();
@@ -113,8 +131,16 @@ function og_mailinglist_save_thread_subscriptions($nid, $uids) {
   }
 }
 
-/*
- * @return subscription type for the given group and user.
+/**
+ * Get subscription user subscription type to the group's mailinglist.
+ *
+ * @param int $gid
+ *   Node ID of the group.
+ * @param int $uid
+ *   User ID whose subscription type we need.
+ * @return string
+ *   Subscription type for the given group and user, could be 'email',
+ *   'digest' or 'no email'.
  */
 function og_mailinglist_get_group_subscription_type($gid, $uid) {
   $query = db_select('og_mailinglist_group_subscription', 'ogms');
@@ -124,8 +150,15 @@ function og_mailinglist_get_group_subscription_type($gid, $uid) {
   return $query->execute()->fetchField();
 }
 
-/*
+/**
  * Update a user's subscription type for one of their groups.
+ *
+ * @param int $gid
+ *   Node ID of the group.
+ * @param int $uid
+ *   User ID.
+ * @param string $subscription_type
+ *   Subscription type to be set, could be 'email', 'digest' or 'no email'.
  */
 function og_mailinglist_update_group_subcription_type($gid, $uid, $subscription_type) {
   db_update('og_mailinglist_group_subscription')
@@ -135,27 +168,31 @@ function og_mailinglist_update_group_subcription_type($gid, $uid, $subscription_
     ->execute();
 }
 
-/*
- * @param int $gid Group id.
- * @param array $uids array of User IDs to add group subscriptions.
+/**
+ * Save group subscriptions.
+ *
+ * @param int $gid
+ *   Group id.
+ * @param array $uids
+ *   Array of User IDs to add group subscriptions.
  */
 function og_mailinglist_save_group_subscriptions($gid, $uids) {
   $subscription_type = variable_get('og_mailinglist_default_group_subscription_type', 'email');
   foreach ($uids as $uid) {
     db_merge('og_mailinglist_group_subscription')
       ->key(array('nid' => $gid, 'uid' => $uid))
-      ->fields(array(
-          'subscription_type' => $subscription_type,
-      ))
+      ->fields(array('subscription_type' => $subscription_type))
       ->execute();
   }
 }
 
-/*
+/**
  * Delete group subscription for all user IDs in $uids.
  *
- * @param int $gid Group id.
- * @param array $uids array of User IDs to add group subscriptions.
+ * @param int $gid
+ *   Node ID of the group.
+ * @param array $uids
+ *   Array of User IDs to remove from the group.
  */
 function og_mailinglist_delete_group_subscriptions($gid, $uids) {
   db_delete('og_mailinglist_group_subscription')
@@ -169,7 +206,12 @@ function og_mailinglist_delete_group_subscriptions($gid, $uids) {
 
 /**
  * Unsubscribe a user from all group threads when they leave that group.
- **/
+ *
+ * @param int $gid
+ *   Node ID of the group.
+ * @param int $uid
+ *   User ID.
+ */
 function og_mailinglist_delete_group_threads($gid, $uid) {
   // Delete threads.  See http://drupal.org/node/1079620
   $subquery = db_select('og_membership', 'o');
@@ -185,7 +227,14 @@ function og_mailinglist_delete_group_threads($gid, $uid) {
 
 /**
  * Remove a user from a thread.
- **/
+ *
+ * @param int $nid
+ *   Node ID of the thread which subscription is to be removed.
+ * @param int $uid
+ *   User ID of the user whose subscription is to be removed.
+ * @return boolean
+ *   Whether the operation succeeded.
+ */
 function og_mailinglist_delete_thread_subscription($nid, $uid) {
   static $deleted = array();
   // Check that this subscription hasn't already been deleted.
@@ -240,12 +289,15 @@ function og_mailinglist_log_email_sent($source, $nid, $cid = 0, $parent_message_
   return drupal_write_record('og_mailinglist_source', $data);
 }
 
-/*
- * @return PHPMailer object.
+/**
+ * A helper function to create a PHPMailer object.
+ *
+ * @return object
+ *   PHPMailer object.
  */
 function og_mailinglist_create_mailer() {
   if (og_mailinglist_phpmailer_load_library()) {
-    // The TRUE param makes it throw exceptions on errors, which we need to catch.
+    // TRUE makes it throw exceptions on errors, which we need to catch.
     $mailer = new PHPMailer(TRUE);
     $mailer->PluginDir = og_mailinglist_get_phpmailer_plugin_dir();
     $mailer->CharSet = 'UTF-8';
@@ -261,20 +313,29 @@ function og_mailinglist_create_mailer() {
     array('@link' => '/admin/reports/status')), 'error');
 }
 
-/*
- * Delete group information.
+/**
+ * Delete group subscriptions from og_mailinglist_group_subscription.
+ *
+ * @param int $nid
+ *   The node ID.
  */
 function og_mailinglist_delete_group($nid) {
-  // Delete group subscriptions from og_mailinglist_group_subscription.
   db_delete('og_mailinglist_group_subscription')
     ->condition('nid', $nid)
     ->execute();
 }
 
-// References are apparently a more reliable header than in-reply-to
-// http://cr.yp.to/immhf/thread.html
-function _og_mailinglist_get_thread_parent_messageid(&$headers) {
-  // Try to get the parent message-id from one of the message-ids in the references header.
+/**
+ * Try to get the parent message-id from the references header.
+ *
+ * Parent message ID is the message id of the node which starts the thread.
+ * References are apparently a more reliable header than in-reply-to
+ * http://cr.yp.to/immhf/thread.html
+ *
+ * @param array $headers
+ *  Email headers as used in e.g _og_mailinglist_email_node_email()
+ */
+function _og_mailinglist_get_thread_parent_messageid($headers) {
   $references = isset($headers['references']) ? $headers['references'] : '';
   $refs = str_replace(array("\r\n", "\n"), "", $references);
   $refs_array = explode(" ", $refs);
@@ -326,6 +387,14 @@ function _og_mailinglist_get_nid_from_messageid($message_id) {
     ->fetchField();
 }
 
+/**
+ * Get the email's message ID from the node id.
+ *
+ * @param int $nid
+ *   Node ID to get the message id for.
+ * @return string
+ *   Email's message ID for that node/thread parent message.
+ */
 function _og_mailinglist_get_messageid_from_nid($nid) {
   return db_query("SELECT parent_message_id
     FROM {og_mailinglist_source}

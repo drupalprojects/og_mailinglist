@@ -5,6 +5,8 @@ OG Mailinglist allows users to start new posts by email and post comments on
 existing discussions by simply replying to emails.  You get the best of both
 worlds: a browser-based discussion site and an email-based list.
 
+The online instructions can be found here: http://drupal.org/node/938718
+
 
 REQUIREMENTS
 
