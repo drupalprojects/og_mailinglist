@@ -383,7 +383,6 @@ function og_mailinglist_save_comment(&$email, $group_nodes, $node) {
 
   // If enabled, set comment parent = cid of in-reply-to for comment threading.
   if (variable_get('og_mailinglist_thread_comments', FALSE)) {
-    $comment->thread = '01/';
     $comment->pid = db_query("SELECT cid FROM {og_mailinglist_source} WHERE message_id = :message_id", array(':message_id' => $email['headers']['in-reply-to']))->fetchField();
   }
   else {
