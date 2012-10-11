@@ -23,9 +23,6 @@ function og_mailinglist_og_forum_og_mailinglist_save_node_alter(&$node) {
     if (empty($node->tid)) {
       $node->tid = $term->tid;
     }
-    if (empty($node->vid)) {
-      $node->vid = $term->vid;
-    }
     if (empty($node->taxonomy)) {
       $node->taxonomy = array($term->vid => $term);
     }
