@@ -197,16 +197,16 @@ function _og_mailinglist_build_subject($group_nodes) {
  * Returns HTML for possible files links.
  *
  * @param $variables
- *   An array containing 'node' => $node object.
+ *   An array containing 'node' => $node or 'comment' => $comment object.
  * @return
  *   HTML code for files links or an empty string.
  */
 function theme_og_mailinglist_attached_files($variables) {
-  if (isset($variables['comment'])) {
+  if (!empty($variables['comment'])) {
     $entity = $variables['comment'];
     $entity_type = 'comment';
   }
-  elseif (isset($variables['node'])) {
+  elseif (!empty($variables['node'])) {
     $entity = $variables['node'];
     $entity_type = 'node';
   }
@@ -214,28 +214,29 @@ function theme_og_mailinglist_attached_files($variables) {
     return;
   }
 
-  $image_field = variable_get('og_mailinglist_image_field', '');
-  $file_field = variable_get('og_mailinglist_file_field', '');
+  $image_field = variable_get('og_mailinglist_' . $entity_type . '_image_field', '');
+  $file_field = variable_get('og_mailinglist_' . $entity_type . '_file_field', '');
 
   $html = '';
 
   if ($image_field) {
     $images = field_get_items($entity_type, $entity, $image_field);
-    if (count($images)) {
-      $html .= 'Attached images:<br />';
+    if (!empty($images)) {
+      $html .= "<br />\n";
+      $html .= "Attached images:<br />\n";
       foreach ($images as $image) {
-        $html .= link($image->filename, $image->uri);
+        $html .= l($image['filename'], file_create_url($image['uri'])) . "<br />\n";
       }
     }
   }
 
   if ($file_field) {
     $files = field_get_items($entity_type, $entity, $file_field);
-    if (count($files)) {
-      $html .= 'Attached files:<br />';
+    if (!empty($files)) {
+      $html .= "<br />\n";
+      $html .= "Attached files:<br />\n";
       foreach ($files as $file) {
-        $html .= link($file->filename, $file->uri);
-        drupal_set_message('<pre>' . print_r($file, TRUE) . '</pre>');
+        $html .= l($file['filename'], file_create_url($file['uri'])) . "<br />\n";
       }
     }
   }
@@ -319,7 +320,7 @@ function _og_mailinglist_reciever($group_node) {
   return array($group_email => $group_node->title);
 }
 
-/*
+/**
  * Encode $value to be used in email header if it contains non-ASCII characters.
  *
  * @param $value
