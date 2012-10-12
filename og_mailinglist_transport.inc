@@ -63,7 +63,7 @@ function _og_mailinglist_process_email($raw_email, $group_name = NULL) {
 
     // Initialize group_names array.
     $group_names = $group_name ? array($group_name => '') : array();
-    
+
     // Add all possible group_names from TO and CC fields.
     $group_names += _og_mailinglist_extract_group_names($email['to']);
     $group_names += _og_mailinglist_extract_group_names($email['cc']);
@@ -951,14 +951,14 @@ function _og_mailinglist_add_footer(&$email, $footer) {
   // If message is 7/8bit text/plain, just append the footer.
   if (isset($structure->body)
     and preg_match('/^text\/plain/i', $content_type)) {
-    $structure->body .= "\n" . $footer;
+    $structure->body .= "\n" . drupal_html_to_text($footer);
   }
   // If message is already multipart, append a new part with footer to the end.
   elseif (isset($structure->parts)
     and preg_match('/^multipart\/(mixed|related)/i', $content_type)) {
     $structure->parts[] = (object) array(
       "headers" => array(
-        "content-type" => 'text/plain; charset="utf-8"',
+        "content-type" => 'text/html; charset="utf-8"',
         "mime-version" => '1.0',
         "content-transfer-encoding" => '8bit',
         "content-disposition" => 'inline',
@@ -997,13 +997,13 @@ function _og_mailinglist_add_footer(&$email, $footer) {
     $structure->parts = array($str_clone);
     $structure->parts[] = (object) array(
       "headers" => array(
-        "content-type" => 'text/plain; charset="utf-8"',
+        "content-type" => 'text/html; charset="utf-8"',
         "mime-version" => '1.0',
         "content-transfer-encoding" => '8bit',
         "content-disposition" => 'inline',
       ),
       "ctype_primary" => 'text',
-      "ctype_secondary" => 'plain',
+      "ctype_secondary" => 'html',
       "ctype_parameters" => array(
         "charset" => 'utf-8',
       ),
