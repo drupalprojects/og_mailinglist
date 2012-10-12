@@ -540,7 +540,7 @@ function _og_mailinglist_email_node_email(&$email, $node, $group_nodes) {
     // Add list headers.
     $list_headers = _og_mailinglist_list_headers($group_node);
     foreach ($list_headers as $key => $value) {
-      $headers[$key] = $value;
+      $email['headers'][$key] = $value;
     }
 
     // Send off the email.
