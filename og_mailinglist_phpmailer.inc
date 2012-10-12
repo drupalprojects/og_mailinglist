@@ -67,7 +67,6 @@ function og_mailinglist_send_comment_email($comment, $node, $gids) {
 
   // Users who already got this email since they are members of other groups.
   $already_mailed = array();
-  $already_mailed += $recipients['from'];
 
   foreach ($group_nodes as $group_node) {
     $recipients['bcc'] = _og_mailinglist_get_subscribers($node, $group_node, TRUE);
@@ -164,7 +163,6 @@ function og_mailinglist_send_node_email($node, $gids) {
 
   // Users who already got this email since they are members of other groups.
   $already_mailed = array();
-  $already_mailed += $recipients['from'];
 
   foreach ($group_nodes as $group_node) {
     $recipients['bcc'] = _og_mailinglist_get_subscribers($node, $group_node, TRUE);
