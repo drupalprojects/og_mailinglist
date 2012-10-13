@@ -18,6 +18,7 @@ function og_mailinglist_filter_info() {
       'og_mailinglist_filter_quotations' => 'hidden',
       'og_mailinglist_filter_quotations_length' => '2',
       'og_mailinglist_filter_email' => 1,
+      'og_mailinglist_filter_footer' => 1,
     ),
   );
   return $filters;
@@ -47,6 +48,12 @@ function _og_mailinglist_filter_settings($form, &$form_state, $filter, $format, 
     '#type' => 'checkbox',
     '#default_value' => $filter->settings['og_mailinglist_filter_email'],
     '#description' => t('If checked, email addresses will be replaced with ***@***.*** (enabled by default)'),
+  );
+  $settings['og_mailinglist_filter_footer'] = array(
+    '#title' => t('Remove mailinglist footer.'),
+    '#type' => 'checkbox',
+    '#default_value' => $filter->settings['og_mailinglist_filter_footer'],
+    '#description' => t('If checked, mailinglist footer will be removed from the output.'),
   );
   return $settings;
 }
@@ -87,6 +94,35 @@ function _og_mailinglist_filter_quotes($text, $filter) {
   // Replace legacy operating systems' line break characters.
   $text = str_replace(array('\r\n', '\r'), '\n', $text);
   $lines = explode("\n", $text);
+
+  // Remove footer.
+  if ($filter->settings['og_mailinglist_filter_footer'] == 1) {
+    $server = $_SERVER['SERVER_NAME'];
+    $start = $end = -1;
+    foreach ($lines as $line_number => $line) {
+      // We assume that all footers start with > -- characters
+      // and will continue with any number of lines which have server address.
+      if ($start != -1) {
+        if (stripos($line, $server) != -1) {
+          $end = $line_number;
+        }
+        else {
+          break;
+        }
+      }
+
+      if (substr($line, 0, 4) == '> --' or substr($line, 0, 7) == '&gt; --') {
+        $start = $end = $line_number;
+      }
+    }
+
+    // Remove footer lines if at least two lines are found.
+    if ($start != -1 and $end - $start + 1 >= 2) {
+      for ($i = $end; $i >= $start; $i--) {
+        unset($lines[$i]);
+      }
+    }
+  }
 
   // This value is used to determine if quoted section can be relied on.
   // If not, then we rather will not remove the section but hide it as
