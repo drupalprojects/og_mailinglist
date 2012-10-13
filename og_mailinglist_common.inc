@@ -93,6 +93,7 @@ function _og_mailinglist_send_email($headers, $recipients, $body, $html = NULL) 
   }
 
   $success = $mailer->Send();
+  return $success;
 
   }
   catch (phpmailerException $e) {
@@ -102,8 +103,6 @@ function _og_mailinglist_send_email($headers, $recipients, $body, $html = NULL) 
   catch (Exception $e) {
     watchdog('og_mailinglist', $e->getMessage(), NULL, WATCHDOG_ERROR);
   }
-
-  return $success;
 }
 
 /**
@@ -145,13 +144,12 @@ function _og_mailinglist_list_headers($group_node) {
  *
  * @param $nid
  *   Integer, node ID.
- * @param $cid
- *   Integer, current comment's ID or the parent comment's ID.
- * @param $cid_is_pid
- *   A boolean indicating whether the previous value $cid is actually already
- *   the parent, which means message-id for the $cid needs to be included.
+ * @param $pid
+ *   Integer, current comment parent's ID or 0 if first comment in thread.
+ * @param $pid
+ *   Parent message's email ID, something like <node-3-comment-4@example.com>
  */
-function _og_mailinglist_references_headers($nid, $pid, $parent_message_id = NULL) {
+function _og_mailinglist_references_headers($nid, $pid, $parent_message_id) {
   $headers = array();
 
   if ($pid != 0) {
@@ -165,10 +163,7 @@ function _og_mailinglist_references_headers($nid, $pid, $parent_message_id = NUL
       $headers['references'] = $data->references_header . " " . $data->message_id;
     }
   }
-  else {
-    if (empty($parent_message_id)) {
-      $parent_message_id = _og_mailinglist_get_messageid_from_nid($nid);
-    }
+  elseif (!empty($parent_message_id)) {
     $headers['in-reply-to'] = $parent_message_id;
     $headers['references'] = '<' . $parent_message_id . '>';
   }

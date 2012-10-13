@@ -44,7 +44,7 @@ function og_mailinglist_send_comment_email($comment, $node, $gids) {
   // If the comment is in reply to another comment, set the in-reply-to header
   // to that comment's message-id, else to the parent post's message-id.
   $parent_message_id = _og_mailinglist_get_messageid_from_nid($node->nid);
-  $headers += _og_mailinglist_references_headers($node->nid, $comment->cid, $parent_message_id);
+  $headers += _og_mailinglist_references_headers($node->nid, $comment->pid, $parent_message_id);
 
   // Decorate subject.
   $groups_list = _og_mailinglist_build_subject($group_nodes);

@@ -405,8 +405,6 @@ function og_mailinglist_save_comment(&$email, $group_nodes, $node) {
   _og_mailinglist_email_comment_email($email, $node, $group_nodes, $comment);
 
   // Log that this comment came by email.
-  $in_reply_to = isset($email['headers']['in-reply-to']) ? $email['headers']['in-reply-to'] : '';
-  $references = isset($email['headers']['references']) ? $email['headers']['references'] : '';
   og_mailinglist_log_email_sent('email', $node->nid, $comment->cid, $parent_message_id, $email['headers']);
 
   // Report activity to watchdog.
