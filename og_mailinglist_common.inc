@@ -153,12 +153,12 @@ function _og_mailinglist_references_headers($nid, $pid, $parent_message_id) {
   $headers = array();
 
   if ($pid != 0) {
-    $data = db_select('og_mailinglist_source', 'ogms')
+    $result = db_select('og_mailinglist_source', 'ogms')
       ->fields('ogms', array('message_id', 'references_header'))
       ->condition('ogms.cid', $pid)
-      ->execute()->fetchAll();
+      ->execute();
 
-    if ($data) {
+    foreach ($result as $data) {
       $headers['in-reply-to'] = $data->message_id;
       $headers['references'] = $data->references_header . " " . $data->message_id;
     }
