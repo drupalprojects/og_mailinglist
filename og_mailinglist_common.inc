@@ -155,6 +155,7 @@ function _og_mailinglist_references_headers($nid, $pid, $parent_message_id) {
   if ($pid != 0) {
     $result = db_select('og_mailinglist_source', 'ogms')
       ->fields('ogms', array('message_id', 'references_header'))
+      ->condition('ogms.nid', $nid)
       ->condition('ogms.cid', $pid)
       ->execute();
 
