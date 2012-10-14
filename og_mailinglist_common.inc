@@ -165,7 +165,7 @@ function _og_mailinglist_references_headers($nid, $pid, $parent_message_id) {
   }
   elseif (!empty($parent_message_id)) {
     $headers['in-reply-to'] = $parent_message_id;
-    $headers['references'] = '<' . $parent_message_id . '>';
+    $headers['references'] = $parent_message_id;
   }
 
   return $headers;
