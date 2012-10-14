@@ -55,7 +55,7 @@ function og_mailinglist_send_comment_email($comment, $node, $gids) {
   $html = check_markup($body[0]['value']);
 
   // Add the user's signature and footer.
-  $html .= theme('og_mailinglist_attached_files', array('node' => $node));
+  $html .= theme('og_mailinglist_attached_files', array('comment' => $comment));
   $html .= theme('og_mailinglist_user_signature', array('user' => $user));
   $html .= theme('og_mailinglist_mail_footer', array('node' => $node));
 
@@ -137,6 +137,7 @@ function og_mailinglist_send_node_email($node, $gids) {
   $html = $rendered_body['body'][0]['#markup'];
 
   // Add the user's signature and footer.
+  $html .= theme('og_mailinglist_attached_files', array('node' => $node));
   $html .= theme('og_mailinglist_user_signature', array('user' => $user));
   $html .= theme('og_mailinglist_mail_footer', array('node' => $node));
 
