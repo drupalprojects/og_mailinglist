@@ -208,13 +208,13 @@ function og_mailinglist_subscriptions_settings_form($form, $account) {
     );
     $form[$data['gid']]['subscription-type'] = array(
       '#type' => 'select',
-      '#title' => "Email Settings",
+      '#title' => t("Email Settings"),
       '#default_value' => $data['subscription_type'],
       '#options' => $subscription_options,
     );
     $form[$data['gid']]["leave-group"] = array(
       '#type' => 'checkbox',
-      '#title' => "Leave the " . t($data['title']) . " group",
+      '#title' => t("Leave the %group_name group", array("%group_name" => t($data['title']))),
       '#suffix' => "<hr />",
     );
   }
