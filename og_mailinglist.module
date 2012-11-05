@@ -496,7 +496,7 @@ function _og_mailinglist_build_quotes_toggle($text) {
       // Otherwise the HTML Converter input filter will bork the HTML. This *could* be a
       // potential problem if someone doesn't want the Line Break filter run.
       $filtered_quote = _filter_autop($quote);
-      $replace = '<br /><span class="toggle-quoted-text">- Show quoted text -</span><div class="quoted-text">'. $filtered_quote .'</div>';
+      $replace = '<br /><span class="toggle-quoted-text">' . t('- Show quoted text -') . '</span><div class="quoted-text">'. $filtered_quote .'</div>';
       $text = str_replace($quote, $replace, $text);
 
       // Remove email addresses. Regex borrowed from valid_email_adddress().
@@ -640,13 +640,13 @@ function og_mailinglist_subscription_settings_form(&$form_state, $group_node) {
 
   $form[$data['gid']]['subscription-type'] = array(
     '#type' => 'select',
-    '#title' => "Email Settings",
+    '#title' => t("Email Settings"),
     '#default_value' => $data['subscription_type'],
     '#options' => $subscription_options,
   );
   $form[$data['gid']]["leave-group"] = array(
     '#type' => 'checkbox',
-    '#title' => "Leave this group",
+    '#title' => t("Leave this group"),
   );
 
   $form['submit'] = array(
