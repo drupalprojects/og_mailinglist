@@ -223,14 +223,14 @@ function _og_mailinglist_process_email($raw_email, $group_name = NULL) {
       $msgdate = $email['headers']['date'];
       $msgfrom = $email['headers']['from'];
       $commentedbody = str_replace("\n", "\n> ", $email['mailbody']);
-      $body = "Hi, sorry about this but we were unable to handle your email correctly for the following reason:
+      $body = t("Hi, sorry about this but we were unable to handle your email correctly for the following reason:") . "
 
-       $errormsg
+       " . $errormsg . "
 
-  Please correct this error and try again, or contact the system administrator.  Thank you.
+  " . t("Please correct this error and try again, or contact the system administrator.  Thank you.") . "
 
-  ---- Below this line is a copy of the message ----
-  > $commentedbody";
+  ---- " . t("Below this line is a copy of the message") . " ----
+  > " . $commentedbody;
 
       // send it off
       if (!mail($email['headers']['from'], "Error processing message", $body, implode("\n", $head))) {
