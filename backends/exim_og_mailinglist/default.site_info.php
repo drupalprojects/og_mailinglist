@@ -19,6 +19,7 @@ function og_mailinglist_site_info() {
               'host' => 'example.com',
               // Used when posting over HTTP.
               'post_url' => 'http://example.com/?=og_mailinglist',
+              // The same as in admin/config/group/mailinglist
               'validation_string' => 'abcdefghijklmnopqrstuv1234567890',
      ),
      // And you might have one more site.
