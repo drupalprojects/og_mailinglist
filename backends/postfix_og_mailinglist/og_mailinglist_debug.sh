@@ -10,7 +10,9 @@ cat >/tmp/message.$$
 
 # Read message from file, pass it to PHP and write output to log file.
 (cat /tmp/message.$$ | \
-  ./og_mailinglist_postfix_transport.php $1 >/tmp/message.$$.log 2>&1 )
+  /etc/postfix/postfix_og_mailinglist/og_mailinglist_postfix_transport.php $1 > \
+  /tmp/message.$$.log 2>&1 )
 
 # Show log file for easier debugging.
 cat /tmp/message.$$.log
+
