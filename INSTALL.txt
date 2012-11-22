@@ -33,7 +33,7 @@ For both methods, OG Mailinglist also requires:
 * Organic Groups 2.x - This module assumes you have a group-oriented web site.
   This module allows for one list per group.
 
-* PHPMailer 5
+* PHPMailer >=5.2.2
 
 * The PHP libraries mimeDecode and Curl.
 
@@ -46,15 +46,9 @@ INSTALLATION INSTRUCTIONS:
 
 * Download and unpack the PHPMailer 5.x then move the library to
 * og_mailinglist/phpmailer or to libraries/phpmailer if you use the libraries
-* module - https://github.com/KyleAMathews/phpmailer/tarball/master
-
-NOTE: We're using a slightly forked version of PHPMailer. OG Mailinglist
-*won't work* with a standard version of PHPMailer. Our bug report in the
-PHPMailer issue queue has sat untouched for over a year so we're forced
-to go with our forked version of the library. The changes are quite
-minor however and won't interfere with other uses of PHPMailer by your
-Drupal installation. See a diff of the changes we've made:
-https://github.com/KyleAMathews/phpmailer/commit/78cdf9743cc58f7e804207bd8aedd490d521289b
+* module.
+*
+* https://code.google.com/a/apache-extras.org/p/phpmailer/downloads/list
 
 * Install the PHP library mimeDecode. Use the command listed below for your OS:
 *
@@ -63,12 +57,9 @@ https://github.com/KyleAMathews/phpmailer/commit/78cdf9743cc58f7e804207bd8aedd49
 *
 * You can also download the library directly from:
 *   http://pear.php.net/package/Mail_mimeDecode
-* and place the library (mimeDecode.php) either in a subdirectory to
-* og_mailinglist (path_to_modules/og_mailinglist/mimeDecode) or to the libraries
-* folder. Note that this installation step is only necessary if you want members
-* of your site to be able to send email to the site to start or respond to
-* posts. If all posting will happen directly on the site, installing mimeDecode
-* is unnecessary.
+* and place the library (mimeDecode.php) either to
+* sites/all/modules/og_mailinglist/mimeDecode or to the libraries folder.
+* This is only necessary if users need to be able to send email to the site.
 
 * Install the PHP library Curl (if it's not already installed. Many setups come
 * preinstalled with Curl support.). Use the command listed below for your OS:
@@ -76,21 +67,22 @@ https://github.com/KyleAMathews/phpmailer/commit/78cdf9743cc58f7e804207bd8aedd49
 *   Debian/Ubuntu:           apt-get install php5-curl
 *   Fedora/RHEL/CentOS:      yum -y install php-pear-Net-Curl
 
-* Go to the Modules page in Drupal and enable the module (like normal).  After
-* saving, navigate to /admin/config/group/mailinglist and configure per your
-* server setup.
+* Go to the Modules page in Drupal and enable the module.
+* After saving, navigate to /admin/config/group/mailinglist and configure it
+* according to your server setup.
 
 * After creating a content type for group content you have to go to
 * admin/config/group/mailinglist/content_types page and save,
 * otherwise your content will be posted as articles.
 * Missing this step gives you this error from og_mailinglist_transport.inc
-* when receiving new email, the error might end up in logs or email reply:
+* when receiving new email, the error might end up in log or email reply:
 * "Error: Mail error ::: Embedded Error: Missing bundle property on
  * entity of type node."
 
 * If you're not using Mailgun, to setup og_mailinglist for incoming email,
 * follow the installation instructions for your Mail Transfer Agent in the
-* INSTALL.txt file found in its subdirectory (e.g. exim_og_mailinglist).
+* INSTALL.txt file found in its subdirectory
+* (e.g. backends/exim_og_mailinglist).
 
 * To hide quoted parts of email messages, enable the provided input filter "Hide
 * quotations in emails" at /admin/config/content/formats and drag it to be the
@@ -126,8 +118,7 @@ A: mimeDecode depends on PHP PEAR, which should be installed on any
 recent install of PHP but if you get weird errors, this might be something
 worth checking.
 
-Q: I can't get this module to work with Drupal Commons for incoming
-email.
+Q: I can't get this module to work with Drupal Commons for incoming email.
 A: Drupal commons apparently by default limits access to the site to
 logged-in users. OG Mailinglist receives incoming emails at the url
 /og_mailinglist. This url needs to be set so anonymous users can access
