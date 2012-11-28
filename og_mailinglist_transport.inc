@@ -219,6 +219,9 @@ function _og_mailinglist_process_email($raw_email, $group_name = NULL) {
       $head[] = 'References: ' . $email['headers']['message-id'];
       $head[] = 'In-Reply-To: ' . $email['headers']['message-id'];
       $head[] = 'X-BeenThere: ' . variable_get("og_mailinglist_server_string", $_SERVER['SERVER_NAME']);
+      $head[] = 'Mime-Version: 1.0';
+      $head[] = 'Content-Type: text/plain; charset="utf-8"';
+      $head[] = 'Content-Transfer-Encoding: 8bit';
       $errormsg = $e->getMessage();
       $msgdate = $email['headers']['date'];
       $msgfrom = $email['headers']['from'];
@@ -829,15 +832,15 @@ function _og_mailinglist_add_footer($email, $footer) {
             && isset($structure->parts)) {
     $structure->parts[] = (object) array(
     "headers" => array(
-      "content-type" => 'text/plain; charset="us-ascii"',
+      "content-type" => 'text/plain; charset="utf-8"',
       "mime-version" => '1.0',
-      "content-transfer-encoding" => '7bit',
+      "content-transfer-encoding" => '8bit',
       "content-disposition" => 'inline',
     ),
       "ctype_primary" => 'text',
       "ctype_secondary" => 'plain',
       "ctype_parameters" => array(
-        "charset" => 'us-ascii',
+        "charset" => 'utf-8',
       ),
 
     "disposition" => 'inline',
@@ -864,15 +867,15 @@ function _og_mailinglist_add_footer($email, $footer) {
     $structure->parts = array($str_clone);
        $structure->parts[] = (object) array(
       "headers" => array(
-        "content-type" => 'text/plain; charset="us-ascii"',
+        "content-type" => 'text/plain; charset="utf-8"',
         "mime-version" => '1.0',
-        "content-transfer-encoding" => '7bit',
+        "content-transfer-encoding" => '8bit',
         "content-disposition" => 'inline',
       ),
         "ctype_primary" => 'text',
         "ctype_secondary" => 'plain',
         "ctype_parameters" => array(
-          "charset" => 'us-ascii',
+          "charset" => 'utf-8',
         ),
 
       "disposition" => 'inline',
@@ -883,6 +886,22 @@ function _og_mailinglist_add_footer($email, $footer) {
   $email['structure'] = $structure;
 
   return $email;
+}
+
+/*
+ * Encode $value to be used in email header if it contains non-ASCII characters.
+ *
+ * @param $value
+ *   $value is a string which may or may not contain non-ASCII characters.
+ *
+ * @return
+ *   Returns UTF-8 base64 string or plain ASCII string as it suits.
+ */
+function _og_mailinglist_encode($value) {
+  if (!mb_detect_encoding($value, 'ASCII', true)) {
+    return "=?UTF-8?B?".base64_encode($value)."?=";
+  }
+  return $value;
 }
 
 function _og_mailinglist_send_email($headers, $body, $node, $comment = null, $sender_account) {
@@ -900,17 +919,17 @@ function _og_mailinglist_send_email($headers, $body, $node, $comment = null, $se
         $mailer->MessageID = $value;
         break;
       case 'subject':
-        $mailer->Subject = $value;
+        $mailer->Subject = _og_mailinglist_encode($value);
         break;
       case 'to':
         if (preg_match("/(^<)*<(.*?)>/", $value, $matches)) {
-          $mailer->AddAddress($matches[1], $matches[2]);
+          $mailer->AddAddress($matches[1], _og_mailinglist_encode($matches[2]));
         } else
           $mailer->AddAddress($value);
         break;
       case 'cc':
         if (preg_match("/(^<)*<(.*?)>/", $value, $matches)) {
-          $mailer->AddCC($matches[1], $matches[2]);
+          $mailer->AddCC($matches[1], _og_mailinglist_encode($matches[2]));
         } else
           $mailer->AddCC($value);
         break;
@@ -922,11 +941,11 @@ function _og_mailinglist_send_email($headers, $body, $node, $comment = null, $se
       case 'from':
         if (preg_match("/([^<]*)<(.*?)>/", $value, $matches)) {
           $mailer->From = $matches[2];
-          $mailer->FromName = $matches[1];
+          $mailer->FromName = _og_mailinglist_encode($matches[1]);
         }
         else {
           $mailer->From = $value;
-          $mailer->FromName = ($sender_account->realname) ? $sender_account->realname : $sender_account->name;
+          $mailer->FromName = _og_mailinglist_encode(($sender_account->realname) ? $sender_account->realname : $sender_account->name);
         }
         break;
       case 'content-type':
