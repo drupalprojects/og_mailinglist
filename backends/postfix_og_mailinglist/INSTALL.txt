@@ -46,7 +46,7 @@ test:      "| /etc/postfix/postfix_og_mailinglist/og_mailinglist_debug.sh ${DOMA
 To test this script you could invoke it from command line as follows (when
 inside the og_mailinglist directory; you also need to adjust domain to
 match your Drupal installation):
-/etc/postfix/postfix_og_mailinglist/og_mailinglist_script.sh example.com < testing/applemail
+/etc/postfix/postfix_og_mailinglist/og_mailinglist_debug.sh example.com < testing/applemail
 
 
 As mentioned above, if you followed step 3.2, you can stop here.
