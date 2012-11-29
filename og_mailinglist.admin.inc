@@ -8,31 +8,68 @@
  * Admin settings form for email settings
  */
 function og_mailinglist_email_settings() {
-  $form['og_mailinglist_max_message_size'] = array(
-    '#title' => t('Maximum message body size (excluding attachments) (in Kb)'),
+  $form['subscription'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Email subscription'),
+  );
+  $form['subscription']['og_mailinglist_default_group_subscription_type'] = array(
+    '#title' => t('Default group email subscription type'),
+    '#type' => 'select',
+    '#default_value' => variable_get('og_mailinglist_default_group_subscription_type', 'email'),
+    '#options' => array(
+      'email' => t('Email'),
+      'digest email' => t('Digest email'),
+      'no email' => t('No email'),
+    ),
+    '#description' => t('Choose the default email subscription for users joining a new group. "Email" means the user will receive an email for each new post. "No email" means the user will recieve no emails except for discussion threads they participate in. "Digest" is the same as "No email" except the user will also receive digest emails. (Users can change this later at http://example.com/user/%user/og_mailinglist)'),
+  );
+
+  $form['limits'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Email limits'),
+  );
+  $form['limits']['og_mailinglist_max_message_size'] = array(
+    '#title' => t('Maximum message body size (excluding attachments)'),
     '#type' => 'textfield',
     '#default_value' => variable_get('og_mailinglist_max_message_size', '100'),
     '#description' => t('Any messages over this size will be rejected.  Set to 0 for unlimited.'),
+    '#size' => 10,
+    '#maxlength' => 10,
+    '#field_suffix' => t('KiB'),
+    '#element_validate' => array('element_validate_integer_positive'),
   );
-  $form['og_mailinglist_max_posts_per_hour'] = array(
+  $form['limits']['og_mailinglist_max_posts_per_hour'] = array(
     '#title' => t('Maximum posts per hour'),
     '#type' => 'textfield',
     '#default_value' => variable_get('og_mailinglist_max_posts_per_hour', '20'),
     '#description' => t('The maximum number of messages a user is able to post per hour by email.  Set to 0 for unlimited.'),
+    '#size' => 10,
+    '#maxlength' => 10,
+    '#element_validate' => array('element_validate_integer_positive'),
   );
-  $form['og_mailinglist_reply_to_group'] = array(
+
+  $form['headers'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Email headers'),
+  );
+  $form['headers']['og_mailinglist_reply_to_group'] = array(
     '#title' => t('Add a Reply-To header to outgoing group emails'),
     '#type' => 'checkbox',
     '#default_value' => variable_get('og_mailinglist_reply_to_group', '0'),
-    '#description' => t('Set an explicit reply-to header. See http://wiki.list.org/pages/viewpage.action?pageId=4030691 for pros and cons on this setting.'),
+    '#description' => t('Set an explicit reply-to header. See <a href="@link">a discussion</a> for pros and cons on this setting.', array('@link' => 'http://wiki.list.org/pages/viewpage.action?pageId=4030691')),
   );
-  $form['og_mailinglist_thread_comments'] = array(
-    '#title' => t('Thread comments, using In-Reply-To header'),
+  $form['headers']['og_mailinglist_thread_comments'] = array(
+    '#title' => t('Thread comments using In-Reply-To header'),
     '#type' => 'checkbox',
     '#default_value' => variable_get('og_mailinglist_thread_comments', '0'),
     '#description' => t('New comments will be threaded on save. Existing comments will not be affected.'),
   );
-  $form['og_mailinglist_add_signatures'] = array(
+
+  $form['signatures'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('User signature'),
+  );
+  $form['signatures']['og_mailinglist_add_signatures'] = array(
     '#title' => t('Add user signatures to nodes and comments created on the site'),
     '#type' => 'checkbox',
     '#default_value' => variable_get('og_mailinglist_add_signatures', '1'),
@@ -52,7 +89,11 @@ function og_mailinglist_content_types_settings($form, &$form_state) {
       $node_types[$type] = $name;
     }
   }
-  $form['og_mailinglist_default_content_type'] = array(
+  $form['content_defaults'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Content defaults'),
+  );
+  $form['content_defaults']['og_mailinglist_default_content_type'] = array(
     '#title' => t('Default content type'),
     '#type' => 'select',
     '#default_value' => $default_content_type,
@@ -134,14 +175,19 @@ function og_mailinglist_content_types_settings($form, &$form_state) {
   foreach (filter_formats() as $machine_name => $filter) {
     $filter_list[$machine_name] = $filter->name;
   }
-  $form['og_mailinglist_default_filter_format'] = array(
+  $form['content_defaults']['og_mailinglist_default_filter_format'] = array(
     '#title' => t('Default filter format'),
     '#type' => 'select',
     '#default_value' => variable_get('og_mailinglist_default_filter_format', 'plain_text'),
     '#options' => $filter_list,
     '#description' => t('Choose the default filter format to be used on new nodes which are sent from email.'),
   );
-  $form['og_mailinglist_exclude_content_types'] = array(
+
+  $form['excluded_content_types'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Excluded content types'),
+  );
+  $form['excluded_content_types']['og_mailinglist_exclude_content_types'] = array(
     '#title' => t('Exclude the following content types'),
     '#type' => 'select',
     '#multiple' => TRUE,
@@ -149,17 +195,7 @@ function og_mailinglist_content_types_settings($form, &$form_state) {
     '#options' => $node_types,
     '#description' => t('Do not send emails on creation of these content types.'),
   );
-  $form['og_mailinglist_default_group_subscription_type'] = array(
-    '#title' => t('Default group email subscription type'),
-    '#type' => 'select',
-    '#default_value' => variable_get('og_mailinglist_default_group_subscription_type', 'email'),
-    '#options' => array(
-      'email' => t('Email'),
-      'digest email' => t('Digest email'),
-      'no email' => t('No email'),
-    ),
-    '#description' => t('Choose the default email subscription for users joining a new group. "Email" means the user will receive an email for each new post. "No email" means the user will recieve no emails except for discussion threads they participate in. "Digest" is the same as "no email" except the user will also receive digest emails. (Users can change this later at http://example.com/user/%user/og_mailinglist)'),
-  );
+
   return system_settings_form($form);
 }
 
@@ -181,7 +217,11 @@ function og_mailinglist_digest_settings() {
     mktime($digest_hour, 0, 0));
   variable_set('og_mailinglist_digest_runtime', $next_digest);
 
-  $form['og_mailinglist_digest_interval_days'] = array(
+  $form['digest'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Digest email settings'),
+  );
+  $form['digest']['og_mailinglist_digest_interval_days'] = array(
     '#title' => t('Digest interval'),
     '#type' => 'textfield',
     '#default_value' => $digest_days,
@@ -190,7 +230,7 @@ function og_mailinglist_digest_settings() {
     '#required' => TRUE,
     '#description' => t('Choose how often the digest will be sent. Value is in days. Defaults to 1.'),
   );
-  $form['og_mailinglist_digest_hour'] = array(
+  $form['digest']['og_mailinglist_digest_hour'] = array(
     '#title' => t('Digest hour'),
     '#type' => 'textfield',
     '#size' => 5,
@@ -199,10 +239,10 @@ function og_mailinglist_digest_settings() {
     '#default_value' => $digest_hour,
     '#description' => t('The digest email will be sent after this hour. Defaults to 17.'),
   );
-  $form['og_mailinglist_digest_next'] = array(
+  $form['digest']['next_digest_run'] = array(
     '#title' => t('Next digest run'),
     '#type' => 'item',
-    '#description' => t('Next digest is scheduled to @datestring. Please keep in mind that the digest mail will be sent on the next cron run after this date, so it depends on cron settings.',
+    '#description' => t('Next digest is scheduled to @datestring. Please keep in mind that the digest mail will be sent on the next cron run after this date, so it also depends on cron settings.',
       array('@datestring' => format_date($next_digest))),
   );
   return system_settings_form($form);
@@ -237,25 +277,33 @@ function og_mailinglist_digest_settings_validate($form, &$form_state) {
  * Admin settings form for configuration
  */
 function og_mailinglist_config_settings() {
-  $form['og_mailinglist_server_string'] = array(
+  $form['server'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Server settings'),
+  );
+  $form['server']['og_mailinglist_server_string'] = array(
     '#title' => t('Domain name'),
     '#type' => 'textfield',
     '#default_value' => variable_get('og_mailinglist_server_string', $_SERVER['SERVER_NAME']),
-    '#description' => t('Domain name for outgoing/incoming emails, e.g. example.com.'),
+    '#description' => t('Domain name for incoming/outgoing emails, e.g. example.com.'),
   );
   // Save an incoming key by default.
   if ((variable_get('og_mailinglist_incoming_key', '')) == '') {
     variable_set('og_mailinglist_incoming_key',   md5(rand()));
   }
-  $form['og_mailinglist_incoming_key'] = array(
+  $form['server']['og_mailinglist_incoming_key'] = array(
     '#type' => 'textfield',
     '#title' => t('Message validation string'),
     '#default_value' => variable_get('og_mailinglist_incoming_key', md5(rand())),
     '#required' => TRUE,
     '#description' => t('This string will be used to validate incoming messages.  It can be anything, but must be used on both sides of the transfer. For more see the INSTALL.txt for your Mail Transfer Agent.'),
   );
-  $form['og_mailinglist_test_email_address'] = array(
-    '#title' => t('DEBUGGING: Enter one or more email addresses to send all emails'),
+  $form['debugging'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Debugging'),
+  );
+  $form['debugging']['og_mailinglist_test_email_addresses'] = array(
+    '#title' => t('List of email addresses to recieve all email'),
     '#type' => 'textfield',
     '#default_value' => variable_get('og_mailinglist_test_email_address', ''),
     '#description' => t('For testing / monitoring purposes, add one or more email addresses to receive all emails sent by OG Mailinglist. Separate multiple email addresses by comma.'),
