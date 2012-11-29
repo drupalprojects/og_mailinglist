@@ -108,7 +108,7 @@ function _og_mailinglist_send_email($headers, $recipients, $body, $html = NULL) 
 /**
  * Compose email headers for outgoing emails.
  */
-function _og_mailinglist_list_headers($group_node) {
+function _og_mailinglist_list_headers($group_node, $digest = FALSE) {
   $headers = array();
 
   $group_name = _og_mailinglist_get_group_name($group_node);
@@ -116,7 +116,7 @@ function _og_mailinglist_list_headers($group_node) {
   $group_email = $group_name . '@' . $server;
 
   // Add a reply-to header directed to the group if enabled.
-  if (variable_get('og_mailinglist_reply_to_group', FALSE)) {
+  if (!$digest && variable_get('og_mailinglist_reply_to_group', FALSE)) {
     $headers['reply-to'] = $group_email;
   }
 
@@ -124,7 +124,9 @@ function _og_mailinglist_list_headers($group_node) {
   $url = url("node/" . $group_node->nid, array('absolute' => TRUE));
 
   // Add list headers.
-  $headers['precedence'] = 'list';
+  if (!$digest) {
+    $headers['precedence'] = 'list';
+  }
   $headers['list-id'] = '<' . $group_email . '>';
   $headers['list-post'] = '<mailto:' . $group_email . '>';
   $headers['list-archive'] = $url;
@@ -133,7 +135,9 @@ function _og_mailinglist_list_headers($group_node) {
 #  $headers['list-subscribe'] = '<' . ;
 #  $headers['list-unsubscribe'] = '<' . ;
 
-  $headers['x-thread-url'] = $url;
+  if (!$digest) {
+    $headers['x-thread-url'] = $group_link;
+  }
   $headers['x-beenthere'] = $group_email;
 
   return $headers;

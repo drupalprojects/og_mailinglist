@@ -70,6 +70,17 @@ function _og_mailinglist_filter_tips($filter, $format, $long = FALSE) {
   }
 }
 
+function _og_mailinglist_remove_quotes($text) {
+  $filter = new stdClass();
+  $filter->settings['og_mailinglist_filter_quotations'] = 'removed';
+  $filter->settings['og_mailinglist_filter_quotations_length'] = 2;
+  $filter->settings['og_mailinglist_filter_footer'] = 1;
+  // Don't remove emails.
+  $filter->settings['og_mailinglist_filter_email'] = 0;
+
+  return _og_mailinglist_filter_quotes($text, $filter);
+}
+
 /**
  * Surround quotes within an email text to make the text hidden by default.
  * Or remove quotes entirely.

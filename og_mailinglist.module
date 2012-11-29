@@ -456,5 +456,14 @@ function og_mailinglist_theme() {
     'og_mailinglist_mail_footer' => array(
       'variables' => array('node' => NULL),
     ),
+    'og_mailinglist_digest' => array(
+      'variables' => array('group_node' => NULL, 'nodes' => NULL, 'message_count' => NULL),
+    ),
+    'og_mailinglist_digest_node' => array(
+      'variables' => array('node' => NULL),
+    ),
+    'og_mailinglist_digest_comment' => array(
+      'variables' => array('node' => NULL, 'comment' => NULL),
+    ),
   );
 }
