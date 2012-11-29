@@ -305,8 +305,8 @@ function og_mailinglist_config_settings() {
   $form['debugging']['og_mailinglist_test_email_addresses'] = array(
     '#title' => t('List of email addresses to recieve all email'),
     '#type' => 'textfield',
-    '#default_value' => variable_get('og_mailinglist_test_email_address', ''),
-    '#description' => t('For testing / monitoring purposes, add one or more email addresses to receive all emails sent by OG Mailinglist. Separate multiple email addresses by comma.'),
+    '#default_value' => variable_get('og_mailinglist_test_email_addresses', ''),
+    '#description' => t('For testing / monitoring purposes, add a comma separated list of email addresses to receive all emails sent by OG Mailinglist.'),
   );
   return system_settings_form($form);
 }

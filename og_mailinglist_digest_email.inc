@@ -103,7 +103,7 @@ function _og_mailinglist_send_digest_emails() {
       $recipients['bcc'][$email->mail] = '';
     }
 
-    $debug_emails = variable_get('og_mailinglist_test_email_address', '');
+    $debug_emails = variable_get('og_mailinglist_test_email_addresses', '');
     if (!empty($debug_emails)) {
       $debug_emails = explode(",", $debug_emails);
       foreach ($debug_emails as $email) {
