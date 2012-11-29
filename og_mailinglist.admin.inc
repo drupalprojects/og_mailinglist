@@ -287,6 +287,12 @@ function og_mailinglist_config_settings() {
     '#default_value' => variable_get('og_mailinglist_server_string', $_SERVER['SERVER_NAME']),
     '#description' => t('Domain name for incoming/outgoing emails, e.g. example.com.'),
   );
+  $form['server']['og_mailinglist_address_open'] = array(
+    '#title' => t('Accept emails sent to @ogm address', array('@ogm' => $GLOBALS['base_url'] . '/og_mailinglist')),
+    '#type' => 'checkbox',
+    '#default_value' => variable_get('og_mailinglist_address_open', '1'),
+    '#description' => t('If this is unchecked, then @ogm address does not accept incoming emails. This might be useful to block all incoming emails in case of emergency or when you use direct posting method.', array('@ogm' => $GLOBALS['base_url'] . '/og_mailinglist')),
+  );
   // Save an incoming key by default.
   if ((variable_get('og_mailinglist_incoming_key', '')) == '') {
     variable_set('og_mailinglist_incoming_key',   md5(rand()));

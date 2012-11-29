@@ -20,6 +20,11 @@ og_mailinglist_phpmailer_load_library();
  * Original version written by Conan Albrecht in March 2009.
  */
 function og_mailinglist_post() {
+  // Check if posting emails over HTTP is disabled.
+  if (variable_get('og_mailinglist_address_open', '1') != '1') {
+    drupal_access_denied();
+  }
+
   $group_name = isset($_POST['group_name']) ? $_POST['group_name'] : NULL;
   $message = isset($_POST['message']) ? $_POST['message'] : '';
   $token = isset($_POST['token']) ? $_POST['token'] : '';
