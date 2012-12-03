@@ -282,32 +282,7 @@ function _og_mailinglist_process_email($raw_email, $group_name = NULL) {
   }
   catch (Exception $e) {
     try {
-      $server = variable_get("og_mailinglist_server_string", $_SERVER['SERVER_NAME']);
-      $noreply = variable_get("og_mailinglist_noreply_email", t("no-reply@") . $server);
-      // Compose an email back to the sender informing them of the problem.
-      $head = array();
-      $head[] = 'From: ' . $noreply;
-      $head[] = 'References: ' . $email['headers']['message-id'];
-      $head[] = 'In-Reply-To: ' . $email['headers']['message-id'];
-      $head[] = 'X-BeenThere: ' . $server;
-      $head[] = 'MIME-Version: 1.0';
-      $head[] = 'Content-Type: text/plain; charset="utf-8"';
-      $head[] = 'Content-Transfer-Encoding: 8bit';
-      $errormsg = $e->getMessage();
-      $commentedbody = '> ' . str_replace("\n", "\n> ", $email['text']);
-      $body = t("Hi, sorry about this but we were unable to handle your email correctly for the following reason:")
-        . "\n\n"
-        . $errormsg
-        . "\n\n"
-        . t("Please correct this error and try again, or contact the system administrator.  Thank you.")
-        . "\n\n---- " . t("Below this line is a copy of the message") . " ----\n"
-        . $commentedbody;
-
-      // Send it off.
-      $from = reset($email['from']) . ' <' . key($email['from']) . '>';
-      if (!mail($from, t("Error processing message"), $body, implode("\n", $head))) {
-        throw new Exception("Mail error");
-      }
+      _og_mailinglist_send_error_email($email, $e->getMessage());
 
       // Print error message to log, then quit.
       echo "Error: " . $e->getMessage() . "\n";
@@ -1104,4 +1079,37 @@ function _og_mailinglist_extract_group_names($addresses) {
     }
   }
   return $out;
+}
+
+/**
+ * Compose an error message and send it off.
+ */
+function _og_mailinglist_send_error_email($email, $errormsg) {
+  $server = variable_get("og_mailinglist_server_string", $_SERVER['SERVER_NAME']);
+  $noreply = variable_get("og_mailinglist_noreply_email", t("no-reply@") . $server);
+
+  // Compose an email back to the sender informing them of the problem.
+  $head = array();
+  $head[] = 'From: ' . $noreply;
+  $head[] = 'References: ' . $email['headers']['message-id'];
+  $head[] = 'In-Reply-To: ' . $email['headers']['message-id'];
+  $head[] = 'X-Beenthere: ' . $server;
+  $head[] = 'MIME-Version: 1.0';
+  $head[] = 'Content-Type: text/plain; charset="utf-8"';
+  $head[] = 'Content-Transfer-Encoding: 8bit';
+
+  $body = t("Hi, sorry about this but we were unable to handle your email correctly for the following reason:")
+    . "\n\n"
+    . $errormsg
+    . "\n\n"
+    . t("Please correct this error and try again, or contact the system administrator.  Thank you.")
+    . "\n\n---- " . t("Below this line is a copy of the message") . " ----\n";
+
+  $body .= '> ' . str_replace("\n", "\n> ", $email['text']);
+
+  // Send it off.
+  $from = reset($email['from']) . ' <' . key($email['from']) . '>';
+  if (!mail($from, t("Error processing message"), $body, implode("\n", $head))) {
+    throw new Exception("Mail error");
+  }
 }
