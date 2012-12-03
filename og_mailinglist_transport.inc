@@ -365,6 +365,7 @@ function og_mailinglist_save_node($email) {
   }
 
   // Create the new node
+  $node = new stdClass();
   $node->title = $email['headers']['subject'];
   $node->uid = $email['userid'];
   $node->created = time();
@@ -444,10 +445,10 @@ function _og_mailinglist_parse_email($email) {
   $params['include_bodies'] = true;
   $params['decode_bodies'] = true;
   $params['decode_headers'] = true;
-  $params['input'] = $email['original_email_text'];
 
-  // do the decode
-  $email['structure'] = clone $structure = Mail_mimeDecode::decode($params);
+  // Decode the email message.
+  $decoder = new Mail_mimeDecode($email['original_email_text']);
+  $email['structure'] = clone $structure = $decoder->decode($params);
 
   // Copy headers to $email array.
   $email['headers'] = array_copy($structure->headers);
@@ -490,20 +491,23 @@ function _og_mailinglist_parse_email($email) {
     $mail['html'] = check_markup($email['text']);
   }
 
+  // Set the default character encoding.
+  $charset = 'iso-8859-1';
+
+  if (!empty($structure->ctype_parameters['charset'])) {
+    $charset = $structure->ctype_parameters['charset'];
+  }
+
   // Last ditch attempt - use the body as-is.
   if (!isset($email['text'])) {
     // Try to convert character set to UTF-8.
-    if (!empty($structure->ctype_parameters['charset'])) {
-      $email['text'] = drupal_convert_to_utf8($structure->body, $structure->ctype_parameters['charset']);
-    } else {
-      $email['text'] = $structure->body;
-    }
+    $email['text'] = drupal_convert_to_utf8($structure->body, $charset);
     $email['html'] = check_markup($email['text']);
   }
 
   // Convert the subject to UTF-8.
-  if (!empty($structure->ctype_parameters['charset'])) {
-    $email['headers']['subject'] = drupal_convert_to_utf8($email['headers']['subject'], $structure->ctype_parameters['charset']);
+  if (isset($email['headers']['subject'])) {
+    $email['headers']['subject'] = drupal_convert_to_utf8($email['headers']['subject'], $charset);
   }
 
   // TODO figure out how to pull out sane HTML w/o funky css or other oddities.
@@ -712,7 +716,8 @@ function _og_mailinglist_encode_email($structure, $boundary = "", $email = "") {
     else {
       // Non-multipart emails don't have boundaries
       if ($boundary) {
-        $last_line = array_pop(explode("\n", trim($email)));
+        $lines = explode("\n", trim($email));
+        $last_line = array_pop($lines);
         if (strcmp(trim($last_line), trim("--" . $boundary)) != 0) {
           $email .= "--" . $boundary . "\n";
         }
@@ -858,6 +863,9 @@ function _og_mailinglist_add_footer($email, $footer) {
     $content_type = $structure->headers['content-type'];
     $str_clone = clone $structure;
     $str_clone->headers = array('content-type' => $content_type);
+    if (stripos($content_type, 'text/') != -1) {
+      $str_clone->headers['content-transfer-encoding'] = '8bit';
+    }
 
     $structure->headers['content-type'] = "multipart/mixed; boundary=\"" .
         $boundary . "\"";
