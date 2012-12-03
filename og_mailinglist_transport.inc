@@ -82,19 +82,7 @@ function _og_mailinglist_process_email($raw_email, $group_name = NULL) {
 
     // Get the user.
     global $user;
-    $anonymous = clone $user;
-    $user = user_load_by_mail(key($email['from']));
-
-    // If site is using multiple_email, check for alternative emails.
-    if (!$user && module_exists('multiple_email') && $multiple = multiple_email_find_address(key($email['from']))) {
-      $user = user_load($multiple->uid);
-    }
-
-    if (!$user) {
-      $exception = t("Could not locate the user account for !mailfrom. For security reasons, please post from the email account you are registered with.", array('!mailfrom' => key($email['from'])));
-      $user = $anonymous;
-      throw new Exception($exception);
-    }
+    $user = _og_mailinglist_user_load_by_mail(key($email['from']));
 
     // Check how many posts have been made by this user (for security).
     if ($max_posts = variable_get('og_mailinglist_max_posts_per_hour', 20) > 0) {
@@ -1079,6 +1067,31 @@ function _og_mailinglist_extract_group_names($addresses) {
     }
   }
   return $out;
+}
+
+/**
+ * Get user account by e-mail.
+ *
+ * @param $email
+ *   E-mail address of the user.
+ * @return
+ *   User object, if user is found. Exception is raised otherwise.
+ */
+function _og_mailinglist_user_load_by_mail($email) {
+  // Let's fine the user by the e-mail address.
+  $user = user_load_by_mail($email);
+
+  // If site is using multiple_email, check for alternative emails.
+  if (!$user && module_exists('multiple_email') && $multiple = multiple_email_find_address($email)) {
+    $user = user_load($multiple->uid);
+  }
+
+  if (!$user) {
+    $exception = t("Could not locate the user account for !mailfrom. For security reasons, please post from the email account you are registered with.", array('!mailfrom' => key($email['from'])));
+    throw new Exception($exception);
+  }
+
+  return $user;
 }
 
 /**
