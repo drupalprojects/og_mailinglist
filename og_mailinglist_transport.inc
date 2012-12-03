@@ -192,76 +192,43 @@ function _og_mailinglist_process_email($raw_email, $group_name = NULL) {
         array('@type' => $node_type)));
     }
 
-    // Create the new content in Drupal.
-    if (!empty($email['nid'])) { // a new comment
-      /* Two checks first before creating the comment.
-       * There are at least two reasons why an email could have a nid but not be
-       * intended as a new comment.
-       * First, someone could be forwarding an email to a different group.
-       * Second, it's common on mailinglists to fork threads by changing
-       * the subject line. We need to check for both.
-       */
-
-      // Does the detected nid belong to any of the groups where the email was
-      // forwarded to?
-      // If not, then it was intended to start a new thread.
-      $direct_members = array();
-      $not_direct_members = array();
-      foreach ($group_nodes as $gid => $group_node) {
-        if (og_is_member('node', $group_node->nid, 'node', $email['nid'])) {
-          $direct_members[$gid] = $group_node;
-        }
-        else {
-          $not_direct_members[$gid] = $group_node;
-        }
-      }
-      // TODO When there is at least one direct member and also not direct
-      // ones, then we just add the node to other groups if the user is
-      // member of these groups (has permission to post there).
-      // If there are no direct members, then it is definitely a new
-      // post. So it turns out that you can add groups by email but you cannot
-      // remove these, so when you reply using any of the addresses to a
-      // existing node, everybody is notified.
-      if (empty($direct_members) and count($not_direct_members)) {
-        og_mailinglist_save_node($email, $group_nodes);
-        exit(0); // So we don't save a comment as well
-      }
-
-      // Check if the thread was forked by comparing the email subject to the
-      // node's title. The levenshtein distance between a reply and node title
-      // should be 4 (e.g. "a subject" and "Re: a subject"). I added a few more
-      // to the distance to account for oddness in foreign languages but
-      // is still small enough to catch any substantive subject change.
+    // Let's decide whether it's node or comment.
+    if (empty($email['nid'])) {
+      $type = 'node';
+    }
+    else {
+      $type = 'comment';
       $node = node_load($email['nid']);
 
       // Remove the group identifier (e.g. [a-group]) from the subject line.
       $treated_subject = preg_replace("/^[RrEe:]{3}\s\[[\w-]*\]/", "", $email['headers']['subject']);
 
-      if (levenshtein($node->title, $treated_subject) > 7) {
-        // The subject was changed so we'll create a new node now instead of a comment.
-        // Unset the in-reply-to and references headers so this new thread doesn't get merged with the old thread.
-        unset($email['headers']['in-reply-to']);
-        unset($email['structure']->headers['in-reply-to']);
-        unset($email['headers']['references']);
-        unset($email['structure']->headers['references']);
-        og_mailinglist_save_node($email, $group_nodes);
-        exit(0); // So we don't save a comment as well.
+      // Email is forwarded, if it is addressed to other groups only.
+      $members = array();
+      $not_members = array();
+      foreach ($group_nodes as $gid => $group_node) {
+        if (og_is_member('node', $group_node->nid, 'node', $email['nid']))
+          $members[$gid] = $group_node;
+        else
+          $not_members[$gid] = $group_node;
       }
-
-      // If there are new groups add these to the thread.
-      if (!empty($new_gids)) {
-        foreach ($new_gids as $gid) {
-          $node->og_group_ref[$node->language][]['target_id'] = $gid;
-        }
-        node_save($node);
+      // If there are no direct members, then it is definitely a new post
+      // or the thread might be forked by changing the subject line.
+      // The levenshtein distance between a reply and node title
+      // should be 4 (e.g. "a subject" and "Re: a subject").
+      // Let's use 7 for oddness of foreign languages.
+      if ((empty($members) and count($not_members))
+        or levenshtein($node->title, $treated_subject) > 7) {
+        $type = 'node';
       }
-
-      // If we got this far, the email is definitely intended as a new comment.
-      og_mailinglist_save_comment($email, $group_nodes, $node);
-
     }
-    else { // A new node.
+
+    // Let's save either node or comment and send the emails.
+    if ($type == 'node') {
       og_mailinglist_save_node($email, $group_nodes);
+    }
+    elseif ($type == 'comment') {
+      og_mailinglist_save_comment($email, $group_nodes, $node, $new_gids);
     }
 
     // Tell MTA we had success!
@@ -289,7 +256,7 @@ function _og_mailinglist_process_email($raw_email, $group_name = NULL) {
 /**
  * Save new comment that came through email.
  */
-function og_mailinglist_save_comment(&$email, $group_nodes, $node) {
+function og_mailinglist_save_comment(&$email, $group_nodes, $node, $new_gids) {
   global $user;
   $email['node'] = $node;
 
@@ -311,6 +278,14 @@ function og_mailinglist_save_comment(&$email, $group_nodes, $node) {
   // Check that this post has comments enabled.
   if ($node->comment != COMMENT_NODE_OPEN) {
     throw new Exception(t("Comments (replies) have been disabled for this post."));
+  }
+
+  // If there are new groups add these to the thread.
+  if (!empty($new_gids)) {
+    foreach ($new_gids as $gid) {
+      $node->og_group_ref[LANGUAGE_NONE][]['target_id'] = $gid;
+    }
+    node_save($node);
   }
 
   $mailbody = $email['text'];
