@@ -62,13 +62,6 @@ function _og_mailinglist_process_email($raw_email, $group_name = NULL) {
       $email['headers']['subject'] = t('(no subject)');
     }
 
-    // Initialize group_names array.
-    $group_names = $group_name ? array($group_name => '') : array();
-
-    // Add all possible group_names from TO and CC fields.
-    $group_names += _og_mailinglist_extract_group_names($email['to']);
-    $group_names += _og_mailinglist_extract_group_names($email['cc']);
-
     // Did we actually get email text back? If not, throw an exception.
     if ($email['text'] == "") {
       throw new Exception(t("Could not parse message body from the email."));
@@ -97,6 +90,11 @@ function _og_mailinglist_process_email($raw_email, $group_name = NULL) {
         throw new Exception(t("You have posted via email too many times in the last hour. For security reasons, please wait a while or post through the regular web interface."));
       }
     }
+
+    // Initialize group_names array.
+    $group_names = $group_name ? array($group_name => '') : array();
+    $group_names += _og_mailinglist_extract_group_names($email['to']);
+    $group_names += _og_mailinglist_extract_group_names($email['cc']);
 
     // Get the group IDs.
     // We are safe since the group_email field is required to be lowercase.
@@ -148,8 +146,7 @@ function _og_mailinglist_process_email($raw_email, $group_name = NULL) {
       $node = node_load($email['nid']);
       $group_refs = field_get_items('node', $node, 'og_group_ref');
 
-      // Check if user is member of at least one group.
-      $member_of_one = FALSE;
+      // Check if the user is a member of at least one group.
       $gids = array();
       foreach ($group_refs as $ref) {
         $gids[] = $ref['target_id'];
@@ -233,7 +230,6 @@ function _og_mailinglist_process_email($raw_email, $group_name = NULL) {
 
     // Tell MTA we had success!
     exit(0);
-
   }
   catch (Exception $e) {
     try {
@@ -242,7 +238,6 @@ function _og_mailinglist_process_email($raw_email, $group_name = NULL) {
       // Print error message to log, then quit.
       echo "Error: " . $e->getMessage() . "\n";
       exit(0);
-
     }
     catch (Exception $e2) {
       // If we got here, we couldn't even send an email back to the sender, so
@@ -374,6 +369,13 @@ function og_mailinglist_save_node(&$email, $group_nodes) {
     exit(0);
   }
 
+  // Unset the in-reply-to and references headers so this new thread
+  // doesn't get merged with the old thread if the email isn't brand new.
+  unset($email['headers']['in-reply-to']);
+  unset($email['structure']->headers['in-reply-to']);
+  unset($email['headers']['references']);
+  unset($email['structure']->headers['references']);
+
   $mailbody = $email['text'];
 
   // Create the new node
@@ -428,7 +430,11 @@ function _og_mailinglist_email_node_email(&$email, $node, $group_nodes) {
   global $user;
 
   // Build new email.
-  _og_mailinglist_rewrite_headers($email, $group_nodes, $node, TRUE);
+  _og_mailinglist_remove_some_headers($email);
+
+  // Remove two more header fields when thread is forked.
+  unset($email['headers']['in-reply-to']);
+  unset($email['headers']['references']);
 
   // Recipients.
   $recipients = array();
@@ -450,7 +456,7 @@ function _og_mailinglist_email_node_email(&$email, $node, $group_nodes) {
 
   // Decorate subject.
   $groups_list = _og_mailinglist_build_subject($group_nodes);
-  $headers['subject'] = $groups_list . ' ' . $node->title;
+  $email['headers']['subject'] = $groups_list . ' ' . $node->title;
 
   // Set footer.
   $footer = theme('og_mailinglist_attached_files', array('node' => $node));
@@ -493,8 +499,7 @@ function _og_mailinglist_email_node_email(&$email, $node, $group_nodes) {
 function _og_mailinglist_email_comment_email($email, $node, $group_nodes, $comment) {
   global $user;
 
-  // Build new email.
-  _og_mailinglist_rewrite_headers($email, $group_nodes, $node);
+  _og_mailinglist_remove_some_headers($email);
 
   // Recipients.
   $recipients = array();
@@ -853,7 +858,7 @@ function _og_mailinglist_encode_email_headers($array) {
 }
 
 // Keep mime-version, date, subject, from, to, and content-type
-function _og_mailinglist_rewrite_headers(&$email, $group_nodes, $node, $new_node = FALSE) {
+function _og_mailinglist_remove_some_headers(&$email) {
   // Header values which we want to keep. All lowercase here.
   $copy_headers = array('content-type', 'content-transfer-encoding',
     'date', 'in-reply-to', 'message-id', 'mime-version', 'references',
