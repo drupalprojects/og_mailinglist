@@ -45,23 +45,19 @@ function og_mailinglist_post() {
 }
 
 function _og_mailinglist_process_email($raw_email, $group_name = NULL) {
-  try {
 
+  try {
     // Extract all the needed info from the email into a simple array.
     $email = _og_mailinglist_parse_email($raw_email);
 
-    // If the x-BeenThere header is set, this is an email that was sent out and
-    // looped back to the server. Reject it.
-    if (!empty($email['headers']['x-beenthere'])) {
+    // If the x-BeenThere header is set, this email looped back to the server
+    // or if there is not a message-id (happens with spam), reject it.
+    if (!empty($email['headers']['x-beenthere'])
+      or empty($email['headers']['message-id'])) {
       exit();
     }
 
-    // If there isn't a message-id (which sometimes happens with spam emails),
-    // reject it.
-    if (empty($email['headers']['message-id'])) {
-      exit();
-    }
-
+    // Let's set the message subject in case it's missing.
     if (empty($email['headers']['subject'])) {
       $email['headers']['subject'] = t('(no subject)');
     }
@@ -84,7 +80,7 @@ function _og_mailinglist_process_email($raw_email, $group_name = NULL) {
       throw new Exception(t("Discussion items sent via email must be less than !max_size Kb. For security reasons, please post larger messages through the web interface.", array("!max_size" => $max_size)));
     }
 
-    // Get the user id.
+    // Get the user.
     global $user;
     $anonymous = clone $user;
     $user = user_load_by_mail(key($email['from']));
@@ -153,7 +149,7 @@ function _og_mailinglist_process_email($raw_email, $group_name = NULL) {
       $result = $query->execute();
 
       if (empty($result)) {
-        throw new Exception(t("You are not a member of any of the groups you tried to post to and you are not subscribed to the current thread."));
+        throw new Exception(t("You are not a member of any of the groups you tried to post to and you are not subscribed to the thread either."));
       }
     }
     elseif (empty($to_gids)) {
@@ -197,7 +193,7 @@ function _og_mailinglist_process_email($raw_email, $group_name = NULL) {
       }
     }
     if (empty($group_nodes)) {
-      throw new Exception(t("None of the group nodes are published."));
+      throw new Exception(t("None of the group nodes you were trying to post to are published."));
     }
 
     // Additional check that user has access to publish content.
@@ -250,8 +246,7 @@ function _og_mailinglist_process_email($raw_email, $group_name = NULL) {
       // is still small enough to catch any substantive subject change.
       $node = node_load($email['nid']);
 
-      // Remove the group identifier (e.g. [a-group]) from the subject as it's
-      // not in the node title.
+      // Remove the group identifier (e.g. [a-group]) from the subject line.
       $treated_subject = preg_replace("/^[RrEe:]{3}\s\[[\w-]*\]/", "", $email['headers']['subject']);
 
       if (levenshtein($node->title, $treated_subject) > 7) {
@@ -314,7 +309,7 @@ function _og_mailinglist_process_email($raw_email, $group_name = NULL) {
         throw new Exception("Mail error");
       }
 
-      // print error message to log, then quit
+      // Print error message to log, then quit.
       echo "Error: " . $e->getMessage() . "\n";
       exit(0);
 
@@ -508,7 +503,8 @@ function _og_mailinglist_email_node_email(&$email, $node, $group_nodes) {
     $recipients['to'] += _og_mailinglist_reciever($group_node);
   }
 
-  // Users who already got this email since they are members of other groups.
+  // Users who already got this email since they are members of other groups
+  // or were emailed directly.
   $already_mailed = array();
   $already_mailed += $recipients['from'];
   $already_mailed += $recipients['to'];
@@ -573,7 +569,8 @@ function _og_mailinglist_email_comment_email($email, $node, $group_nodes, $comme
     $recipients['to'] += _og_mailinglist_reciever($group_node);
   }
 
-  // Users who already got this email since they are members of other groups.
+  // Users who already got this email since they are members of other groups
+  // or were emailed directly.
   $already_mailed = array();
   $already_mailed += $recipients['from'];
   $already_mailed += $recipients['to'];
@@ -954,7 +951,7 @@ function _og_mailinglist_add_footer(&$email, $footer) {
   // If message is 7/8bit text/plain, just append the footer.
   if (isset($structure->body)
     and preg_match('/^text\/plain/i', $content_type)) {
-    $structure->body .= "\n" . drupal_html_to_text($footer);
+    $structure->body .= "\n\n" . drupal_html_to_text($footer);
   }
   // If message is already multipart, append a new part with footer to the end.
   elseif (isset($structure->parts)
