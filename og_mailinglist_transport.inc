@@ -666,11 +666,6 @@ function _og_mailinglist_parse_content($part) {
 function _og_mailinglist_save_files($entity_type, &$entity, $attachments) {
   global $user;
 
-  // If user doesn't have upload permission then don't bother processing.
-  if (!(user_access('upload files'))) {
-    return;
-  }
-
   $image_field = _og_mailinglist_get_field($entity_type, 'image');
   $file_field = _og_mailinglist_get_field($entity_type, 'file');
 
