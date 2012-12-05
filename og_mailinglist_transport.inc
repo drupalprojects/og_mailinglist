@@ -1127,9 +1127,11 @@ function _og_mailinglist_decode_header_utf8($input) {
       case 'q':
         $text = str_replace('_', ' ', $text);
         preg_match_all('/=([a-f0-9]{2})/i', $text, $matches);
-        foreach($matches[1] as $value)
-          $text = drupal_convert_to_utf8(
-            str_replace('='.$value, chr(hexdec($value)), $text), $charset);
+        foreach($matches[1] as $value) {
+          $char = chr(hexdec($value));
+          $text = str_replace('=' . $value, $char, $text);
+        }
+        $text = drupal_convert_to_utf8($text, $charset);
         break;
     }
     $input = str_replace($encoded, $text, $input);
