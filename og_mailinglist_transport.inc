@@ -834,10 +834,10 @@ function _og_mailinglist_add_footer($email, $footer) {
   $headers = $email['structure']->headers;
   $structure = $email['structure'];
 
-  // If message is 7/8bit text/plain and uses us-ascii charecter set, just
+  // If message is 7/8bit text/plain and uses utf-8 character set, just
   // append the footer.
-  if (preg_match('/^text\/plain/i', $headers['content-type']) &&
-      isset($structure->body)) {
+  if (isset($structure->body)
+      and preg_match('/^text\/plain.*utf-8/i', $headers['content-type'])) {
      $structure->body .= "\n" . $footer;
   }
   // If message is already multipart, just append new part with footer to end
