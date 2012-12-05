@@ -444,7 +444,6 @@ function _og_mailinglist_email_comment_email($email, $node, $comment) {
 function _og_mailinglist_parse_email($email) {
   $params['include_bodies'] = true;
   $params['decode_bodies'] = true;
-  $params['decode_headers'] = true;
 
   // Decode the email message.
   $decoder = new Mail_mimeDecode($email['original_email_text']);
@@ -1058,7 +1057,6 @@ function _og_mailinglist_decode_header_utf8($input) {
           $text = str_replace('=' . $value, $char, $text);
         }
         $text = drupal_convert_to_utf8($text, $charset);
-        drupal_set_message($text);
         break;
     }
     $input = str_replace($encoded, $text, $input);
