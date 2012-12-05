@@ -560,7 +560,6 @@ function _og_mailinglist_parse_email($raw_email) {
   $params = array(
     'include_bodies' => TRUE,
     'decode_bodies' => TRUE,
-    'decode_headers' => TRUE,
   );
   $email = array();
   $email['attachments'] = array();
@@ -623,20 +622,20 @@ function _og_mailinglist_parse_email($raw_email) {
 
   // Convert the subject and recipient fields to UTF-8.
   if (isset($email['headers']['subject'])) {
-    $email['headers']['subject'] = drupal_convert_to_utf8($email['headers']['subject'], $charset);
+    $email['headers']['subject'] = _og_mailinglist_decode_header_utf8($email['headers']['subject']);
   }
 
-  $raw_emails = drupal_convert_to_utf8($email['headers']['from'], $charset);
+  $raw_emails = _og_mailinglist_decode_header_utf8($email['headers']['from']);
   $email['from'] = _og_mailinglist_extract_emails($raw_emails);
   unset($email['headers']['from']);
 
-  $raw_emails = drupal_convert_to_utf8($email['headers']['to'], $charset);
+  $raw_emails = _og_mailinglist_decode_header_utf8($email['headers']['to']);
   $email['to'] = _og_mailinglist_extract_emails($raw_emails);
   unset($email['headers']['to']);
 
   $email['cc'] = array();
   if (isset($email['headers']['cc'])) {
-    $raw_emails = drupal_convert_to_utf8($email['headers']['cc'], $charset);
+    $raw_emails = _og_mailinglist_decode_header_utf8($email['headers']['cc']);
     $email['cc'] = _og_mailinglist_extract_emails($raw_emails);
     unset($email['headers']['cc']);
   }
@@ -886,9 +885,10 @@ function _og_mailinglist_add_footer(&$email, $footer) {
     $content_type = '';
   }
 
-  // If message is 7/8bit text/plain, just append the footer.
+  // If message is 7/8bit text/plain and uses utf-8 character set, just
+  // append the footer.
   if (isset($structure->body)
-    and preg_match('/^text\/plain/i', $content_type)) {
+    and preg_match('/^text\/plain.*utf-8/i', $content_type)) {
     $structure->body .= "\n\n" . drupal_html_to_text($footer);
   }
   // If message is already multipart, append a new part with footer to the end.
@@ -1100,4 +1100,39 @@ function _og_mailinglist_send_error_email($email, $errormsg) {
   if (!mail($from, t("Error processing message"), $body, implode("\n", $head))) {
     throw new Exception("Mail error");
   }
+}
+
+/**
+ * This function is a copy from mimeDecode function _decodeHeader(), which
+ * now always returns utf-8 encoded string.
+ *
+ * @param string $input Header field to be decoded.
+ * @return string Already decoded value in utf-8 encoding.
+ */
+function _og_mailinglist_decode_header_utf8($input) {
+  // Remove white space between encoded-words
+  $input = preg_replace('/(=\?[^?]+\?(q|b)\?[^?]*\?=)(\s)+=\?/i', '\1=?', $input);
+
+  // For each encoded-word...
+  while (preg_match('/(=\?([^?]+)\?(q|b)\?([^?]*)\?=)/i', $input, $matches)) {
+    $encoded = $matches[1];
+    $charset = $matches[2];
+    $encoding = $matches[3];
+    $text = $matches[4];
+
+    switch (strtolower($encoding)) {
+      case 'b':
+        $text = drupal_convert_to_utf8(base64_decode($text), $charset);
+        break;
+      case 'q':
+        $text = str_replace('_', ' ', $text);
+        preg_match_all('/=([a-f0-9]{2})/i', $text, $matches);
+        foreach($matches[1] as $value)
+          $text = drupal_convert_to_utf8(
+            str_replace('='.$value, chr(hexdec($value)), $text), $charset);
+        break;
+    }
+    $input = str_replace($encoded, $text, $input);
+  }
+  return $input;
 }
