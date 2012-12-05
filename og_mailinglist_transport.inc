@@ -507,7 +507,16 @@ function _og_mailinglist_parse_email($email) {
 
   // Convert the subject to UTF-8.
   if (isset($email['headers']['subject'])) {
-    $email['headers']['subject'] = drupal_convert_to_utf8($email['headers']['subject'], $charset);
+    $email['headers']['subject'] = _og_mailinglist_decode_header_utf8($email['headers']['subject']);
+  }
+  if (isset($email['headers']['from'])) {
+    $email['headers']['from'] = _og_mailinglist_decode_header_utf8($email['headers']['from']);
+  }
+  if (isset($email['headers']['to'])) {
+    $email['headers']['to'] = _og_mailinglist_decode_header_utf8($email['headers']['to']);
+  }
+  if (isset($email['headers']['cc'])) {
+    $email['headers']['to'] = _og_mailinglist_decode_header_utf8($email['headers']['cc']);
   }
 
   // TODO figure out how to pull out sane HTML w/o funky css or other oddities.
@@ -1017,4 +1026,43 @@ function _og_mailinglist_nid_of_subject($subject) {
                                LIMIT 1", $title));
   }
   return $nid;
+}
+
+/**
+ * This function is a copy from mimeDecode function _decodeHeader(), which
+ * now always returns utf-8 encoded string.
+ *
+ * @param string $input Header field to be decoded.
+ * @return string Already decoded value in utf-8 encoding.
+ */
+function _og_mailinglist_decode_header_utf8($input) {
+  // Remove white space between encoded-words
+  $input = preg_replace('/(=\?[^?]+\?(q|b)\?[^?]*\?=)(\s)+=\?/i', '\1=?', $input);
+
+  // For each encoded-word...
+  while (preg_match('/(=\?([^?]+)\?(q|b)\?([^?]*)\?=)/i', $input, $matches)) {
+    $encoded = $matches[1];
+    $charset = $matches[2];
+    $encoding = $matches[3];
+    $text = $matches[4];
+
+    switch (strtolower($encoding)) {
+      case 'b':
+        $text = drupal_convert_to_utf8(base64_decode($text), $charset);
+        break;
+      case 'q':
+        $text = str_replace('_', ' ', $text);
+        preg_match_all('/=([a-f0-9]{2})/i', $text, $matches);
+        foreach($matches[1] as $value) {
+          $char = chr(hexdec($value));
+          $text = str_replace('=' . $value, $char, $text);
+        }
+        $text = drupal_convert_to_utf8($text, $charset);
+        drupal_set_message($text);
+        break;
+    }
+    $input = str_replace($encoded, $text, $input);
+  }
+
+  return $input;
 }
