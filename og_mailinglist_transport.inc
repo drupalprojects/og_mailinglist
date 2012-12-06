@@ -965,11 +965,13 @@ function _og_mailinglist_send_email($headers, $body, $node, $comment = null, $se
         }
         break;
       case 'content-type':
-        $mailer->ContentType = $value;
-
         // Parse out the charset if one is set.
-        preg_match("/charset=(.*)/s", $value, $matches);
+        preg_match("/charset=([^;]*)/s", $value, $matches);
         $charset = $matches[1];
+        // Remove charset from $value, if present.
+        $cleaned = preg_replace("/charset=[^;]*;? ?/", "", $value);
+        $mailer->ContentType = $cleaned;
+
         // If we succeed, set that for the mailer than proceed.
         if (!empty($charset)) {
           $mailer->CharSet = $charset;
