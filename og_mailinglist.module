@@ -246,7 +246,7 @@ function og_mailinglist_subscriptions_settings_form_submit($form, &$form_state) 
       }
     }
   }
-  drupal_set_message("Your group subscriptions were updated.");
+  drupal_set_message(t("Your group subscriptions were updated."));
 }
 
 function og_mailinglist_unsubscribe_thread($node) {
@@ -254,13 +254,13 @@ function og_mailinglist_unsubscribe_thread($node) {
   $success = og_mailinglist_delete_thread_subscription($node->nid, $user->uid);
 
   if ($success) {
-    return "<div class='messages success'>You were successfully unsubscribed from
-    the post <em>" . l($node->title, "node/" . $node->nid) . " </em>&nbsp;&nbsp;
+    return "<div class='messages success'>" . t('You were successfully unsubscribed from the post')
+    . " <em>" . l($node->title, "node/" . $node->nid) . " </em>&nbsp;&nbsp;
      " . l("Undo", "og_mailinglist/subscribe/" . $node->nid, array("attributes" => array("id" => "og_mailinglist_undo")))
            . "</div>";
   }
   else {
-    return "Something unexpected happened and we weren't able to unsubscribe you from this post. Please contact your site administrator.";
+    return t("Something unexpected happened and we weren't able to unsubscribe you from this post. Please contact your site administrator.");
   }
 }
 
@@ -268,8 +268,8 @@ function og_mailinglist_subscribe_thread($node) {
   global $user;
   og_mailinglist_save_thread_subscriptions($node->nid, array($user->uid));
 
-  return "<div class='messages success'>You were successfully subscribed to
-    the post <em>" . l($node->title, "node/" . $node->nid) . " </em>&nbsp;&nbsp;
+  return "<div class='messages success'>" . t('You were successfully subscribed to the post')
+     . " <em>" . l($node->title, "node/" . $node->nid) . " </em>&nbsp;&nbsp;
      " . l("Undo", "og_mailinglist/unsubscribe/" . $node->nid, array("attributes" => array("id" => "og_mailinglist_undo")))
            . "</div>";
 }
@@ -290,9 +290,9 @@ function og_mailinglist_form_alter(&$form, $form_state, $form_id) {
         }
         // Add our form, compatible with purl's form.
         $form['og_mailinglist'] = array(
-          '#title' => 'Group Email Address',
+          '#title' => t('Group Email Address'),
           '#type' => 'textfield',
-          '#description' => 'Choose an email address for your group. May contain only lowercase letters, numbers, dashes and underscores. e.g. "my-group"',
+          '#description' => t('Choose an email address for your group. May contain only lowercase letters, numbers, dashes and underscores. e.g. "my-group"'),
           '#size' => 20,
           '#default_value' => $group_email,
           '#weight' => -1,
