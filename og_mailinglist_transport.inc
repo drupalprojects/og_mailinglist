@@ -738,7 +738,7 @@ function _og_mailinglist_encode_email($structure, $boundary = "", $email = "") {
         $email .= "\n";
       }
       else {
-        $email .= $part->body . "\n";
+        $email .= $part->body . "\n\n";
       }
     }
   }
