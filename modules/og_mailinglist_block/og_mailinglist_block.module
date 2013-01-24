@@ -32,8 +32,8 @@ function og_mailinglist_get_block() {
   // Only display group details if we have a group context and we are subscribed.
   $group = og_context();
   if (!empty($group)) {
-    if (node_access('view', $group['gid']) && og_is_member($group['group_type'], $group['gid'], 'user', $user->uid)) {
-      $group_node = node_load($group['gid']);
+    $group_node = node_load($group['gid']);
+    if (node_access('view', $group_node) && og_is_member($group['group_type'], $group['gid'], 'user', $user->uid)) {
       $form = drupal_get_form('og_mailinglist_subscription_settings_form',
         $group_node);
       return render($form);
