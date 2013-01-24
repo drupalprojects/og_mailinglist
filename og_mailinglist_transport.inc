@@ -812,7 +812,7 @@ function _og_mailinglist_encode_email($structure, $boundary = NULL) {
         $email .= "\n";
       }
       else {
-        $email .= $part->body . "\n";
+        $email .= $part->body . "\n\n";
       }
     }
   }
