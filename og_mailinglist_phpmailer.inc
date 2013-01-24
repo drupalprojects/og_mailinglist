@@ -21,12 +21,13 @@ require_once 'og_mailinglist_utilities.inc';
  *  Group IDs of groups where $node belongs.
  */
 function og_mailinglist_send_comment_email($comment, $node, $gids) {
-  global $user;
-
   // Check if comment arrived via email so it's already sent.
   if (_og_mailinglist_email_already_sent($comment->nid, $comment->cid)) {
     return;
   }
+  
+  // Load user.
+  $author = user_load($comment->uid);
 
   // Load parent group nodes.
   $group_nodes = node_load_multiple($gids);
@@ -34,7 +35,7 @@ function og_mailinglist_send_comment_email($comment, $node, $gids) {
   // Add default values.
   $headers = array();
   $recipients = array('to' => array(), 'cc' => array(), 'bcc' => array());
-  $recipients['from'] = _og_mailinglist_sender();
+  $recipients['from'] = _og_mailinglist_sender($author);
 
   // Set Message-ID.
   $server = variable_get("og_mailinglist_server_string", $_SERVER['SERVER_NAME']);
@@ -56,7 +57,7 @@ function og_mailinglist_send_comment_email($comment, $node, $gids) {
 
   // Add the user's signature and footer.
   $html .= theme('og_mailinglist_attached_files', array('comment' => $comment));
-  $html .= theme('og_mailinglist_user_signature', array('user' => $user));
+  $html .= theme('og_mailinglist_user_signature', array('user' => $author));
   $html .= theme('og_mailinglist_mail_footer', array('node' => $node));
 
   $text = drupal_html_to_text($html);
@@ -102,12 +103,13 @@ function og_mailinglist_send_comment_email($comment, $node, $gids) {
  * Master function for sending an email for a new node.
  */
 function og_mailinglist_send_node_email($node, $gids) {
-  global $user;
-
   // Check if node arrived via email so already sent.
   if (_og_mailinglist_email_already_sent($node->nid)) {
     return;
   }
+  
+  // Load user.
+  $author = user_load($node->uid);
 
   // Load parent group nodes.
   $group_nodes = node_load_multiple($gids);
@@ -138,7 +140,7 @@ function og_mailinglist_send_node_email($node, $gids) {
 
   // Add the user's signature and footer.
   $html .= theme('og_mailinglist_attached_files', array('node' => $node));
-  $html .= theme('og_mailinglist_user_signature', array('user' => $user));
+  $html .= theme('og_mailinglist_user_signature', array('user' => $author));
   $html .= theme('og_mailinglist_mail_footer', array('node' => $node));
 
   // Let other modules alter outgoing node emails.
@@ -157,7 +159,7 @@ function og_mailinglist_send_node_email($node, $gids) {
   $text = drupal_html_to_text($html);
   $group_nodes = $data['group_nodes'];
 
-  $recipients['from'] = _og_mailinglist_sender();
+  $recipients['from'] = _og_mailinglist_sender($author);
   foreach ($group_nodes as $group_node) {
     $recipients['to'] += _og_mailinglist_reciever($group_node);
   }

@@ -298,9 +298,7 @@ function theme_og_mailinglist_mail_footer($variables) {
 /**
  * Compose an array of sender information.
  */
-function _og_mailinglist_sender() {
-  global $user;
-
+function _og_mailinglist_sender($user) {
   if ($user->uid == 0) {
     $server = variable_get('og_mailinglist_server_string', $_SERVER['SERVER_NAME']);
     return array('anonymous@' . $server => t('Anonymous'));
