@@ -136,7 +136,7 @@ function _og_mailinglist_list_headers($group_node, $digest = FALSE) {
 #  $headers['list-unsubscribe'] = '<' . ;
 
   if (!$digest) {
-    $headers['x-thread-url'] = $group_link;
+    $headers['x-thread-url'] = $url;
   }
   $headers['x-beenthere'] = $group_email;
 
