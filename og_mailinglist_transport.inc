@@ -305,6 +305,8 @@ function og_mailinglist_save_comment(&$email, $group_nodes, $node, $new_gids, $a
   else {
     $comment->subject = $email['headers']['subject'];
   }
+  // Subject can be at most 64 chars long.
+  $comment->subject = truncate_utf8($comment->subject, 64, TRUE, TRUE, 54);
 
   $comment->comment_body[$comment->language][0]['value'] = $mailbody;
   $filter = variable_get('og_mailinglist_default_filter_format', 'plain_text');
