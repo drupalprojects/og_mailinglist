@@ -37,7 +37,7 @@ function og_mailinglist_post() {
 
   // If the Maillog module has been set to turn off emails, return.
   if (!variable_get('maillog_send', TRUE)) {
-    watchdog('WATCHDOG_INFO', 'This site is using Maillog and has disabled this site from sending emails so this email was not processed.', array(), WATCHDOG_INFO);
+    watchdog('WATCHDOG_INFO', 'Maillog has disabled this site from sending emails. An incoming email was left unprocessed.', array(), WATCHDOG_INFO);
     return;
   }
 
@@ -233,6 +233,8 @@ function _og_mailinglist_process_email($raw_email, $group_name = NULL) {
   }
   catch (Exception $e) {
     try {
+      watchdog('og_mailinglist', "Error processing email from %email: %message",
+        array('%email' => reset($email['from']) . ' <' . key($email['from']) . '>', '%message' => $e->getMessage()), WATCHDOG_WARNING);
       _og_mailinglist_send_error_email($email, $e->getMessage());
 
       // Print error message to log, then quit.
