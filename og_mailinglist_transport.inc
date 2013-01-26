@@ -1056,7 +1056,7 @@ function _og_mailinglist_user_load_by_mail($email) {
   }
 
   if (!$user) {
-    $exception = t("Could not locate the user account for !mailfrom. For security reasons, please post from the email account you are registered with.", array('!mailfrom' => key($email['from'])));
+    $exception = t("Could not locate the user account for @mailfrom. For security reasons, please post from the email account you are registered with.", array('@mailfrom' => $email));
     throw new Exception($exception);
   }
 
