@@ -292,6 +292,7 @@ function og_mailinglist_save_comment(&$email, $group_nodes, $node, $new_gids, $a
   $comment->language = LANGUAGE_NONE;
   $comment->is_anonymous = 0;
   $comment->node_type = 'comment_node_' . $node->type;
+  $comment->status = user_access('skip comment approval', $author) ? COMMENT_PUBLISHED : COMMENT_NOT_PUBLISHED;
 
   // A custom variable to keep phpmailer from sending double email.
   $comment->og_mailinglist_from_email = TRUE;
