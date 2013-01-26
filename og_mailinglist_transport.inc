@@ -45,7 +45,6 @@ function og_mailinglist_post() {
 }
 
 function _og_mailinglist_process_email($raw_email, $group_name = NULL) {
-
   try {
     // Extract all the needed info from the email into a simple array.
     $email = _og_mailinglist_parse_email($raw_email);
@@ -181,14 +180,6 @@ function _og_mailinglist_process_email($raw_email, $group_name = NULL) {
       throw new Exception(t("None of the group nodes you were trying to post to are published."));
     }
 
-    // Additional check that user has access to publish content.
-    // It forbids users from commenting as well. TODO: Maybe it should not?
-    $node_type = variable_get('og_mailinglist_default_content_type', 'article');
-    if (!user_access('create ' . $node_type . ' content', $author)) {
-      throw new Exception(t("You do not have permission to post using group content type @type. Please contact the site administrator.",
-        array('@type' => $node_type)));
-    }
-
     // Let's decide whether it's node or comment.
     if (empty($email['nid'])) {
       $type = 'node';
@@ -222,6 +213,17 @@ function _og_mailinglist_process_email($raw_email, $group_name = NULL) {
 
     // Let's save either node or comment and send the emails.
     if ($type == 'node') {
+      // Check if user has permission to publish.
+      $node_type = variable_get('og_mailinglist_default_content_type', 'article');
+      foreach ($group_nodes as $gid => $group_node) {
+        // Note: don't skip alter, but ignore admin (see og_user_access()).
+        if (!og_user_access('node', $gid, 'create ' . $node_type . ' content', $author, FALSE, TRUE)) {
+          unset($group_nodes[$gid]);
+        }
+      }
+      if (empty($group_nodes)) {
+        throw new Exception(t("You do not have permission to post to any of the group nodes you were trying to. Please contact the site administrator."));
+      }
       og_mailinglist_save_node($email, $group_nodes, $author);
     }
     elseif ($type == 'comment') {
@@ -267,8 +269,14 @@ function og_mailinglist_save_comment(&$email, $group_nodes, $node, $new_gids, $a
   }
 
   // Check that this user has rights to post comments.
-  if (!user_access('post comments', $author)) {
-    throw new Exception(t("You do not have rights to post comments in the system."));
+  foreach ($group_nodes as $gid => $group_node) {
+    // Note: don't skip alter, but ignore admin (see og_user_access()).
+    if (!og_user_access('node', $gid, 'post comments by mail', $author, FALSE, TRUE)) {
+      unset($group_nodes);
+    }
+  }
+  if (empty($group_nodes)) {
+    throw new Exception(t("You do not have rights to post comments to any of the group nodes you were trying to. Please contact the site administrator."));
   }
 
   // Check that this post has comments enabled.
