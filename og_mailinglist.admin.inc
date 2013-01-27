@@ -229,6 +229,7 @@ function og_mailinglist_digest_settings() {
     '#maxlength' => 3,
     '#required' => TRUE,
     '#description' => t('Choose how often the digest will be sent. Value is in days. Defaults to 1.'),
+    '#element_validate' => array('element_validate_integer_positive'),
   );
   $form['digest']['og_mailinglist_digest_hour'] = array(
     '#title' => t('Digest hour'),
@@ -238,6 +239,7 @@ function og_mailinglist_digest_settings() {
     '#required' => TRUE,
     '#default_value' => $digest_hour,
     '#description' => t('The digest email will be sent after this hour. Defaults to 17.'),
+    '#element_validate' => array('_og_mailinglist_element_validate_unsigned_integer'),
   );
   $form['digest']['next_digest_run'] = array(
     '#title' => t('Next digest run'),
@@ -252,22 +254,8 @@ function og_mailinglist_digest_settings() {
  * Validate admin digest emails settings form.
  */
 function og_mailinglist_digest_settings_validate($form, &$form_state) {
-  $days = $form_state['values']['og_mailinglist_digest_interval_days'];
-  if (!is_numeric($days)) {
-    form_set_error('og_mailinglist_digest_interval_days',
-      t('Digest interval must be a number.'));
-  }
-  elseif ($days <= 0) {
-    form_set_error('og_mailinglist_digest_interval_days',
-      t('Digest interval be a positive integer.'));
-  }
-
   $hour = $form_state['values']['og_mailinglist_digest_hour'];
-  if (!is_numeric($hour)) {
-    form_set_error('og_mailinglist_digest_hour',
-      t('Digest hour must be a number.'));
-  }
-  elseif ($hour < 0 or $hour > 23) {
+  if ($hour > 23) {
     form_set_error('og_mailinglist_digest_hour',
       t('Digest hour must be an integer between 0 and 23.'));
   }
