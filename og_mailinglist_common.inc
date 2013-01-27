@@ -319,6 +319,17 @@ function _og_mailinglist_reciever($group_node) {
 }
 
 /**
+ * Compose a string of recipients.
+ */
+function _og_mailinglist_recipient_string() {
+  $out = '';
+  foreach (func_get_args() as $email => $name) {
+    $out .= $name . ' <' . $email . '>, ';
+  }
+  return substr($out, 0, -2);
+}
+
+/**
  * Encode $value to be used in email header if it contains non-ASCII characters.
  *
  * @param $value

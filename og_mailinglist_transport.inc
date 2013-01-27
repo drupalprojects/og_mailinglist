@@ -94,6 +94,17 @@ function _og_mailinglist_process_email($raw_email, $group_name = NULL) {
     $group_names += _og_mailinglist_extract_group_names($email['to']);
     $group_names += _og_mailinglist_extract_group_names($email['cc']);
 
+    // This email hit this code accidentally, since it does not contain
+    // an email with this servers domain as a recipient.
+    if (!count($group_names)) {
+      $sender = _og_mailinglist_recipient_string($email['from']);
+      $recipients = _og_mailinglist_recipient_string($email['to'], $email['cc']);
+      watchdog('og_mailinglist', "Email from %sender to %recipients was dropped since no recipients are on this domain.",
+        array('%sender' => $sender, '%recipients' => $recipients),
+        WATCHDOG_NOTICE);
+      exit(0);
+    }
+
     // Get the group IDs.
     // We are safe since the group_email field is required to be lowercase.
     $group_names_list = array();
