@@ -36,7 +36,7 @@ function og_mailinglist_email_settings() {
     '#size' => 10,
     '#maxlength' => 10,
     '#field_suffix' => t('KiB'),
-    '#element_validate' => array('element_validate_integer_positive'),
+    '#element_validate' => array('_og_mailinglist_element_validate_unsigned_integer'),
   );
   $form['limits']['og_mailinglist_max_posts_per_hour'] = array(
     '#title' => t('Maximum posts per hour'),
@@ -45,7 +45,7 @@ function og_mailinglist_email_settings() {
     '#description' => t('The maximum number of messages a user is able to post per hour by email.  Set to 0 for unlimited.'),
     '#size' => 10,
     '#maxlength' => 10,
-    '#element_validate' => array('element_validate_integer_positive'),
+    '#element_validate' => array('_og_mailinglist_element_validate_unsigned_integer'),
   );
 
   $form['headers'] = array(
@@ -369,4 +369,10 @@ function og_mailinglist_subscriptions_settings_form($form, $account) {
   );
 
   return $form;
+}
+
+function _og_mailinglist_element_validate_unsigned_integer($element, &$form_state) {
+  if ($element['#value'] != 0) {
+    element_validate_integer_positive($element, $form_state);
+  }
 }
