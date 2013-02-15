@@ -31,9 +31,10 @@ if ($site['direct_posting'] === True) {
   // Set some server variables so Drupal doesn't freak out.
   $_SERVER['SCRIPT_NAME'] = '/og_mailinglist_transport.php';
   $_SERVER['SCRIPT_FILENAME'] = '/og_mailinglist_transport.php';
-  $_SERVER['HTTP_HOST'] = $site['host'];
+  $_SERVER['HTTP_HOST'] = $_SERVER['SERVER_NAME'] = $site['host'];
   $_SERVER['REMOTE_ADDR'] = '127.0.0.1';
   $_SERVER['REQUEST_METHOD'] = 'POST';
+  $_SERVER['SERVER_SOFTWARE'] = 'Linux';
 
   // Change to the Drupal directory.
   chdir($site['drupal_path']);
