@@ -136,7 +136,7 @@ function _og_mailinglist_list_headers($group_node, $digest = FALSE) {
 #  $headers['list-unsubscribe'] = '<' . ;
 
   if (!$digest) {
-    $headers['x-thread-url'] = $group_link;
+    $headers['x-thread-url'] = $url;
   }
   $headers['x-beenthere'] = $group_email;
 
@@ -298,9 +298,7 @@ function theme_og_mailinglist_mail_footer($variables) {
 /**
  * Compose an array of sender information.
  */
-function _og_mailinglist_sender() {
-  global $user;
-
+function _og_mailinglist_sender($user) {
   if ($user->uid == 0) {
     $server = variable_get('og_mailinglist_server_string', $_SERVER['SERVER_NAME']);
     return array('anonymous@' . $server => t('Anonymous'));
@@ -318,6 +316,17 @@ function _og_mailinglist_reciever($group_node) {
   $server = variable_get('og_mailinglist_server_string', $_SERVER['SERVER_NAME']);
   $group_email = $group_name . '@' . $server;
   return array($group_email => $group_node->title);
+}
+
+/**
+ * Compose a string of recipients.
+ */
+function _og_mailinglist_recipient_string() {
+  $out = '';
+  foreach (func_get_args() as $email => $name) {
+    $out .= $name . ' <' . $email . '>, ';
+  }
+  return substr($out, 0, -2);
 }
 
 /**

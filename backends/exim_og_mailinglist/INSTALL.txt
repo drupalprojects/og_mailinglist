@@ -25,9 +25,9 @@ ln -s \
 /etc/exim4/conf.d/transport/95_exim4-config_drupal_og_mailinglist_transport
 
 
-4) Copy default.site_info.php to site_info.php
+4) Copy example.site_info.php to site_info.php
 
-cp /etc/exim4/exim_og_mailinglist/default.site_info.php \
+cp /etc/exim4/exim_og_mailinglist/example.site_info.php \
 /etc/exim4/exim_og_mailinglist/site_info.php
 
 

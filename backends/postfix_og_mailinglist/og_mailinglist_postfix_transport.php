@@ -14,7 +14,7 @@ while (!feof($fd)) {
 $mail_domain = strtolower($argv[1]);
 
 // Load site info.
-require_once('/etc/exim4/exim_og_mailinglist/site_info.php');
+require_once('site_info.php');
 $sites = og_mailinglist_site_info();
 
 if (empty($sites[$mail_domain])) {
@@ -38,6 +38,7 @@ if ($site['direct_posting'] === True) {
 
   // Change to the Drupal directory.
   chdir($site['drupal_path']);
+  define('DRUPAL_ROOT', $site['drupal_path']);
 
   // Silence errors during bootstrap.
   //error_reporting(E_ERROR | E_PARSE);

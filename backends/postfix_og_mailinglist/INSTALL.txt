@@ -24,10 +24,10 @@ cp -r ../postfix_og_mailinglist /etc/postfix/
 
 
 2) A properly configured site_info.php.
-Copy default.site_info.php to site_info.php and make it's
+Copy example.site_info.php to site_info.php and make it's
 contents match your installation.
 
-cp /etc/postfix/postfix_og_mailinglist/default.site_info.php \
+cp /etc/postfix/postfix_og_mailinglist/example.site_info.php \
 /etc/postfix/postfix_og_mailinglist/site_info.php
 
 

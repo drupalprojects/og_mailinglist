@@ -131,6 +131,19 @@ function og_mailinglist_permission() {
 }
 
 /**
+ * Implements hook_og_permission().
+ */
+function og_mailinglist_og_permission() {
+  return array(
+    'post comments by mail' => array(
+      'title' => t('Post comments by mail'),
+      'description' => t("Allow a member of a group to post comments by mail."),
+      'roles' => array(OG_AUTHENTICATED_ROLE),
+    ),
+  );
+}
+
+/**
  * Callback function for subscribing to a thread.
  */
 function og_mailinglist_subscribe_thread($node) {

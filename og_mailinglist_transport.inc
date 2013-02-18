@@ -37,7 +37,7 @@ function og_mailinglist_post() {
 
   // If the Maillog module has been set to turn off emails, return.
   if (!variable_get('maillog_send', TRUE)) {
-    watchdog('WATCHDOG_INFO', 'This site is using Maillog and has disabled this site from sending emails so this email was not processed.', array(), WATCHDOG_INFO);
+    watchdog('WATCHDOG_INFO', 'Maillog has disabled this site from sending emails. An incoming email was left unprocessed.', array(), WATCHDOG_INFO);
     return;
   }
 
@@ -45,7 +45,6 @@ function og_mailinglist_post() {
 }
 
 function _og_mailinglist_process_email($raw_email, $group_name = NULL) {
-
   try {
     // Extract all the needed info from the email into a simple array.
     $email = _og_mailinglist_parse_email($raw_email);
@@ -74,14 +73,13 @@ function _og_mailinglist_process_email($raw_email, $group_name = NULL) {
     }
 
     // Get the user.
-    global $user;
-    $user = _og_mailinglist_user_load_by_mail(key($email['from']));
+    $author = _og_mailinglist_user_load_by_mail(key($email['from']));
 
     // Check how many posts have been made by this user (for security).
     if ($max_posts = variable_get('og_mailinglist_max_posts_per_hour', 20) > 0) {
       $one_hour_ago = REQUEST_TIME - 3600;
       $num_recent_posts = db_select('node', 'n')
-        ->condition('n.uid', $user->uid)
+        ->condition('n.uid', $author->uid)
         ->condition('n.created', $one_hour_ago, '>')
         ->countQuery()
         ->execute()
@@ -96,6 +94,17 @@ function _og_mailinglist_process_email($raw_email, $group_name = NULL) {
     $group_names += _og_mailinglist_extract_group_names($email['to']);
     $group_names += _og_mailinglist_extract_group_names($email['cc']);
 
+    // This email hit this code accidentally, since it does not contain
+    // an email with this servers domain as a recipient.
+    if (!count($group_names)) {
+      $sender = _og_mailinglist_recipient_string($email['from']);
+      $recipients = _og_mailinglist_recipient_string($email['to'], $email['cc']);
+      watchdog('og_mailinglist', "Email from %sender to %recipients was dropped since no recipients are on this domain.",
+        array('%sender' => $sender, '%recipients' => $recipients),
+        WATCHDOG_NOTICE);
+      exit(0);
+    }
+
     // Get the group IDs.
     // We are safe since the group_email field is required to be lowercase.
     $group_names_list = array();
@@ -104,7 +113,8 @@ function _og_mailinglist_process_email($raw_email, $group_name = NULL) {
     }
     $query = new EntityFieldQuery;
     $query->entityCondition('entity_type', 'node')
-      ->fieldCondition(OG_MAILINGLIST_EMAIL_FIELD, 'value', $group_names_list, 'IN');
+      ->fieldCondition(OG_MAILINGLIST_EMAIL_FIELD, 'value', $group_names_list, 'IN')
+      ->addMetaData('account', $author);
     $result = $query->execute();
 
     if (empty($result)) {
@@ -116,7 +126,7 @@ function _og_mailinglist_process_email($raw_email, $group_name = NULL) {
     // Check if this user is member of at least one of these groups
     // (for security).
     foreach ($to_gids as $key => $gid) {
-      if (!og_is_member('node', $gid, 'user', $user)) {
+      if (!og_is_member('node', $gid, 'user', $author)) {
         unset($to_gids[$key]);
       }
     }
@@ -130,7 +140,7 @@ function _og_mailinglist_process_email($raw_email, $group_name = NULL) {
     if (empty($to_gids) and $email['nid']) {
       // See also og_mailinglist_get_thread_subscriptions()
       $query = db_select('og_mailinglist_thread_subscription', 'ogmt');
-      $query->condition('ogmt.uid', $user->uid);
+      $query->condition('ogmt.uid', $author->uid);
       $query->addField('ogmt', 'uid');
       $result = $query->execute();
 
@@ -181,14 +191,6 @@ function _og_mailinglist_process_email($raw_email, $group_name = NULL) {
       throw new Exception(t("None of the group nodes you were trying to post to are published."));
     }
 
-    // Additional check that user has access to publish content.
-    // It forbids users from commenting as well. TODO: Maybe it should not?
-    $node_type = variable_get('og_mailinglist_default_content_type', 'article');
-    if (!user_access('create ' . $node_type . ' content', $user)) {
-      throw new Exception(t("You do not have permission to post using group content type @type. Please contact the site administrator.",
-        array('@type' => $node_type)));
-    }
-
     // Let's decide whether it's node or comment.
     if (empty($email['nid'])) {
       $type = 'node';
@@ -222,10 +224,21 @@ function _og_mailinglist_process_email($raw_email, $group_name = NULL) {
 
     // Let's save either node or comment and send the emails.
     if ($type == 'node') {
-      og_mailinglist_save_node($email, $group_nodes);
+      // Check if user has permission to publish.
+      $node_type = variable_get('og_mailinglist_default_content_type', 'article');
+      foreach ($group_nodes as $gid => $group_node) {
+        // Note: don't skip alter, but ignore admin (see og_user_access()).
+        if (!og_user_access('node', $gid, 'create ' . $node_type . ' content', $author, FALSE, TRUE)) {
+          unset($group_nodes[$gid]);
+        }
+      }
+      if (empty($group_nodes)) {
+        throw new Exception(t("You do not have permission to post to any of the group nodes you were trying to. Please contact the site administrator."));
+      }
+      og_mailinglist_save_node($email, $group_nodes, $author);
     }
     elseif ($type == 'comment') {
-      og_mailinglist_save_comment($email, $group_nodes, $node, $new_gids);
+      og_mailinglist_save_comment($email, $group_nodes, $node, $new_gids, $author);
     }
 
     // Tell MTA we had success!
@@ -233,6 +246,8 @@ function _og_mailinglist_process_email($raw_email, $group_name = NULL) {
   }
   catch (Exception $e) {
     try {
+      watchdog('og_mailinglist', "Error processing email from %email: %message",
+        array('%email' => reset($email['from']) . ' <' . key($email['from']) . '>', '%message' => $e->getMessage()), WATCHDOG_WARNING);
       _og_mailinglist_send_error_email($email, $e->getMessage());
 
       // Print error message to log, then quit.
@@ -251,8 +266,7 @@ function _og_mailinglist_process_email($raw_email, $group_name = NULL) {
 /**
  * Save new comment that came through email.
  */
-function og_mailinglist_save_comment(&$email, $group_nodes, $node, $new_gids) {
-  global $user;
+function og_mailinglist_save_comment(&$email, $group_nodes, $node, $new_gids, $author) {
   $email['node'] = $node;
 
   // Let other modules alter the new comment or delay posting for another time
@@ -266,8 +280,14 @@ function og_mailinglist_save_comment(&$email, $group_nodes, $node, $new_gids) {
   }
 
   // Check that this user has rights to post comments.
-  if (!user_access('post comments')) {
-    throw new Exception(t("You do not have rights to post comments in the system."));
+  foreach ($group_nodes as $gid => $group_node) {
+    // Note: don't skip alter, but ignore admin (see og_user_access()).
+    if (!og_user_access('node', $gid, 'post comments by mail', $author, FALSE, TRUE)) {
+      unset($group_nodes);
+    }
+  }
+  if (empty($group_nodes)) {
+    throw new Exception(t("You do not have rights to post comments to any of the group nodes you were trying to. Please contact the site administrator."));
   }
 
   // Check that this post has comments enabled.
@@ -289,10 +309,11 @@ function og_mailinglist_save_comment(&$email, $group_nodes, $node, $new_gids) {
   $comment = new stdClass();
   $comment->cid = 0;
   $comment->nid = $node->nid;
-  $comment->uid = $user->uid;
+  $comment->uid = $author->uid;
   $comment->language = LANGUAGE_NONE;
   $comment->is_anonymous = 0;
   $comment->node_type = 'comment_node_' . $node->type;
+  $comment->status = user_access('skip comment approval', $author) ? COMMENT_PUBLISHED : COMMENT_NOT_PUBLISHED;
 
   // A custom variable to keep phpmailer from sending double email.
   $comment->og_mailinglist_from_email = TRUE;
@@ -306,6 +327,8 @@ function og_mailinglist_save_comment(&$email, $group_nodes, $node, $new_gids) {
   else {
     $comment->subject = $email['headers']['subject'];
   }
+  // Subject can be at most 64 chars long.
+  $comment->subject = truncate_utf8($comment->subject, 64, TRUE, TRUE, 54);
 
   $comment->comment_body[$comment->language][0]['value'] = $mailbody;
   $filter = variable_get('og_mailinglist_default_filter_format', 'plain_text');
@@ -335,7 +358,7 @@ function og_mailinglist_save_comment(&$email, $group_nodes, $node, $new_gids) {
   comment_save($comment);
 
   // Send off the email.
-  _og_mailinglist_email_comment_email($email, $node, $group_nodes, $comment);
+  _og_mailinglist_email_comment_email($email, $node, $group_nodes, $comment, $author);
 
   // Log that this comment came by email.
   og_mailinglist_log_email_sent('email', $node->nid, $comment->cid, $parent_message_id, $email['headers']);
@@ -356,9 +379,7 @@ function og_mailinglist_save_comment(&$email, $group_nodes, $node, $new_gids) {
 /**
  * Save new nodes that came through email.
  */
-function og_mailinglist_save_node(&$email, $group_nodes) {
-  global $user;
-
+function og_mailinglist_save_node(&$email, $group_nodes, $author) {
   // Let other modules alter the new node or delay posting for another time
   // (e.g. a moderation module might want to delay posting for a time).
   drupal_alter('og_mailinglist_new_email_node', $email);
@@ -384,7 +405,7 @@ function og_mailinglist_save_node(&$email, $group_nodes) {
   node_object_prepare($node);
 
   $node->title = $email['headers']['subject'];
-  $node->uid = $user->uid;
+  $node->uid = $author->uid;
   $node->language = LANGUAGE_NONE;
   $node->body[$node->language][0]['value'] = $mailbody;
   $filter = variable_get('og_mailinglist_default_filter_format', 'plain_text');
@@ -408,7 +429,7 @@ function og_mailinglist_save_node(&$email, $group_nodes) {
   node_save($node);
 
   // Send off email.
-  _og_mailinglist_email_node_email($email, $node, $group_nodes);
+  _og_mailinglist_email_node_email($email, $node, $group_nodes, $author);
 
   // Log that this node came from email.
   og_mailinglist_log_email_sent('email', $node->nid, 0, $email['headers']['message-id'], $email['headers']);
@@ -426,9 +447,7 @@ function og_mailinglist_save_node(&$email, $group_nodes) {
     WATCHDOG_INFO, l(t('view'), 'node/' . $node->nid));
 }
 
-function _og_mailinglist_email_node_email(&$email, $node, $group_nodes) {
-  global $user;
-
+function _og_mailinglist_email_node_email(&$email, $node, $group_nodes, $author) {
   // Build new email.
   _og_mailinglist_remove_some_headers($email);
 
@@ -438,7 +457,7 @@ function _og_mailinglist_email_node_email(&$email, $node, $group_nodes) {
 
   // Recipients.
   $recipients = array();
-  $recipients['from'] = _og_mailinglist_sender();
+  $recipients['from'] = _og_mailinglist_sender($author);
   $recipients['to'] = $email['to'];
   $recipients['cc'] = $email['cc'];
   $recipients['bcc'] = array();
@@ -460,7 +479,7 @@ function _og_mailinglist_email_node_email(&$email, $node, $group_nodes) {
 
   // Set footer.
   $footer = theme('og_mailinglist_attached_files', array('node' => $node));
-  $footer .= theme('og_mailinglist_user_signature', array('user' => $user));
+  $footer .= theme('og_mailinglist_user_signature', array('user' => $author));
   $footer .= theme('og_mailinglist_mail_footer', array('node' => $node));
   _og_mailinglist_add_footer($email, $footer);
 
@@ -496,14 +515,12 @@ function _og_mailinglist_email_node_email(&$email, $node, $group_nodes) {
   }
 }
 
-function _og_mailinglist_email_comment_email($email, $node, $group_nodes, $comment) {
-  global $user;
-
+function _og_mailinglist_email_comment_email($email, $node, $group_nodes, $comment, $author) {
   _og_mailinglist_remove_some_headers($email);
 
   // Recipients.
   $recipients = array();
-  $recipients['from'] = _og_mailinglist_sender();
+  $recipients['from'] = _og_mailinglist_sender($author);
   $recipients['to'] = $email['to'];
   $recipients['cc'] = $email['cc'];
   $recipients['bcc'] = array();
@@ -525,7 +542,7 @@ function _og_mailinglist_email_comment_email($email, $node, $group_nodes, $comme
 
   // Set footer.
   $footer = theme('og_mailinglist_attached_files', array('comment' => $comment));
-  $footer .= theme('og_mailinglist_user_signature', array('user' => $user));
+  $footer .= theme('og_mailinglist_user_signature', array('user' => $author));
   $footer .= theme('og_mailinglist_mail_footer', array('node' => $node, 'comment' => $comment));
   _og_mailinglist_add_footer($email, $footer);
 
@@ -663,8 +680,6 @@ function _og_mailinglist_parse_content($part) {
 }
 
 function _og_mailinglist_save_files($entity_type, &$entity, $attachments) {
-  global $user;
-
   $image_field = _og_mailinglist_get_field($entity_type, 'image');
   $file_field = _og_mailinglist_get_field($entity_type, 'file');
 
@@ -821,7 +836,7 @@ function _og_mailinglist_encode_email($structure, $boundary = NULL) {
         $email .= "\n";
       }
       else {
-        $email .= $part->body . "\n";
+        $email .= $part->body . "\n\n";
       }
     }
   }
@@ -1053,7 +1068,7 @@ function _og_mailinglist_extract_group_names($addresses) {
  *   User object, if user is found. Exception is raised otherwise.
  */
 function _og_mailinglist_user_load_by_mail($email) {
-  // Let's fine the user by the e-mail address.
+  // Let's find the user by the e-mail address.
   $user = user_load_by_mail($email);
 
   // If site is using multiple_email, check for alternative emails.
@@ -1062,7 +1077,7 @@ function _og_mailinglist_user_load_by_mail($email) {
   }
 
   if (!$user) {
-    $exception = t("Could not locate the user account for !mailfrom. For security reasons, please post from the email account you are registered with.", array('!mailfrom' => key($email['from'])));
+    $exception = t("Could not locate the user account for @mailfrom. For security reasons, please post from the email account you are registered with.", array('@mailfrom' => $email));
     throw new Exception($exception);
   }
 
