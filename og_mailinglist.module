@@ -145,7 +145,6 @@ function og_mailinglist_permission() {
     'subscribe to og_mailinglist thread' => array(
       'title' => t('Subscribe to mailinglist threads'),
       'description' => t('Subscribe or unsubscribe to/from a thread.'),
-      'restrict access' => TRUE,
     ),
     'manage own og_mailinglist subscriptions' => array(
       'title' => t('Manage own mailinglist subscriptions'),
