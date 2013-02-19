@@ -282,7 +282,7 @@ function theme_og_mailinglist_mail_footer($variables) {
 
   $absolute = array('absolute' => TRUE);
   $full = url("node/" . $node->nid, $absolute);
-  $subscriptions = url("mailinglist/subscriptions", $absolute);
+  $subscriptions = url("mailinglist", $absolute);
   $unsubscribe = url("mailinglist/unsubscribe/" . $node->nid, $absolute);
 
   $footer = '--<br />'

@@ -79,7 +79,7 @@ function og_mailinglist_menu() {
     'access arguments' => array('access administration pages'),
     'weight' => 1,
   );
-  $items['mailinglist/subscriptions'] =
+  $items['mailinglist'] =
   $items['user/%user/mailinglist'] = array(
     'title' => 'Group subscriptions',
     'description' => 'Allows users to manage their group subscriptions',
@@ -90,8 +90,8 @@ function og_mailinglist_menu() {
     'access callback' => 'og_mailinglist_subscriptions_settings_access',
     'access arguments' => array(1),
   );
-  $items['mailinglist/subscriptions']['title'] = 'OG Mailinglist subscriptions';
-  $items['mailinglist/subscriptions']['type'] = MENU_CALLBACK;
+  $items['mailinglist']['title'] = 'OG Mailinglist subscriptions';
+  $items['mailinglist']['type'] = MENU_CALLBACK;
 
   $items['mailinglist/subscribe/%node'] = array(
     'title' => 'Subscribe to post',
@@ -111,7 +111,7 @@ function og_mailinglist_menu() {
   );
 
   // Maintain backward compatibility.
-  $items['og_mailinglist/subscriptions'] = $items['mailinglist/subscriptions'];
+  $items['og_mailinglist/subscriptions'] = $items['mailinglist'];
   $items['og_mailinglist/subscribe/%node'] = $items['mailinglist/subscribe/%node'];
   $items['og_mailinglist/unsubscribe/%node'] = $items['mailinglist/unsubscribe/%node'];
 

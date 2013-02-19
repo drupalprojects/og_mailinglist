@@ -205,7 +205,7 @@ function theme_og_mailinglist_digest($variables) {
   }
 
   // Add footer.
-  $unsubscribe = url("mailinglist/subscriptions", array("absolute" => TRUE));
+  $unsubscribe = url("mailinglist", array("absolute" => TRUE));
 
   $html .= "__<br />\n";
   $html .= t("You received this message because you are a member of the \"@group\" group on !server",
