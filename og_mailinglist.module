@@ -375,9 +375,10 @@ function og_mailinglist_comment_publish($comment) {
  * Add a og_mailinglist subscription when a user joins a group.
  */
 function og_mailinglist_og_membership_insert($membership) {
-  global $user;
-  og_mailinglist_save_group_subscriptions($membership->gid,
-    array($user->uid));
+  if ($membership->entity_type == 'user') {
+    og_mailinglist_save_group_subscriptions($membership->gid,
+      array($membership->etid));
+  }
 }
 
 /**
@@ -386,9 +387,10 @@ function og_mailinglist_og_membership_insert($membership) {
  * Remove a og_mailinglist subscription when a user leaves a group.
  */
 function og_mailinglist_og_membership_delete($membership) {
-  global $user;
-  og_mailinglist_delete_group_subscriptions($membership->gid,
-    array($user->uid));
+  if ($membership->entity_type == 'user') {
+    og_mailinglist_delete_group_subscriptions($membership->gid,
+      array($membership->etid));
+  }
 }
 
 /**
