@@ -87,27 +87,27 @@ function og_mailinglist_menu() {
     'file' => 'og_mailinglist.admin.inc',
     'page callback' => 'drupal_get_form',
     'page arguments' => array('og_mailinglist_subscriptions_settings_form', 1),
-    'access arguments' => array('manage og_mailinglist subscriptions'),
+    'access callback' => 'og_mailinglist_subscriptions_settings_access',
+    'access arguments' => array(1),
   );
-  $items['mailinglist/subscriptions']['type'] = MENU_CALLBACK;
   $items['mailinglist/subscriptions']['title'] = 'OG Mailinglist subscriptions';
-  $items['mailinglist/subscriptions']['page arguments'] = array('og_mailinglist_subscriptions_settings_form', 1);
+  $items['mailinglist/subscriptions']['type'] = MENU_CALLBACK;
 
-  $items['mailinglist/unsubscribe/%node'] = array(
-    'title' => 'Unsubscribe from post',
-    'description' => 'Users who hit this page will not get more emails for comments on the node.',
-    'type' => MENU_CALLBACK,
-    'page callback' => 'og_mailinglist_unsubscribe_thread',
-    'page arguments' => array(2),
-    'access arguments' => array('manage og_mailinglist subscriptions'),
-  );
   $items['mailinglist/subscribe/%node'] = array(
     'title' => 'Subscribe to post',
     'description' => 'Users who hit this page will get emails for comments on the node.',
     'type' => MENU_CALLBACK,
     'page callback' => 'og_mailinglist_subscribe_thread',
     'page arguments' => array(2),
-    'access arguments' => array('manage og_mailinglist subscriptions'),
+    'access arguments' => array('subscribe to og_mailinglist thread'),
+  );
+  $items['mailinglist/unsubscribe/%node'] = array(
+    'title' => 'Unsubscribe from post',
+    'description' => 'Users who hit this page will not get more emails for comments on the node.',
+    'type' => MENU_CALLBACK,
+    'page callback' => 'og_mailinglist_unsubscribe_thread',
+    'page arguments' => array(2),
+    'access arguments' => array('subscribe to og_mailinglist thread'),
   );
 
   // Maintain backward compatibility.
@@ -125,14 +125,36 @@ function og_mailinglist_menu() {
   return $items;
 }
 
+function og_mailinglist_subscriptions_settings_access($account) {
+  global $user;
+  if (is_object($account) and $account->uid != $user->uid) {
+    // Not own account.
+    return user_access('manage any og_mailinglist subscription');
+  }
+  else {
+    // Own account.
+    return user_access('manage own og_mailinglist subscriptions');
+  }
+}
+
 /**
  * Implements hook_permission().
  */
 function og_mailinglist_permission() {
   return array(
-    'manage og_mailinglist subscriptions' => array(
-      'title' => t('Manage mailinglist subscriptions'),
-      'description' => t('Subscribe or unsubscribe other people to/from a group.'),
+    'subscribe to og_mailinglist thread' => array(
+      'title' => t('Subscribe to mailinglist threads'),
+      'description' => t('Subscribe or unsubscribe to/from a thread.'),
+      'restrict access' => TRUE,
+    ),
+    'manage own og_mailinglist subscriptions' => array(
+      'title' => t('Manage own mailinglist subscriptions'),
+      'description' => t('Subscribe or unsubscribe yourself to/from a group, change subscription type.'),
+    ),
+    'manage any og_mailinglist subscription' => array(
+      'title' => t('Manage any mailinglist subscription'),
+      'description' => t('Subscribe or unsubscribe other people to/from a group, change subscription type.'),
+      'restrict access' => TRUE,
     ),
   );
 }
@@ -158,11 +180,12 @@ function og_mailinglist_subscribe_thread($node) {
   og_mailinglist_save_thread_subscriptions($node->nid, array($user->uid));
 
   drupal_set_message(
-    t('You were successfully subscribed to the post @link.',
-        array('@link' => '<em>' . l($node->title, "node/" . $node->nid) . '</em>'))
+    t('You are successfully subscribed to the post !link.',
+        array('!link' => '<em>' . l($node->title, "node/" . $node->nid) . '</em>'))
     . '&nbsp;&nbsp;'
     . l(t('Undo'), 'mailinglist/unsubscribe/' . $node->nid,
         array('attributes' => array('id' => 'og_mailinglist_undo'))));
+  drupal_goto('node/' . $node->nid);
 }
 
 /**
@@ -174,8 +197,8 @@ function og_mailinglist_unsubscribe_thread($node) {
 
   if ($success) {
     drupal_set_message(
-      t('You are successfully unsubscribed from the post @link.',
-      array('@link' => l($node->title, "node/" . $node->nid)))
+      t('You are successfully unsubscribed from the post !link.',
+      array('!link' => l($node->title, "node/" . $node->nid)))
       . '&nbsp;&nbsp;'
       . l(t('Undo'), 'mailinglist/subscribe/' . $node->nid,
           array('attributes' => array('id' => 'og_mailinglist_undo')))
@@ -183,13 +206,14 @@ function og_mailinglist_unsubscribe_thread($node) {
   }
   else {
     drupal_set_message(
-      t('You probably were already unsubscribed from the post @link.',
-      array('@link' => l($node->title, "node/" . $node->nid)))
+      t('You probably already are unsubscribed from the post !link.',
+      array('!link' => l($node->title, "node/" . $node->nid)))
       . '&nbsp;&nbsp;'
       . l(t('Subscribe'), 'mailinglist/subscribe/' . $node->nid,
           array('attributes' => array('id' => 'og_mailinglist_undo')))
       );
   }
+  drupal_goto('node/' . $node->nid);
 }
 
 /**

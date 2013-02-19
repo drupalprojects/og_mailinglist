@@ -306,10 +306,12 @@ function og_mailinglist_config_settings() {
 }
 
 /**
- * Build subscription admin for for each user.
+ * Build subscription admin for each user.
  */
-function og_mailinglist_subscriptions_settings_form($form, $account) {
+function og_mailinglist_subscriptions_settings_form($form, $form_state, $account = NULL) {
   global $user;
+
+  // $uid is of the user we are trying to see/change.
   $uid = $user->uid;
   if (is_object($account)) {
     $uid = $account->uid;
@@ -345,11 +347,13 @@ function og_mailinglist_subscriptions_settings_form($form, $account) {
       '#title' => t("Email Settings"),
       '#options' => $subscription_options,
     );
-    $form[$group->gid]["leave-group"] = array(
-      '#type' => 'checkbox',
-      '#title' => t("Leave the @name group",
-        array('@name' => $group->title)),
-    );
+    if (og_user_access('node', $group->gid, 'unsubscribe', $user)) {
+      $form[$group->gid]['leave-group'] = array(
+        '#type' => 'checkbox',
+        '#title' => t('Leave the @name group',
+          array('@name' => $group->title)),
+      );
+    }
   }
   $form['submit'] = array(
     '#type' => 'submit',
