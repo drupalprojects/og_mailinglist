@@ -64,6 +64,12 @@ function og_mailinglist_email_settings() {
     '#default_value' => variable_get('og_mailinglist_thread_comments', '0'),
     '#description' => t('New comments will be threaded on save. Existing comments will not be affected.'),
   );
+  $form['headers']['og_mailinglist_new_thread_from_subject'] = array(
+    '#title' => t('Create a new node if the subject has been changed'),
+    '#type' => 'checkbox',
+    '#default_value' => variable_get('og_mailinglist_new_thread_from_subject', TRUE),
+    '#description' => t('Create a new node if the subject of the email has been changed, even if it was a reply to an existing thread.'),
+  );
 
   $form['signatures'] = array(
     '#type' => 'fieldset',

@@ -217,7 +217,7 @@ function _og_mailinglist_process_email($raw_email, $group_name = NULL) {
       // should be 4 (e.g. "a subject" and "Re: a subject").
       // Let's use 7 for oddness of foreign languages.
       if ((empty($members) and count($not_members))
-        or levenshtein($node->title, $treated_subject) > 7) {
+        or (variable_get('og_mailinglist_new_thread_from_subject', TRUE) and levenshtein($node->title, $treated_subject) > 7)) {
         $type = 'node';
       }
     }
