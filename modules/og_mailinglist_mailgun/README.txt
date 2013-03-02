@@ -13,8 +13,8 @@ http://documentation.mailgun.net/user_manual.html#configuring-a-domain
 for more on that.
 
 Next you'll need to setup a route on mailgun.net. Mailgun provides a
-wide variety of options for setting up custom routing of incoming emails 
-depending on your needs. If you need additional flexibility, read Mailgun's 
+wide variety of options for setting up custom routing of incoming emails
+depending on your needs. If you need additional flexibility, read Mailgun's
 documentation at
 http://documentation.mailgun.net/user_manual.html#routes
 
