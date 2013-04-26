@@ -274,8 +274,21 @@ function og_mailinglist_delete_thread_subscription($nid, $uid) {
  */
 function og_mailinglist_log_email_sent($source, $nid, $cid = 0, $parent_message_id = 0, $headers = array()) {
   $message_id = isset($headers['message-id']) ? $headers['message-id'] : 0;
-  $in_reply_to = isset($headers['in-reply-to']) ? $headers['in-reply-to'] : 0;
   $references = isset($headers['references']) ? $headers['references'] : 0;
+
+  if (isset($headers['in-reply-to'])) {
+    $in_reply_to = $headers['in-reply-to'];
+    $len = strlen($in_reply_to);
+    // If references string exceeds 512 characters we will cut it from left
+    // to fit database.
+    if ($len > 512) {
+      $start = strpos($in_reply_to, '<', $len - 512);
+      $in_reply_to = substr($in_reply_to, $start);
+    }
+  }
+  else {
+    $in_reply_to = 0;
+  }
 
   $data = array(
     'nid' => $nid,
