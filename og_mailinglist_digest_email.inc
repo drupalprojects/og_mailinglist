@@ -89,22 +89,23 @@ function _og_mailinglist_send_digest_emails() {
     $group_email = db_result(db_query("SELECT group_email
                                         FROM {og_mailinglist}
                                         WHERE nid = %d", $gid));
-
-    $subject = "[" . $group->ogm_email . "] Digest for " . $group_email . "@" .
-      variable_get("og_mailinglist_server_string", $_SERVER['SERVER_NAME'])
-      . " - " . $message_count . " " . format_plural($message_count, "Message", "Messages")
-      . " in " . count($nids) . " " . format_plural(count($nids), "Discussion", "Discussions");
+    $subject = t('[@group_name] Digest for @group_title - @messages_plural in @discussions_plural',
+      array(
+        '@group_name' => $group->ogm_email,
+        '@group_title' => $group_email . "@" . variable_get("og_mailinglist_server_string", $_SERVER['SERVER_NAME']),
+        '@messages_plural' => format_plural($message_count, '1 message', '@count messages'),
+        '@discussions_plural' => format_plural(count($nids), '1 discussion', '@count discussions'),
+    ));
 
     // Assemble message
     $body = "";
-    $body .= "<div style=\"" . EMAIL_HEADER . "\">Today's Discussion Summary</div>\n";
-    $body .= "Group: " . url("node/" . $gid, array('absolute' => TRUE)) . "\n";
+    $body .= "<div style=\"" . EMAIL_HEADER . "\">" . t("Today's Discussion Summary") . "</div>\n";
+    $body .= t("Group") . ": " . url("node/" . $gid, array('absolute' => TRUE)) . "\n";
     $body .= "<ul>\n";
     foreach ($nids as $nid) {
       $body .= "<li>" . l($nid['node_obj']->title, "",
-              array('fragment' => "digest-" . $nid['node_obj']->nid,
-              'external' => true))
-              . " (" . og_mailinglist_count_new_messages($nid) . " New)</li>\n";
+              array('fragment' => "digest-" . $nid['node_obj']->nid, 'external' => true))
+              . " (" . format_plural(og_mailinglist_count_new_messages($nid), "1 new", "@count new") . ")</li>\n";
     }
     $body .= "</ul>\n";
     $body .= "<hr />\n";
@@ -113,7 +114,7 @@ function _og_mailinglist_send_digest_emails() {
     foreach ($nids as $nid) {
       $body .= '<a name="digest-' . $nid['node_obj']->nid . '"></a>';
       $body .= '<div style="' . DISCUSSION_HEADER . '">';
-      $body .= "Discussion: " . l($nid['node_obj']->title, "node/" .
+      $body .= t("Discussion") . ": " . l($nid['node_obj']->title, "node/" .
           $nid['node_obj']->nid, array('absolute' => TRUE)) . "\n";
       $body .= "</div>";
       $body .= "<blockquote>\n";
@@ -131,14 +132,13 @@ function _og_mailinglist_send_digest_emails() {
     }
 
     // Add footer.
-    $body .= "__<br />";
-    $body .= "You received this message because you are a member of the \"" .
-              $group->title . "\" group on " .
-              variable_get("og_mailinglist_server_string", $_SERVER['SERVER_NAME']) . "<br />";
-    $body .= "To unsubscribe to this group, visit " .
-              url("og_mailinglist/subscriptions", array("absolute" => true)) . "<br />";
-    $body .= "To post a new message to this group, email " . $group_email . "@" .
-      variable_get("og_mailinglist_server_string", $_SERVER['SERVER_NAME']) . "<br />";
+    $body .= "__<br />\n";
+    $body .= t("You received this message because you are a member of the \"@group\" group on !server",
+      array('@group' => $group->title, '!server' => variable_get("og_mailinglist_server_string", $_SERVER['SERVER_NAME']))) . "<br />\n";
+    $body .= t("To unsubscribe from this group, visit !url",
+      array('!url' => url("og_mailinglist/subscriptions", array("absolute" => true)))) . "<br />\n";
+    $body .= t("To post a new message to this group, email to !email",
+      array('!email' => $group_email . "@" . variable_get("og_mailinglist_server_string", $_SERVER['SERVER_NAME']))) . "<br />\n";
 
     // For each person, send out an email.
     $result = db_query("SELECT uid
