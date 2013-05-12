@@ -7,6 +7,7 @@
 
 // Load our utilities so the hook_requirements can call those functions.
 require_once 'og_mailinglist_utilities.inc';
+module_load_include('module', 'og', 'og');
 
 /**
  * Implements hook_install().
