@@ -130,6 +130,10 @@ function og_mailinglist_field_formatter_info() {
       'label' => t('Group email'),
       'field types' => array('group_email'),
     ),
+    'group_email_link' => array(
+      'label' => t('Group email link'),
+      'field types' => array('group_email'),
+    ),
   );
 }
 
@@ -152,7 +156,12 @@ function og_mailinglist_field_formatter_view($entity_type, $entity, $field, $ins
   $element = array();
 
   foreach ($items as $delta => $item) {
-    $element[$delta] = array('#markup' => $item['value']);
+    if ($display['type'] == 'group_email_link') {
+      $element[$delta] = array('#markup' => l($item['value'], 'mailto:' . $item['value']));
+    }
+    else {
+      $element[$delta] = array('#markup' => $item['value']);
+    }
   }
   return $element;
 }
