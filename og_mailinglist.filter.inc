@@ -4,6 +4,8 @@
  * OG Mailinglist filter to remove or hide quotes in emails.
  **/
 
+require_once 'og_mailinglist_common.inc';
+
 /**
  * Implements hook_filter_info().
  */
@@ -108,13 +110,12 @@ function _og_mailinglist_filter_quotes($text, $filter) {
 
   // Remove footer.
   if ($filter->settings['og_mailinglist_filter_footer'] == 1) {
-    $server = $_SERVER['SERVER_NAME'];
     $start = $end = -1;
     foreach ($lines as $line_number => $line) {
       // We assume that all footers start with > -- characters
       // and will continue with any number of lines which have server address.
       if ($start != -1) {
-        if (stripos($line, $server) != -1) {
+        if (stripos($line, og_mailinglist_server()) != -1) {
           $end = $line_number;
         }
         else {

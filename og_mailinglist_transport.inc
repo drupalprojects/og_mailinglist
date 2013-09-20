@@ -1046,7 +1046,7 @@ function _og_mailinglist_extract_emails($addresses) {
 function _og_mailinglist_extract_group_names($addresses) {
   // Regex borrowed from valid_email_address().
   // Case insensitivity is needed because in domain names case does not matter.
-  $server = variable_get("og_mailinglist_server_string", $_SERVER['SERVER_NAME']);
+  $server = og_mailinglist_server();
   $regex = "/([a-z0-9_\-\.\+\^!#\$%&*+\/\=\?\`\|\{\}~\']+)@" . $server . "/i";
 
   $out = array();
@@ -1088,7 +1088,7 @@ function _og_mailinglist_user_load_by_mail($email) {
  * Compose an error message and send it off.
  */
 function _og_mailinglist_send_error_email($email, $errormsg) {
-  $server = variable_get("og_mailinglist_server_string", $_SERVER['SERVER_NAME']);
+  $server = og_mailinglist_server();
   $noreply = variable_get("og_mailinglist_noreply_email", t("no-reply@") . $server);
 
   // Compose an email back to the sender informing them of the problem.

@@ -5,6 +5,7 @@
  *
  */
 
+require_once 'og_mailinglist_common.inc';
 require_once 'og_mailinglist_utilities.inc';
 
 define("EMAIL_HEADER", 'background-color: #D1DCFF; font-family: helvetica;
@@ -58,7 +59,7 @@ function _og_mailinglist_send_digest_emails() {
     $group_node = node_load($gid);
     $group_title = $group_node->title;
     $group_name = _og_mailinglist_get_group_name($group_node);
-    $server = variable_get("og_mailinglist_server_string", $_SERVER['SERVER_NAME']);
+    $server = og_mailinglist_server();
     $group_email = $group_name . '@' . $server;
     $group_request = $group_name . '-request@' . $server;
 
@@ -142,7 +143,7 @@ function theme_og_mailinglist_digest($variables) {
   $group = $variables['group'];
   $group_title = $group->title;
   $group_name = _og_mailinglist_get_group_name($group);
-  $server = variable_get("og_mailinglist_server_string", $_SERVER['SERVER_NAME']);
+  $server = og_mailinglist_server();
   $group_email = $group_name . '@' . $server;
   $group_url = url("node/" . $group->nid, $absolute);
 

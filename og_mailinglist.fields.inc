@@ -5,6 +5,8 @@
  * Defines group_email field type.
  */
 
+require_once 'og_mailinglist_common.inc';
+
 /**
  * Group email field.
  */
@@ -135,7 +137,7 @@ function og_mailinglist_field_formatter_info() {
  * Implements hook_field_formatter_prepare_view().
  */
 function og_mailinglist_field_formatter_prepare_view($entity_type, $entities, $field, $instances, $langcode, $items, $displays) {
-  $server = variable_get('og_mailinglist_server_string', $_SERVER['SERVER_NAME']);
+  $server = og_mailinglist_server();
   foreach ($items as $delta => $item) {
     foreach ($item as $id => $inst) {
       $items[$delta][$id]['value'] = $inst['value'] . '@' . $server;
@@ -172,7 +174,7 @@ function og_mailinglist_field_widget_info() {
  */
 function og_mailinglist_field_widget_form(&$form, &$form_state, $field, $instance, $langcode, $items, $delta, $element) {
   $value = isset($items[$delta]['value']) ? $items[$delta]['value'] : '';
-  $suffix = '@' . variable_get('og_mailinglist_server_string', $_SERVER['SERVER_NAME']);
+  $suffix = '@' . og_mailinglist_server();
 
   $element += array(
     '#type' => 'textfield',

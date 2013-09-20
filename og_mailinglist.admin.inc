@@ -4,6 +4,8 @@
  *  Admin interface for OG Mailinglist module.
  */
 
+require_once 'og_mailinglist_common.inc';
+
 /**
  * Admin settings form for email settings
  */
@@ -278,7 +280,7 @@ function og_mailinglist_config_settings() {
   $form['server']['og_mailinglist_server_string'] = array(
     '#title' => t('Domain name'),
     '#type' => 'textfield',
-    '#default_value' => variable_get('og_mailinglist_server_string', $_SERVER['SERVER_NAME']),
+    '#default_value' => og_mailinglist_server(),
     '#description' => t('Domain name for incoming/outgoing emails, e.g. example.com.'),
   );
   $form['server']['og_mailinglist_address_open'] = array(

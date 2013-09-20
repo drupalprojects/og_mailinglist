@@ -38,7 +38,7 @@ function og_mailinglist_send_comment_email($comment, $node, $gids) {
   $recipients['from'] = _og_mailinglist_sender($author);
 
   // Set Message-ID.
-  $server = variable_get("og_mailinglist_server_string", $_SERVER['SERVER_NAME']);
+  $server = og_mailinglist_server();
   $headers['message-id'] = format_string('<node-@nid-comment-@cid@@server>',
     array('@nid' => $node->nid, '@cid' => $comment->cid, '@server' => $server));
 
@@ -119,7 +119,7 @@ function og_mailinglist_send_node_email($node, $gids) {
   $recipients = array('to' => array(), 'cc' => array(), 'bcc' => array());
 
   // Set Message-ID.
-  $server = variable_get("og_mailinglist_server_string", $_SERVER['SERVER_NAME']);
+  $server = og_mailinglist_server();
   $headers['message-id'] = format_string('<node-@nid-comment-0@@server>',
     array('@nid' => $node->nid, '@server' => $server));
 

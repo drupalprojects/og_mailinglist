@@ -112,7 +112,7 @@ function _og_mailinglist_list_headers($group_node, $digest = FALSE) {
   $headers = array();
 
   $group_name = _og_mailinglist_get_group_name($group_node);
-  $server = variable_get("og_mailinglist_server_string", $_SERVER['SERVER_NAME']);
+  $server = og_mailinglist_server();
   $group_email = $group_name . '@' . $server;
 
   // Add a reply-to header directed to the group if enabled.
@@ -300,7 +300,7 @@ function theme_og_mailinglist_mail_footer($variables) {
  */
 function _og_mailinglist_sender($user) {
   if ($user->uid == 0) {
-    $server = variable_get('og_mailinglist_server_string', $_SERVER['SERVER_NAME']);
+    $server = og_mailinglist_server();
     return array('anonymous@' . $server => t('Anonymous'));
   }
 
@@ -313,7 +313,7 @@ function _og_mailinglist_sender($user) {
  */
 function _og_mailinglist_reciever($group_node) {
   $group_name = _og_mailinglist_get_group_name($group_node);
-  $server = variable_get('og_mailinglist_server_string', $_SERVER['SERVER_NAME']);
+  $server = og_mailinglist_server();
   $group_email = $group_name . '@' . $server;
   return array($group_email => $group_node->title);
 }
@@ -343,4 +343,18 @@ function _og_mailinglist_encode($value) {
     return "=?UTF-8?B?".base64_encode($value)."?=";
   }
   return $value;
+}
+
+/**
+ * A helper function to decide which variable to use for server name.
+ */
+function og_mailinglist_server() {
+  $server = variable_get("og_mailinglist_server_string", "");
+  if (strlen($server) != 0) {
+    return $server;
+  }
+  if (strlen($_SERVER['SERVER_NAME']) != 0) {
+    return $_SERVER['SERVER_NAME'];
+  }
+  return $_SERVER['HTTP_HOST'];
 }
