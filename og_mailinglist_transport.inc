@@ -1018,15 +1018,9 @@ function _og_mailinglist_get_nid_from_subject($subject) {
  */
 function _og_mailinglist_extract_emails($addresses) {
   $emails = array();
-  foreach (explode(',', $addresses) as $email) {
-    if (preg_match("@([^<]*)<(.*)>@is", $email, $matches)) {
-      $name = trim($matches[1], "\"' ");
-      $address = trim($matches[2]);
-      $emails[$address] = $name;
-    }
-    else {
-      $emails[trim($email)] = '';
-    }
+  $server = og_mailinglist_server();
+  foreach (imap_rfc822_parse_adrlist($addresses, $server) as $email) {
+    $emails[$email->mailbox . '@' . $email->host] = $email->personal;
   }
   return $emails;
 }
