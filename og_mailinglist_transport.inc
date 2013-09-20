@@ -364,10 +364,13 @@ function og_mailinglist_save_node($email) {
     $is_public = FALSE;
   }
 
+  $sender = user_load($email['userid']);
+
   // Create the new node
   $node = new stdClass();
   $node->title = $email['headers']['subject'];
   $node->uid = $email['userid'];
+  $node->name = $sender->name;
   $node->created = time();
   $node->status = 1; // published
   $node->promote = 0;
@@ -394,7 +397,6 @@ function og_mailinglist_save_node($email) {
   // Send off email.
   _og_mailinglist_email_node_email($email, $node);
 
-  $sender = user_load($email['userid']);
   $group_node = node_load($email['groupid']);
   // Report activity to watchdog.
   watchdog('og_mailinglist', t("Posted node for @mailfrom to group @group_name with nid=@nid.",
