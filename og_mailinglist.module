@@ -658,3 +658,13 @@ function og_mailinglist_subscription_settings_form(&$form_state, $group_node) {
 
   return $form;
 }
+
+/**
+ * Implementation of hook_user().
+ */
+function og_mailinglist_user($op, &$edit, &$account, $category = NULL) {
+  if ($op == 'delete') {
+    db_query('DELETE FROM og_mailinglist_thread WHERE uid = %d', $account->uid);
+    db_query('DELETE FROM og_mailinglist_subscription WHERE uid = %d', $account->uid);
+  }
+}
