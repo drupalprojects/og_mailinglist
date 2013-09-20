@@ -224,8 +224,9 @@ function theme_og_mailinglist_attached_files($variables) {
     if (!empty($images)) {
       $html .= "<br />\n";
       $html .= "Attached images:<br />\n";
-      foreach ($images as $image) {
-        $html .= l($image['filename'], file_create_url($image['uri'])) . "<br />\n";
+      foreach ($images as $file_info) {
+        $file = file_load($file_info['fid']);
+        $html .= l($file->filename, file_create_url($file->uri)) . "<br />\n";
       }
     }
   }
@@ -235,8 +236,9 @@ function theme_og_mailinglist_attached_files($variables) {
     if (!empty($files)) {
       $html .= "<br />\n";
       $html .= "Attached files:<br />\n";
-      foreach ($files as $file) {
-        $html .= l($file['filename'], file_create_url($file['uri'])) . "<br />\n";
+      foreach ($files as $file_info) {
+        $file = file_load($file_info['fid']);
+        $html .= l($file->filename, file_create_url($file->uri)) . "<br />\n";
       }
     }
   }
