@@ -512,3 +512,11 @@ function og_mailinglist_theme() {
     ),
   );
 }
+
+/**
+ * Implements hook_user_delete().
+ */
+function og_mailinglist_user_delete($account) {
+  db_delete('og_mailinglist_group_subscription')->condition('uid', $account->uid)->execute();
+  db_delete('og_mailinglist_thread_subscription')->condition('uid', $account->uid)->execute();
+}
