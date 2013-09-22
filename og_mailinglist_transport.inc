@@ -715,26 +715,31 @@ function _og_mailinglist_save_files($entity_type, &$entity, $attachments) {
     // TODO: decide whether to use private:// based on group privacy.
     $path = 'public://';
     if ($field->directory) {
-      $path .= 'public://' . $field->directory . '/' . $filename;
-      $dir = 'public://' . $field->directory;
-      if (!file_prepare_directory($dir))  {
-        drupal_set_message(t('Directory cannot be made writable'), NULL, 'error');
+      $dir = $path . $field->directory;
+      $path = $dir . '/' . $filename;
+      
+      if (!file_prepare_directory($dir, FILE_CREATE_DIRECTORY | FILE_MODIFY_PERMISSIONS))  {
+        watchdog('og_mailinglist', 'Directory @dir cannot be made writable', array('@dir' => $dir), WATCHDOG_ERROR);
+        return;
       }
     }
     else {
-      $path = 'public://' . $filename;
+      $path .= $filename;
     }
 
     $file = file_move($file, $path);
+    
+    if (!$file) {
+      watchdog('og_mailinglist', 'OG Mailinglist failed to attach file @file to entity', array('@file ' => $filename), WATCHDOG_ERROR);
+      return;
+    }
     $file->display = 1;
 
     if ($entity_type == $field->type) {
       $entity->{$field->name}[LANGUAGE_NONE][$file->fid] = (array) $file;
     }
     elseif ($entity_type == 'comment' and $field->type == 'node') {
-      if (!isset($node)) {
-        $node = node_load($entity->nid);
-      }
+      $node = node_load($entity->nid);
       $node->{$field->name}[LANGUAGE_NONE][$file->fid] = (array) $file;
     }
   }
