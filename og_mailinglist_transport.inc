@@ -142,14 +142,12 @@ function _og_mailinglist_process_email($raw_email, $group_name = NULL) {
       throw new Exception(t("Could not locate group named !group_name", array('!group_name' => $group_name)));
     }
 
-    // Check the this user is a member of this group (for security).
+    // Check if this user is a member of this group (for security).
     $results = db_query("SELECT og.nid, n.title
-                        FROM {og_uid} og JOIN {node} n
-                        JOIN {og} o
-                        WHERE og.uid=%d AND
-                        og.nid=%d AND
-                        og.nid=n.nid AND
-                        o.nid=og.nid", $email['userid'], $email['groupid']);
+                        FROM {og_uid} AS og
+                        JOIN {node} AS n ON n.nid = og.nid
+                        WHERE og.uid=%d
+                        AND og.nid=%d", $email['userid'], $email['groupid']);
     if (!db_result($results)) { // TODO also check if person is subscribed to this thread -- if they are, let them comment by email.
       throw new Exception(t("You (email: !mailfrom, account page: !account_page) are not a member of this group.  Please join the group via the web site before posting.",
                                array('!mailfrom' => $mailfrom, '!account_page' => url("user/" . $email['userid'], array('absolute' => TRUE)))));
