@@ -310,6 +310,7 @@ function og_mailinglist_save_comment(&$email, $group_nodes, $node, $new_gids, $a
   $comment->cid = 0;
   $comment->nid = $node->nid;
   $comment->uid = $author->uid;
+  $comment->name = $author->name;
   $comment->language = LANGUAGE_NONE;
   $comment->is_anonymous = 0;
   $comment->node_type = 'comment_node_' . $node->type;
