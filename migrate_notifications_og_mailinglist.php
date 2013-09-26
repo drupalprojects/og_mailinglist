@@ -49,7 +49,9 @@ foreach ($results as $data) {
 
 // The query to pull on current subscriptions SELECT n.uid as uid, f.value as gid, n.send_interval as send_interval FROM notifications n join notifications_fields f on n.sid = f.sid where n.type = "grouptype" and f.field = "group" group by uid, gid order by n.uid
 $sql = "SELECT n.uid AS uid, f.value AS gid, n.send_interval AS send_interval
-  FROM {notifications} n JOIN {notifications_fields} f ON n.sid = f.sid
+  FROM {notifications} AS n
+  JOIN {notifications_fields} AS f
+  ON n.sid = f.sid
   WHERE n.type = 'grouptype'
   AND f.field = 'group'
   AND n.send_interval <> 0 "// We've already added those above.
