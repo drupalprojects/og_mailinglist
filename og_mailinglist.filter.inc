@@ -99,13 +99,10 @@ function _og_mailinglist_remove_quotes($text) {
 function _og_mailinglist_filter_quotes($text, $filter) {
   // Fetch settings.
   $filter_type = $filter->settings['og_mailinglist_filter_quotations'];
-  $quote_min_length = (int) $filter->settings['og_mailinglist_filter_quotations_length'];
-  if ($quote_min_length < 2) {
-    $quote_min_length = 2;
-  }
+  $quote_min_length = max(2, $filter->settings['og_mailinglist_filter_quotations_length']);
 
   // Replace legacy operating systems' line break characters.
-  $text = str_replace(array('\r\n', '\r'), '\n', $text);
+  $text = str_replace(array("\r\n", "\r"), "\n", $text);
   $lines = explode("\n", $text);
 
   // Remove footer.
@@ -156,22 +153,14 @@ function _og_mailinglist_filter_quotes($text, $filter) {
     $end = $quote['end'];
     $quote_length = $end - $start + 1;
 
-    $quote_text = '';
     // First we append text before the quote.
-    for (; $current_line < $start; $current_line++) {
-      $quote_text .= $lines[$current_line] . "\n";
-    }
     // Run the quote through the Line break filter before replacing it in the text.
     // Otherwise the HTML Converter input filter will bork the HTML. This *could* be a
     // potential problem if someone doesn't want the Line Break filter run.
-    $text .= _filter_autop($quote_text);
+    $text .= _filter_autop(implode("\n", array_slice($lines, $current_line, $start - 1)));
 
     // Now we prepare the text inside the quote.
-    $quote_text = '';
-    for (; $current_line <= $end; $current_line++) {
-      $quote_text .= $lines[$current_line] . "\n";
-    }
-    $quote_text = _filter_autop($quote_text);
+    $quote_text = _filter_autop(implode("\n", array_slice($lines, $start, $end)));
 
     // This quote is not long enough.
     if ($quote_length < $quote_min_length) {
@@ -190,16 +179,13 @@ function _og_mailinglist_filter_quotes($text, $filter) {
       else {
         $text .= '<div class="toggle-quoted-text">'
           . t('- Show quoted text -') . '</div>'
-          . '<div class="quoted-text hidden">' . _filter_autop($quote_text) . '</div>';
+          . '<div class="quoted-text hidden">' . $quote_text . '</div>';
       }
     }
   }
-  $quote_text = '';
+
   // Now we append any text after the last quote.
-  for (; $current_line < count($lines); $current_line++) {
-    $quote_text .= $lines[$current_line] . "\n";
-  }
-  $text .= _filter_autop($quote_text);
+  $text .= _filter_autop(implode("\n", array_slice($lines, $end + 1)));
 
   // Remove email addresses, if needed.
   if ($filter->settings['og_mailinglist_filter_email'] == 1) {
@@ -212,8 +198,8 @@ function _og_mailinglist_filter_quotes($text, $filter) {
 }
 
 /**
- * Loops through the text line by line and tries to determine which ones are
- * quotes. If no '>' is found at start of line, then it is considered as
+ * Loops through the text line by line and tries to determine which lines are
+ * quoted. If no '>' is found at start of line, then it is considered as
  * email from bad client and it searches for special title lines. If one is
  * found, everything starting for that one is considered a quote.
  * This assumes that people with bad email clients tend to top-post as well.
@@ -230,7 +216,7 @@ function _og_mailinglist_find_quoted_sections(&$lines) {
     }
     elseif ($in_quote and (
       substr(ltrim($line), 0, 1) == '>'
-      // A empty line does not break a quote.
+      // An empty line does not break a quote.
       || trim($line) == ''
       // Email address is brought down to the next line so < starts the line.
       || substr(trim($line), 0, 1) == '<'
