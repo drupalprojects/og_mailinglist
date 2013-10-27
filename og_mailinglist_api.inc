@@ -280,10 +280,15 @@ function og_mailinglist_log_email_sent($source, $nid, $cid = 0, $parent_message_
     $in_reply_to = $headers['in-reply-to'];
     $len = strlen($in_reply_to);
     // If references string exceeds 512 characters we will cut it from left
-    // to fit database.
+    // to fit the database column.
     if ($len > 512) {
       $start = strpos($in_reply_to, '<', $len - 512);
       $in_reply_to = substr($in_reply_to, $start);
+      // If no < found, just drop it entirely.
+      if (strlen($in_reply_to) > 512) {
+        watchdog('og_mailinglist', 'An email with nid=@nid, cid=@cid came in which had too long and unsplittable reference list: %refs', array('@nid' => $nid, '@cid' => $cid, '%refs' => $in_reply_to), WATCHDOG_ERROR);
+        $in_reply_to = 0;
+      }
     }
   }
   else {
