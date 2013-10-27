@@ -4,7 +4,7 @@
  * OG Mailinglist block.
  */
 
-require_once '../../og_mailinglist_common.inc';
+module_load_include('inc', 'og_mailinglist', 'og_mailinglist_common');
 
 /**
  * Implements hook_block_info().
