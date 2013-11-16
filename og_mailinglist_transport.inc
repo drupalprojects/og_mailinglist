@@ -1026,7 +1026,7 @@ function _og_mailinglist_extract_emails($addresses) {
   $emails = array();
   $server = og_mailinglist_server();
   foreach (imap_rfc822_parse_adrlist($addresses, $server) as $email) {
-    $emails[$email->mailbox . '@' . $email->host] = $email->personal;
+    $emails[$email->mailbox . '@' . $email->host] = isset($email->personal) ? $email->personal : '';
   }
   return $emails;
 }
