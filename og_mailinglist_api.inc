@@ -362,7 +362,7 @@ function _og_mailinglist_get_thread_parent($headers) {
 
   foreach ($refs_array as $reference) {
     if (!empty($reference)) {
-      return db_query("SELECT parent_message_id AS nid, cid
+      return db_query("SELECT parent_message_id AS message_id, nid, cid
         FROM {og_mailinglist_source}
         WHERE message_id = :message_id",
         array(':message_id' => $reference))
@@ -374,28 +374,11 @@ function _og_mailinglist_get_thread_parent($headers) {
   if (empty($headers['in-reply-to'])) {
     return;
   }
-  return db_query("SELECT parent_message_id ΑS nid, cid
+  return db_query("SELECT parent_message_id ΑS message_id, nid, cid
     FROM {og_mailinglist_source}
     WHERE message_id = :message_id",
     array(':message_id' => $headers['in-reply-to']))
     ->fetchObject();
-}
-
-/**
- * Get the node ID from the email's message ID.
- *
- * @param string $message_id
- *   Email message ID, something like <13251.1353@example.com> or
- *   <node-1-comment-3@example.org>
- * @return int
- *   Node nid of the thread.
- */
-function _og_mailinglist_get_nid_from_messageid($message_id) {
-  return db_query("SELECT nid
-    FROM {og_mailinglist_source}
-    WHERE message_id = :message_id",
-    array(':message_id' => $message_id))
-    ->fetchField();
 }
 
 /**
