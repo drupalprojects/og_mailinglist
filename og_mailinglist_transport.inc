@@ -336,11 +336,13 @@ function og_mailinglist_save_comment(&$email, $group_nodes, $node, $new_gids, $a
   $comment->comment_body[$comment->language][0]['format'] = $filter;
 
   // Log that comment came from email so og_mailinglist_phpmailer doesn't send an email as well.
-  $parent_message_id = _og_mailinglist_get_thread_parent_messageid($email['headers']);
+  $parent_message = _og_mailinglist_get_thread_parent($email['headers']);
+  $parent_message_id = isset($parent_message->nid) ? $parent_message->nid : 0;
 
   // If enabled, set comment parent = cid of in-reply-to for comment threading.
-  if (variable_get('og_mailinglist_thread_comments', FALSE)) {
-    $comment->pid = db_query("SELECT cid FROM {og_mailinglist_source} WHERE message_id = :message_id", array(':message_id' => $email['headers']['in-reply-to']))->fetchField();
+  if (variable_get('og_mailinglist_thread_comments', FALSE)
+    and isset($parent_message->cid)) {
+    $comment->pid = $parent_message->cid;
   }
   else {
     $comment->pid = 0;

@@ -344,7 +344,7 @@ function og_mailinglist_delete_group($nid) {
 }
 
 /**
- * Try to get the parent message-id from the references header.
+ * Try to get the parent message nid and cid from the references header.
  *
  * Parent message ID is the message id of the node which starts the thread.
  * References are apparently a more reliable header than in-reply-to
@@ -352,23 +352,21 @@ function og_mailinglist_delete_group($nid) {
  *
  * @param array $headers
  *  Email headers as used in e.g _og_mailinglist_email_node_email()
+ *
+ * @return object with properties $object->nid and $object->cid or NULL.
  */
-function _og_mailinglist_get_thread_parent_messageid($headers) {
+function _og_mailinglist_get_thread_parent($headers) {
   $references = isset($headers['references']) ? $headers['references'] : '';
   $refs = str_replace(array("\r\n", "\n"), "", $references);
   $refs_array = explode(" ", $refs);
 
   foreach ($refs_array as $reference) {
     if (!empty($reference)) {
-      $parent_message_id = db_query("SELECT parent_message_id
+      return db_query("SELECT parent_message_id AS nid, cid
         FROM {og_mailinglist_source}
         WHERE message_id = :message_id",
         array(':message_id' => $reference))
-        ->fetchField();
-
-      if (!empty($parent_message_id)) {
-        return $parent_message_id;
-      }
+        ->fetchObject();
     }
   }
 
@@ -376,16 +374,11 @@ function _og_mailinglist_get_thread_parent_messageid($headers) {
   if (empty($headers['in-reply-to'])) {
     return;
   }
-  $in_reply_to_message_id = $headers['in-reply-to'];
-  $parent_message_id = db_query("SELECT parent_message_id
+  return db_query("SELECT parent_message_id ΑS nid, cid
     FROM {og_mailinglist_source}
     WHERE message_id = :message_id",
-    array(':message_id' => $in_reply_to_message_id))
-    ->fetchField();
-
-  if (!empty($parent_message_id)) {
-    return $parent_message_id;
-  }
+    array(':message_id' => $headers['in-reply-to']))
+    ->fetchObject();
 }
 
 /**
