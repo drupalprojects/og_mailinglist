@@ -35,7 +35,7 @@ For both methods, OG Mailinglist also requires:
 
 * PHPMailer >=5.2.2
 
-* The PHP library mimeDecode.
+* The PHP libraries mimeDecode and imap.
 
 * If you don't use direct posting (recommended, if possible), then to post over
   HTTP you either need HTTP_Request2 or curl libraries.
@@ -63,6 +63,12 @@ INSTALLATION INSTRUCTIONS:
 * and place the library (mimeDecode.php) either to
 * sites/all/modules/og_mailinglist/mimeDecode or to the libraries folder.
 * This is only necessary if users need to be able to send email to the site.
+
+* Install IMAP extension, enable it in php.ini or build PHP with IMAP support.
+* See http://www.php.net/manual/en/imap.installation.php
+*
+*   Debian/Ubuntu:          apt-get install php5-imap
+*   Fedora/RHEL/CentOS:     yum -y install php-imap
 
 * OPTIONAL: If you need to post from Exim or Postfix over HTTP (email and web
 * server are on different machines), then install the PHP library
