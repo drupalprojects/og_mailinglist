@@ -57,25 +57,51 @@ if ($site['direct_posting'] === True) {
   _og_mailinglist_process_email($raw_email);
 }
 else {
-  // Let's post over HTTP using Curl.
   $token = md5($site['validation_string'] . $raw_email);
 
-  $ch = curl_init();
-  curl_setopt($ch, CURLOPT_RETURNTRANSFER, FALSE);
-  curl_setopt($ch, CURLOPT_HTTPHEADER, array('Expect:'));
-  curl_setopt($ch, CURLOPT_POST, 1);
-  curl_setopt($ch, CURLOPT_HEADER, 1);
-  curl_setopt($ch, CURLOPT_URL, $site['post_url']);
+  // Since direct posting is disabled, we post over HTTP.
+  // Here we use one of two libraries in the preferred order.
+  @include_once 'HTTP/Request2.php';
+  if (class_exists("HTTP_Request2")) {
+    $request = new HTTP_Request2($site['post_url'], HTTP_Request2::METHOD_POST);
+    $request->setHeader('Expect', True);
+    $request->addPostParameter('message', $raw_email);
+    $request->addPostParameter('token', $token);
 
-  // Prepare the field values being posted to the service.
-  $data = array(
-    'message' => $raw_email,
-    'token' => $token,
-  );
+    try {
+      $response = $request->send();
+      if (200 == $response->getStatus()) {
+        // All good, do nothing!
+      }
+      else {
+          echo 'Unexpected HTTP status: ' . $response->getStatus() . ' ' .
+               $response->getReasonPhrase();
+      }
+    }
+    catch (HTTP_Request2_Exception $e) {
+        echo 'Error: ' . $e->getMessage();
+    }
+  }
+  else {
+    // We found no HTTP_Request2 class.
+    // Let's post using Curl.
+    $ch = curl_init();
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, FALSE);
+    curl_setopt($ch, CURLOPT_HTTPHEADER, array('Expect:'));
+    curl_setopt($ch, CURLOPT_POST, 1);
+    curl_setopt($ch, CURLOPT_HEADER, 1);
+    curl_setopt($ch, CURLOPT_URL, $site['post_url']);
 
-  curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
+    // Prepare the field values being posted to the service.
+    $data = array(
+      'message' => $raw_email,
+      'token' => $token,
+    );
 
-  // Make the request.
-  curl_exec($ch);
+    curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
+
+    // Make the request.
+    curl_exec($ch);
+  }
 }
 
