@@ -30,7 +30,6 @@ function og_mailinglist_site_info() {
               'post_url' => 'http://example.org/?=og_mailinglist',
               'validation_string' => '1234567890abcdefghijklmnopqrstuv',
      ),
-   )
   );
 }
 
