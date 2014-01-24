@@ -877,9 +877,8 @@ function _og_mailinglist_encode_email_headers($array) {
 // Keep mime-version, date, subject, from, to, and content-type
 function _og_mailinglist_remove_some_headers(&$email) {
   // Header values which we want to keep. All lowercase here.
-  $copy_headers = array('content-type', 'content-transfer-encoding',
-    'date', 'in-reply-to', 'message-id', 'mime-version', 'references',
-    'subject');
+  $copy_headers = array('content-type', 'date', 'in-reply-to', 'message-id',
+    'mime-version', 'references', 'subject');
 
   // Let's delete unnecessary header fields.
   foreach ($email['headers'] as $key => $value) {
