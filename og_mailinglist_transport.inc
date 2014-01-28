@@ -56,6 +56,15 @@ function _og_mailinglist_process_email($raw_email, $group_name = NULL) {
       exit();
     }
 
+    // Let's double check if this message has been here.
+    // https://drupal.org/node/2181049
+    $result = db_query('SELECT ogms.nid FROM {og_mailinglist_source} ogms
+        WHERE ogms.message_id = :msgid',
+        array(':msgid' => $email['headers']['message-id']));
+    if ($result->rowCount() > 0) {
+        exit();
+    }
+
     // Let's set the message subject in case it's missing.
     if (empty($email['headers']['subject'])) {
       $email['headers']['subject'] = t('(no subject)');
