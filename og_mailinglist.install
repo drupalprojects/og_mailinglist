@@ -61,7 +61,7 @@ function og_mailinglist_requirements($phase) {
       // Required library wasn't found.
       $requirements['og_mailinglist_phpmailer']['value'] = t('Not found');
       // Provide a download link to the PHPMailer library.
-      $requirements['og_mailinglist_phpmailer']['description'] = t('The PHPMailer library is missing or not installed correctly. <a href="@download">Download</a> and extract it to your <em>og_mailinglist</em> module directory. See the INSTALL.txt file at @install for more information.', array('@download' => 'https://github.com/KyleAMathews/phpmailer/downloads', '@install' => url(drupal_get_path('module', 'og_mailinglist') . '/INSTALL.txt')));
+      $requirements['og_mailinglist_phpmailer']['description'] = t('The PHPMailer library is missing or not installed correctly. <a href="@download">Download (see "Download ZIP" button at the right sidebar)</a> and extract it to your <em>og_mailinglist</em> module\'s or libraries directory if you use libraries module. See the INSTALL.txt file at @install for more information.', array('@download' => 'https://code.google.com/a/apache-extras.org/p/phpmailer/downloads/list', '@install' => url(drupal_get_path('module', 'og_mailinglist') . '/INSTALL.txt')));
       $requirements['og_mailinglist_phpmailer']['severity'] = REQUIREMENT_ERROR;
     }
 
