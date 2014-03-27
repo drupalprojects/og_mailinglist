@@ -336,6 +336,16 @@ function og_mailinglist_node_update($node) {
 }
 
 /**
+ * Implements hook_node_delete().
+ */
+function og_mailinglist_node_delete($node) {
+  if (og_is_group_content_type('node', $node->type)) {
+    og_mailinglist_delete_group($node->nid);
+  }
+}
+
+
+/**
  * Implements hook_comment_insert().
  */
 function og_mailinglist_comment_insert($comment) {
