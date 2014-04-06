@@ -1085,6 +1085,12 @@ function _og_mailinglist_user_load_by_mail($email) {
     throw new Exception($exception);
   }
 
+  // Check if user is blocked.
+  if ($user->status != 1) {
+    $exception = t("Your user account has been blocked, therefore you are unable to post or reply. If you believe this is a mistake, please contact a moderator.");
+    throw new Exception($exception);
+  }
+
   return $user;
 }
 
