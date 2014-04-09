@@ -292,7 +292,7 @@ function og_mailinglist_save_comment(&$email, $group_nodes, $node, $new_gids, $a
   foreach ($group_nodes as $gid => $group_node) {
     // Note: don't skip alter, but ignore admin (see og_user_access()).
     if (!og_user_access('node', $gid, 'post comments by mail', $author, FALSE, TRUE)) {
-      unset($group_nodes);
+      unset($group_nodes[$gid]);
     }
   }
   if (empty($group_nodes)) {
