@@ -521,8 +521,19 @@ function _og_mailinglist_email_node_email(&$email, $node, $group_nodes, $author)
     $success = _og_mailinglist_send_email($email['headers'], $recipients, $body);
   }
 
-  // If the sender's subscription type isn't email, give him a thread subscription.
-  if (og_mailinglist_get_group_subscription_type($node->og_group_ref[LANGUAGE_NONE][0], $node->uid) != "email") {
+  // If the sender's subscription type isn't email, give him a thread
+  // subscription. This can only happen when the user has been forwarded
+  // an email and user then replies to the list and is a member of the list
+  // but does not have email subscription (digest or none). Or got the email
+  // before opting for no emails.
+  $subscription_needed = TRUE;
+  foreach ($node->og_group_ref[LANGUAGE_NONE] as $target) {
+    $gid = $target['target_id'];
+    if (og_mailinglist_get_group_subscription_type($gid, $node->uid) == "email") {
+      $subscription_needed = FALSE;
+    }
+  }
+  if ($subscription_needed) {
     og_mailinglist_save_thread_subscriptions($node->nid, array($node->uid));
   }
 }
