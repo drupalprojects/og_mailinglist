@@ -66,11 +66,23 @@ function og_mailinglist_email_settings() {
     '#default_value' => variable_get('og_mailinglist_thread_comments', '0'),
     '#description' => t('New comments will be threaded on save. Existing comments will not be affected.'),
   );
+  $form['headers']['og_mailinglist_thread_by_subject'] = array(
+    '#title' => t('Thread comments using subject if no headers are available'),
+    '#type' => 'checkbox',
+    '#default_value' => variable_get('og_mailinglist_thread_by_subject', '0'),
+    '#description' => t('For threading new comments subject line will be used, if in-reply-to and reference headers are empty. Useful only for really poor email clients.'),
+  );
   $form['headers']['og_mailinglist_new_thread_from_subject'] = array(
     '#title' => t('Create a new node if the subject has been changed'),
     '#type' => 'checkbox',
     '#default_value' => variable_get('og_mailinglist_new_thread_from_subject', TRUE),
     '#description' => t('Create a new node if the subject of the email has been changed, even if it was a reply to an existing thread.'),
+  );
+  $form['headers']['og_mailinglist_subject_prefixes'] = array(
+    '#title' => t('Subject prefixes to be stripped'),
+    '#type' => 'textfield',
+    '#default_value' => variable_get('og_mailinglist_subject_prefixes', 'Re Fwd'),
+    '#description' => t('Subject prefixes which will be stripped before posting to the web as a comment or comparing with existing titles. Defaults to "Re Fwd". Include all localized variants, separate with single space. Escape regex special characters (it is directly included into regex match).'),
   );
 
   $form['signatures'] = array(

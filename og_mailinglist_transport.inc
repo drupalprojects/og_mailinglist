@@ -1007,13 +1007,17 @@ function og_mailinglist_parse_nid($email) {
   if (!empty($parent_message->nid)) {
     return $parent_message->nid;
   }
-
-  return _og_mailinglist_get_nid_from_subject($email['headers']['subject']);
+  if (variable_get('og_mailinglist_thread_by_subject', 0)) {
+    return _og_mailinglist_get_nid_from_subject($email['headers']['subject']);
+  }
 }
 
 function _og_mailinglist_get_nid_from_subject($subject) {
   $nid = NULL;
-  preg_match("/(Re:\s\[.*?\])?\s(.+)/si", $subject, $matches);
+  $prefixes = variable_get('og_mailinglist_subject_prefixes', 'Re Fwd');
+  $prefixes = str_replace(' ', ': ?|', trim($prefixes) . ' ');
+  preg_match("/(" . $prefixes . "\[.*?\])\s(.+)/si", $subject, $matches);
+
   if (isset($matches[2])) {
     $nid = db_query("SELECT nid
       FROM {node}
