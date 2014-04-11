@@ -374,7 +374,7 @@ function _og_mailinglist_get_thread_parent($headers) {
   if (empty($headers['in-reply-to'])) {
     return;
   }
-  return db_query("SELECT parent_message_id ΑS message_id, nid, cid
+  return db_query("SELECT parent_message_id AS message_id, nid, cid
     FROM {og_mailinglist_source}
     WHERE message_id = :message_id",
     array(':message_id' => $headers['in-reply-to']))
