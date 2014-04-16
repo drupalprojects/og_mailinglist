@@ -481,7 +481,9 @@ function _og_mailinglist_email_node_email(&$email, $node, $group_nodes, $author)
   // Users who already got this email since they are members of other groups
   // or were emailed directly.
   $already_mailed = array();
-  $already_mailed += $recipients['from'];
+  if (!variable_get('og_mailinglist_echo_author', FALSE)) {
+    $already_mailed += $recipients['from'];
+  }
   $already_mailed += $recipients['to'];
   $already_mailed += $recipients['cc'];
 
@@ -555,7 +557,9 @@ function _og_mailinglist_email_comment_email($email, $node, $group_nodes, $comme
   // Users who already got this email since they are members of other groups
   // or were emailed directly.
   $already_mailed = array();
-  $already_mailed += $recipients['from'];
+  if (!variable_get('og_mailinglist_echo_author', FALSE)) {
+    $already_mailed += $recipients['from'];
+  }
   $already_mailed += $recipients['to'];
   $already_mailed += $recipients['cc'];
 

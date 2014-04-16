@@ -84,6 +84,12 @@ function og_mailinglist_email_settings() {
     '#default_value' => variable_get('og_mailinglist_subject_prefixes', 'Re Fwd'),
     '#description' => t('Subject prefixes which will be stripped before posting to the web as a comment or comparing with existing titles. Defaults to "Re Fwd". Include all localized variants, separate with single space. Escape regex special characters (it is directly included into regex match).'),
   );
+  $form['headers']['og_mailinglist_echo_author'] = array(
+    '#title' => t('Send email to author as well'),
+    '#type' => 'checkbox',
+    '#default_value' => variable_get('og_mailinglist_echo_author', FALSE),
+    '#description' => t('Whenever a new node is created, send an email to the author as well.'),
+  );
 
   $form['signatures'] = array(
     '#type' => 'fieldset',
