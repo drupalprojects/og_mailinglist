@@ -429,6 +429,15 @@ function og_mailinglist_update_7003(&$sandbox) {
   db_query("UPDATE {field_data_body} SET body_summary = '' WHERE body_summary IS NULL;");
 }
 
+/**
+ * Add empty summary value to body revision values where it is missing.
+ */
+function og_mailinglist_update_7004(&$sandbox) {
+  if (db_table_exists('field_revision_body')) {
+    db_query("UPDATE {field_revision_body} SET body_summary = '' WHERE body_summary IS NULL;");
+  }
+}
+
 /*
  * Add the email field to all og groups.
  */
