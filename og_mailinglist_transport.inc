@@ -420,6 +420,7 @@ function og_mailinglist_save_node(&$email, $group_nodes, $author) {
   $node->uid = $author->uid;
   $node->language = LANGUAGE_NONE;
   $node->body[$node->language][0]['value'] = $mailbody;
+  $node->body[$node->language][0]['summary'] = '';
   $filter = variable_get('og_mailinglist_default_filter_format', 'plain_text');
   $node->body[$node->language][0]['format'] = $filter;
 
