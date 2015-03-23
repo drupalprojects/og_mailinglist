@@ -382,19 +382,46 @@ function og_mailinglist_comment_publish($comment) {
 /**
  * Implements hook_og_membership_insert().
  *
- * Add a og_mailinglist subscription when a user joins a group.
+ * Add an og_mailinglist subscription when a user joins a group
+ * and has status 'active'.
+ *
+ * @param OgMembershipType $membership
  */
 function og_mailinglist_og_membership_insert($membership) {
-  if ($membership->entity_type == 'user') {
+  if ($membership->entity_type == 'user' && $membership->state == OG_STATE_ACTIVE) {
     og_mailinglist_save_group_subscriptions($membership->gid,
       array($membership->etid));
+  }
+}
+
+
+/**
+ * Implements hook_og_membership_update.
+ *
+ * Add an og_mailinglist subscription when a user status
+ * is updated to 'active', remove otherwise.
+ *
+ * @param OgMembershipType $membership
+ */
+function og_mailinglist_og_membership_update($membership) {
+  if ($membership->entity_type == 'user') {
+    if ($membership->state == OG_STATE_ACTIVE) {
+      og_mailinglist_save_group_subscriptions($membership->gid,
+        array($membership->etid));
+    }
+    else {
+      og_mailinglist_delete_group_subscriptions($membership->gid,
+        array($membership->etid));
+    }
   }
 }
 
 /**
  * Implements hook_og_membership_delete().
  *
- * Remove a og_mailinglist subscription when a user leaves a group.
+ * Remove the og_mailinglist subscription when user leaves a group.
+ *
+ * @param OgMembershipType $membership
  */
 function og_mailinglist_og_membership_delete($membership) {
   if ($membership->entity_type == 'user') {
