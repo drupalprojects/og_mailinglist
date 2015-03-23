@@ -6,6 +6,10 @@
  * Override PHPMailer settings so email is sent through Mailgun.
  */
 function og_mailinglist_mailgun_og_mailinglist_new_phpmailer_alter(&$mailer) {
+  if (variable_get('og_mailinglist_mailgun_disable_outgoing', FALSE)) {
+    return;
+  }
+
   // Check if a login/password is set for Mailgun.
   $login = variable_get('og_mailinglist_mailgun_login', '');
   $password = variable_get('og_mailinglist_mailgun_password', '');
@@ -57,7 +61,7 @@ function og_mailinglist_mailgun_admin_settings() {
     '#type' => 'textfield',
     '#default_value' => variable_get('og_mailinglist_mailgun_login', ''),
     '#description' => t('Mailgun Login. Find this by logging into Mailgun then clicking on "Domains", then on the domain you\'ll be using for sending OG Mailinglist emails.'),
-    '#prefix' => '<p>' . l('Instructions for setting up the Mailgun/OG Mailinglist integration', 'admin/help/og_mailinglist_mailgun') . '</p>',
+    '#prefix' => '<p>' . l('Instructions', 'admin/help/og_mailinglist_mailgun') . ' for setting up the Mailgun/OG Mailinglist integration.</p>',
   );
   $form['og_mailinglist_mailgun_password'] = array(
     '#title' => t('Mailgun Password'),
@@ -70,6 +74,12 @@ function og_mailinglist_mailgun_admin_settings() {
     '#type' => 'textfield',
     '#default_value' => variable_get('og_mailinglist_mailgun_api_key', ''),
     '#description' => t('Mailgun API Key. This can be found under the Mailgun "My Account" tab.'),
+  );
+  $form['og_mailinglist_mailgun_disable_outgoing'] = array(
+    '#title' => t('Do not use Mailgun for outgoing email'),
+    '#type' => 'checkbox',
+    '#default_value' => variable_get('og_mailinglist_mailgun_disable_outgoing', FALSE),
+    '#description' => t('Use local server to send outgoing email instead. This reduces Mailgun usage, but can possibly cause problems with spam filters. See <a href="@link"> documentation</a>.', array('@link' => 'https://www.drupal.org/node/2458033')),
   );
 
   return system_settings_form($form);
