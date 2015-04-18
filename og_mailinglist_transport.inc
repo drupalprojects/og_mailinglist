@@ -143,7 +143,7 @@ function _og_mailinglist_process_email($raw_email, $group_name = NULL) {
     // See if the email is a comment to an existing node or a new node.
     // If the email is a comment to a node, we should be able to get the
     // node ID of the original node.
-    $email['nid'] = og_mailinglist_parse_nid($email);
+    $email['nid'] = og_mailinglist_parse_nid($email, $to_gids, $author);
 
     // User might be subscribed to the thread.
     if (empty($to_gids) and $email['nid']) {
@@ -226,7 +226,8 @@ function _og_mailinglist_process_email($raw_email, $group_name = NULL) {
       // should be 4 (e.g. "a subject" and "Re: a subject").
       // Let's use 7 for oddness of foreign languages.
       if ((empty($members) and count($not_members))
-        or (variable_get('og_mailinglist_new_thread_from_subject', TRUE) and levenshtein($node->title, $treated_subject) > 7)) {
+        or (variable_get('og_mailinglist_new_thread_from_subject', TRUE)
+            and levenshtein($node->title, $treated_subject) > 7)) {
         $type = 'node';
       }
     }
@@ -295,11 +296,21 @@ function og_mailinglist_save_comment(&$email, $group_nodes, $node, $new_gids, $a
       unset($group_nodes[$gid]);
     }
   }
-  if (empty($group_nodes)) {
+  // The check for $email['nid'] to be empty is to make sure it's not
+  // thread-subscribed user. Could create possible nuisances when trying to
+  // shut annoying users off.
+  if (empty($group_nodes) and empty($email['nid'])) {
     throw new Exception(t("You do not have rights to post comments to any of the group nodes you were trying to. Please contact the site administrator."));
   }
 
-  // Check that this post has comments enabled.
+  // If user somehow got the permission to post, then load all the groups again
+  // so everyone still gets the email.
+  foreach ($node->og_group_ref[LANGUAGE_NONE] as $value) {
+    $gid = $value['target_id'];
+    $group_nodes[$gid] = node_load($gid);
+  }
+
+  // Check if this post has comments enabled.
   if ($node->comment != COMMENT_NODE_OPEN) {
     throw new Exception(t("Comments (replies) have been disabled for this post."));
   }
@@ -1006,33 +1017,46 @@ function _og_mailinglist_add_footer(&$email, $footer) {
  * @param $headers
  *  Headers of the email to be parsed.
  */
-function og_mailinglist_parse_nid($email) {
+function og_mailinglist_parse_nid($email, $gids, $author) {
   // Check the in-reply-to header.
   $parent_message = _og_mailinglist_get_thread_parent($email['headers']);
   if (!empty($parent_message->nid)) {
     return $parent_message->nid;
   }
   if (variable_get('og_mailinglist_thread_by_subject', 0)) {
-    return _og_mailinglist_get_nid_from_subject($email['headers']['subject']);
-  }
-}
+    $nid = NULL;
+    $prefixes = variable_get('og_mailinglist_subject_prefixes', 'Re Fwd');
+    $prefixes = str_replace(' ', ':\s?|', trim($prefixes) . ' ');
+    preg_match("/(" . $prefixes . "\[.*?\]\s?)*(.+)/si", $email['headers']['subject'], $matches);
 
-function _og_mailinglist_get_nid_from_subject($subject) {
-  $nid = NULL;
-  $prefixes = variable_get('og_mailinglist_subject_prefixes', 'Re Fwd');
-  $prefixes = str_replace(' ', ': ?|', trim($prefixes) . ' ');
-  preg_match("/(" . $prefixes . "\[.*?\])\s(.+)/si", $subject, $matches);
-
-  if (isset($matches[2])) {
-    $nid = db_query("SELECT nid
-      FROM {node}
-      WHERE title LIKE :title
-      ORDER BY created desc
-      LIMIT 1",
-      array(':title' => '%' . $matches[2] . '%')
-    )->fetchField();
+    if (isset($matches[2])) {
+      if (!empty($gids)) {
+        $nid = db_query("SELECT n.nid
+          FROM {node} AS n
+          JOIN {og_membership} AS ogm ON n.nid = ogm.etid
+          WHERE ogm.entity_type = 'node'
+          AND ogm.gid IN (:groups)
+          AND n.title LIKE :title
+          ORDER BY n.created desc
+          LIMIT 1",
+          array(':groups' => $gids, ':title' => '%' . $matches[2] . '%')
+        )->fetchField();
+      }
+      if (empty($nid)) {
+        // Maybe the user is subscribed to the thread.
+        $nid = db_query("SELECT n.nid
+          FROM {node} AS n
+          JOIN {og_mailinglist_thread_subscription} AS ogmts ON n.nid = ogmts.nid
+          WHERE ogmts.uid = :uid
+          AND n.title LIKE :title
+          ORDER BY n.created desc
+          LIMIT 1",
+          array(':uid' => $author->uid, ':title' => '%' . $matches[2] . '%')
+        )->fetchField();
+      }
+    }
+    return $nid;
   }
-  return $nid;
 }
 
 /**
