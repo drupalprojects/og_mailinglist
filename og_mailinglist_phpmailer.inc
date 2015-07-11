@@ -35,7 +35,7 @@ function og_mailinglist_send_comment_email($comment, $node, $gids) {
   // Add default values.
   $headers = array();
   $recipients = array('to' => array(), 'cc' => array(), 'bcc' => array());
-  $recipients['from'] = _og_mailinglist_sender($author);
+  $recipients['from'] = _og_mailinglist_sender($author, $group_nodes);
 
   // Set Message-ID.
   $server = og_mailinglist_server();
@@ -159,7 +159,7 @@ function og_mailinglist_send_node_email($node, $gids) {
   $text = drupal_html_to_text($html);
   $group_nodes = $data['group_nodes'];
 
-  $recipients['from'] = _og_mailinglist_sender($author);
+  $recipients['from'] = _og_mailinglist_sender($author, $group_nodes);
   foreach ($group_nodes as $group_node) {
     $recipients['to'] += _og_mailinglist_reciever($group_node);
   }

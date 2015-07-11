@@ -485,7 +485,7 @@ function _og_mailinglist_email_node_email(&$email, $node, $group_nodes, $author)
 
   // Recipients.
   $recipients = array();
-  $recipients['from'] = _og_mailinglist_sender($author);
+  $recipients['from'] = _og_mailinglist_sender($author, $group_nodes);
   $recipients['to'] = $email['to'];
   $recipients['cc'] = $email['cc'];
   $recipients['bcc'] = array();
@@ -561,7 +561,7 @@ function _og_mailinglist_email_comment_email($email, $node, $group_nodes, $comme
 
   // Recipients.
   $recipients = array();
-  $recipients['from'] = _og_mailinglist_sender($author);
+  $recipients['from'] = _og_mailinglist_sender($author, $group_nodes);
   $recipients['to'] = $email['to'];
   $recipients['cc'] = $email['cc'];
   $recipients['bcc'] = array();
