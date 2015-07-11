@@ -184,8 +184,12 @@ function _og_mailinglist_process_email($raw_email, $group_name = NULL) {
       $gids = $to_gids;
     }
 
-    // Load group nodes.
+    // Sort array elements, leaving the first in place.
+    $first_element = array_shift($gids);
     sort($gids);
+    array_unshift($gids, $first_element);
+
+    // Load group nodes.
     $group_nodes = node_load_multiple($gids);
     $email['group_nodes'] = $group_nodes;
 
