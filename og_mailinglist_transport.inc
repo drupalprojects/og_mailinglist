@@ -36,7 +36,7 @@ function og_mailinglist_post() {
   }
 
   // If the Maillog module has been set to turn off emails, return.
-  if (!variable_get('maillog_send', TRUE)) {
+  if (module_exists('maillog') && !variable_get('maillog_send', TRUE)) {
     watchdog('WATCHDOG_INFO', 'Maillog has disabled this site from sending emails. An incoming email was left unprocessed.', array(), WATCHDOG_INFO);
     return;
   }
