@@ -134,9 +134,13 @@ function _og_mailinglist_process_email($raw_email, $group_name = NULL) {
 
     // Check if this user is member of at least one of these groups
     // (for security).
-    foreach ($to_gids as $key => $gid) {
-      if (!og_is_member('node', $gid, 'user', $author)) {
-        unset($to_gids[$key]);
+    if($author->uid == 1) {
+      // let it through
+    } else {
+      foreach ($to_gids as $key => $gid) {
+        if (!og_is_member('node', $gid, 'user', $author)) {
+          unset($to_gids[$key]);
+        }
       }
     }
 
@@ -158,7 +162,9 @@ function _og_mailinglist_process_email($raw_email, $group_name = NULL) {
       }
     }
     elseif (empty($to_gids)) {
-        throw new Exception(t("You are not a member of any of the groups you tried to post to."));
+      
+      throw new Exception(t("You are not a member of any of the groups you tried to post to.  Username: ") .  l($author->name, 'user/' . $author->uid) .
+        " Email: " . $author->mail . l(" Last Group",'node/' . $gid)  );
     }
 
     if ($email['nid']) {

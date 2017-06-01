@@ -40,3 +40,11 @@ CREDITS:
 
 Thanks to the mail_comment module for the inspiration for some of the code in
 this module.
+
+
+Updates
+
+7.x-1.1-alpha3:
+
+Removed the 'via listname' from the name of the person sending it
+

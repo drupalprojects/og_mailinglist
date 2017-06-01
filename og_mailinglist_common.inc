@@ -309,6 +309,7 @@ function _og_mailinglist_sender($user, $groups = FALSE) {
   $name = isset($user->realname) ? $user->realname : $user->name;
   
   // Check the DMARC settings of host
+   
   $split = explode("@", $user->mail);
   $host = $split[1];
   $dns = dns_get_record ('_dmarc.' . $host, $type = DNS_TXT);
@@ -316,20 +317,20 @@ function _og_mailinglist_sender($user, $groups = FALSE) {
   
   if (strpos($txt, 'p=reject') !== FALSE or strpos($txt, 'p=quarantine') !== FALSE) {
     if ($groups) {
-      $listname = $groups[0]->title;
-      $name = t('@user via @list', array('@user' => $name, '@list' => $listname));
-      $list_email = $groups[0]->group_email[LANGUAGE_NONE][0]['value'];
+      $name = t('@user', array('@user' => $name));
+      $server = og_mailinglist_server(); 
+      $group = array_pop($groups);  // get first value out of groups -- it uses the group nid as the key
+      $list_email = $group->group_email[LANGUAGE_NONE][0]['value'] . '@' . $server;
       $mail = array($list_email => $name);
     }
     else {
-      $name = t('@user via list', array('@user' => $name));
+      $name = t('@user', array('@user' => $name));
       $mail = array(variable_get('site_mail', '') => $name);
     }
   }
   else {
     $mail = array($user->mail => $name);
   }
-  
   return $mail;
 }
 
